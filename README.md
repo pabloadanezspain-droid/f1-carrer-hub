@@ -2,13 +2,6 @@
 
 A personal "living season" website for your F1 game career. Its visual language follows formula1.com. All of its content comes from your own career save.
 
-## Open it
-- **Recommended:** double-click **`Open Career Hub.bat`**. It starts a small local server with Python and opens http://127.0.0.1:5178. Team-card exports include the real photos only when the site is opened this way.
-- **Easiest:** double-click `index.html`. It is a single self-contained file that works offline from `file://`.
-- **Local server instead:** run `python -m http.server 5178` in this folder, then open http://127.0.0.1:5178.
-
-On first run it loads a **fictional sample season**. A yellow banner marks it as invented. Use **Edit Career** to change it, or go to **Edit Career → Import / Export → Start empty career** to begin your own.
-
 ## Pages (hash routes)
 | Page | Route |
 |---|---|
