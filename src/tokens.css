@@ -1,0 +1,69 @@
+/* Design tokens — values observed on formula1.com (see reference/REFERENCE_NOTES.md) */
+:root {
+  /* surfaces (.f1rd-dark neutral scale) */
+  --n-1: #000000;
+  --n-2: #26262b;
+  --n-3: #15151e;
+  --n-4: #303037;
+  --n-5: #47464c;
+  --n-6: #606066;
+  --n-7: #aaaaaa;
+  --n-8: #cdcdcd;
+  --n-9: #e0dedc;
+  --n-10: #f7f4f1;
+  --n-11: #ffffff;
+
+  --bg-page: var(--n-3);
+  --bg-html: var(--n-2);
+  --bg-band: var(--n-1);
+  --bg-card: var(--n-1);
+  --bg-raised: #1c1c25;
+  --line: var(--n-4);
+
+  --text: var(--n-11);
+  --text-2: var(--n-9);
+  --text-muted: var(--n-7);
+
+  --red: #e10600;
+  --red-hover: #ca0500;
+  --red-20: #710e10;
+
+  --tint-10: rgba(255, 255, 255, .1);
+  --tint-20: rgba(255, 255, 255, .2);
+
+  /* type */
+  --f-display: "Formula1", "Titillium Web", system-ui, sans-serif;
+  --f-wide: "Formula1Wide", "Formula1", system-ui, sans-serif;
+  --f-body: "Titillium Web", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-md: 16px;
+  --fs-lg: 17px;
+  --fs-xl: 20px;
+  --fs-h4: 24px;
+  --fs-h3: 32px;
+  --fs-h2: 40px;
+  --fs-h1: 48px;
+  --fs-hero: 60px;
+
+  /* layout */
+  --gutter: 48px;
+  --max-w: 1440px;
+  --radius: 8px;
+  --pill: 1000px;
+  --gap: 24px;
+
+  --utility-h: 44px;
+  --nav-h: 64px;
+  --strip-h: 56px;
+
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+@media (max-width: 1023px) {
+  :root { --gutter: 32px; --fs-h2: 32px; --fs-h1: 40px; --fs-hero: 44px; }
+}
+@media (max-width: 639px) {
+  :root { --gutter: 24px; --fs-h2: 28px; --fs-h3: 24px; --fs-h1: 32px; --fs-hero: 32px; --gap: 16px; }
+}

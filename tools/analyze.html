@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>neckfit runner</title></head>
+<body>
+<!-- Used by tools/analyze-portraits.mjs (headless Chrome, --allow-file-access-from-files). Not part of the site. -->
+<script>const FRAME_ASPECT = 720 / 2069;</script>
+<script src="../src/neckfit.js"></script>
+<script>
+const load = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('load ' + src)); i.src = src; });
+window.analyzeAll = async (paths) => {
+  const out = {};
+  for (const p of paths) {
+    const im = await load('../' + p);
+    const f = analyzeFit(im);
+    if (!f.ok) { out[p] = { ok: false, reason: f.reason }; continue; }
+    // debug overlay: top 26% of the portrait, contour (red), neck top (cyan), collar tip/depth (yellow)
+    const W = 360, H = Math.round(W * f.aspect), S = 360 / im.naturalWidth, c = document.createElement('canvas'); c.width = W; c.height = Math.round(H * .26);
+    const g = c.getContext('2d'); g.fillStyle = '#333'; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(f.masks.faceExt, 0, 0, W, H); g.globalAlpha = .55; g.drawImage(f.masks.body, 0, 0, W, H); g.globalAlpha = 1;
+    g.strokeStyle = 'red'; g.lineWidth = 2; g.beginPath(); f.contour.forEach(([x, y], i) => i ? g.lineTo(x * W, y * W) : g.moveTo(x * W, y * W)); g.stroke();
+        g.fillStyle = 'yellow'; g.fillRect(f.cx * W - 3, f.ct * W - 3, 6, 6); g.fillRect(f.cx * W - 3, f.cd * W - 3, 6, 6);
+    out[p] = { fit: Object.assign({}, f, { masks: undefined }), head: f.masks.head.toDataURL('image/png'), body: f.masks.body.toDataURL('image/png'), faceExt: f.masks.faceExt.toDataURL('image/webp', .92), debug: c.toDataURL('image/png') };
+  }
+  return out;
+};
+</script>
+</body></html>

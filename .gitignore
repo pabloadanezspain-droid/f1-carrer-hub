@@ -1,0 +1,11 @@
+# QA / screenshot output — regenerate with tools/shoot.sh, tools/qa-matrix.mjs, tools/analyze-portraits.mjs
+reference/build-shots/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+
+# NOTE: this repository must stay PRIVATE. assets/f1com/ contains formula1.com images and
+# assets/fonts/ the Formula1 typeface, kept for personal local use only (see README).
