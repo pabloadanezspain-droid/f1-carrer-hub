@@ -8,7 +8,7 @@ const src = p => fs.readFileSync(new URL('../src/' + p, import.meta.url), 'utf8'
 const mem = {};
 const ctx = { console, localStorage: { getItem: k => mem[k] ?? null, setItem: (k, v) => { mem[k] = v; } } };
 vm.createContext(ctx);
-vm.runInContext(src('store.js') + '\n' + src('selectors.js') + '\nthis.api = { Store, normalizeCareer, validateCareer, classify, standings, driverStandings, teamStandings, driverTeamAt, resultFor, lineupAt, nextRound, statsFor, referencesTo, clone };', ctx);
+vm.runInContext(src('store.js') + '\n' + src('selectors.js') + '\n' + src('matrix.js') + '\nthis.api = { mxSetResult, mxSetPole, mxSetFastestLap, mxCell, mxPoleOf, byId, Store, normalizeCareer, validateCareer, classify, standings, driverStandings, teamStandings, driverTeamAt, resultFor, lineupAt, nextRound, statsFor, referencesTo, clone };', ctx);
 const A = ctx.api;
 const sample = JSON.parse(src('sample-data.json'));
 let pass = 0;
@@ -139,6 +139,62 @@ test('persistence round-trips through localStorage', () => {
   A.Store.save();
   A.Store.data = null; A.Store.load(sample);
   assert.equal(A.Store.data.meta.careerName, 'Round trip');
+});
+
+test('matrix: typing a position into an empty race keeps the exact place and its points', () => {
+  const x = A.normalizeCareer(A.clone(sample)); const R = 'rnd_2026_01';
+  A.mxSetResult(x, R, 'race', 'drv_lando_norris', 5);
+  const row = A.classify(x, A.resultFor(x, R, 'race'))[0];
+  assert.equal(row.position, 5); assert.equal(row.pts, 10);
+  assert.equal(A.byId(x.rounds, R).status, 'completed');
+  assert.deepEqual([...A.validateCareer(x)], []);
+});
+
+test('matrix: a taken place pushes cars down, or swaps when the driver already had a place', () => {
+  const x = A.normalizeCareer(A.clone(sample)); const R = 'rnd_2026_01';
+  const pos = id => A.mxCell(x, A.byId(x.rounds, R), id).label;
+  A.mxSetResult(x, R, 'race', 'drv_lando_norris', 5);
+  A.mxSetResult(x, R, 'race', 'drv_oscar_piastri', 6);
+  A.mxSetResult(x, R, 'race', 'drv_max_verstappen', 5);         // new driver into P5: Norris 6, Piastri 7
+  assert.deepEqual([pos('drv_max_verstappen'), pos('drv_lando_norris'), pos('drv_oscar_piastri')], ['5', '6', '7']);
+  A.mxSetResult(x, R, 'race', 'drv_oscar_piastri', 5);          // Piastri had P7: swaps with Verstappen
+  assert.deepEqual([pos('drv_oscar_piastri'), pos('drv_lando_norris'), pos('drv_max_verstappen')], ['5', '6', '7']);
+  A.mxSetResult(x, R, 'race', 'drv_george_russell', 1);
+  assert.equal(A.mxCell(x, A.byId(x.rounds, R), 'drv_george_russell').tone, 'gold');
+  assert.equal(A.mxCell(x, A.byId(x.rounds, R), 'drv_max_verstappen').tone, 'green');
+});
+
+test('matrix: Ret / DNS / DSQ, colours, clearing and the empty race', () => {
+  const x = A.normalizeCareer(A.clone(sample)); const R = 'rnd_2026_02'; const rd = () => A.byId(x.rounds, R);
+  A.mxSetResult(x, R, 'race', 'drv_charles_leclerc', 1);
+  A.mxSetFastestLap(x, R, 'drv_charles_leclerc', true);
+  A.mxSetResult(x, R, 'race', 'drv_charles_leclerc', 'DNF');
+  const cell = A.mxCell(x, rd(), 'drv_charles_leclerc');
+  assert.equal(cell.label, 'Ret'); assert.equal(cell.tone, 'purple'); assert.equal(cell.fastestLap, false);
+  A.mxSetResult(x, R, 'race', 'drv_lewis_hamilton', 'DSQ');
+  assert.equal(A.mxCell(x, rd(), 'drv_lewis_hamilton').tone, 'black');
+  assert.throws(() => A.mxSetFastestLap(x, R, 'drv_lewis_hamilton', true), /position first/);
+  A.mxSetResult(x, R, 'race', 'drv_charles_leclerc', '');
+  A.mxSetResult(x, R, 'race', 'drv_lewis_hamilton', '');
+  assert.equal(A.resultFor(x, R, 'race'), null);
+  assert.equal(rd().status, 'scheduled');
+});
+
+test('matrix: pole and fastest lap are unique; sprint points count', () => {
+  const x = A.normalizeCareer(A.clone(sample));
+  const R = x.rounds.find(r => r.seasonId === SID && r.sprint).id;
+  A.mxSetPole(x, R, 'drv_lando_norris', true); A.mxSetPole(x, R, 'drv_oscar_piastri', true);
+  assert.equal(A.mxPoleOf(x, R), 'drv_oscar_piastri');
+  A.mxSetPole(x, R, 'drv_oscar_piastri', false);
+  assert.equal(A.mxPoleOf(x, R), 'drv_lando_norris');
+  A.mxSetResult(x, R, 'race', 'drv_lando_norris', 1); A.mxSetResult(x, R, 'race', 'drv_oscar_piastri', 2);
+  A.mxSetFastestLap(x, R, 'drv_lando_norris', true); A.mxSetFastestLap(x, R, 'drv_oscar_piastri', true);
+  assert.equal(A.resultFor(x, R, 'race').entries.filter(e => e.fastestLap).length, 1);
+  A.mxSetResult(x, R, 'sprint', 'drv_lando_norris', 1);
+  const st = A.driverStandings(x, SID);
+  assert.equal(st.find(r => r.id === 'drv_lando_norris').points, 25 + 8);
+  assert.equal(st.find(r => r.id === 'drv_oscar_piastri').points, 18 + 1);
+  assert.deepEqual([...A.validateCareer(x)], []);
 });
 
 console.log(`\n${pass} tests passed`);

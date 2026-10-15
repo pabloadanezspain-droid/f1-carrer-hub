@@ -231,25 +231,21 @@ function pageRaceResult(roundId, session) {
 function pageStandings(kind, q) {
   const c = D(); const s = pickSeason(q); if (!s) return noSeason();
   const done = completedRounds(c, s.id).length, total = roundsOf(c, s.id).length;
-  let headers, rows;
-  if (kind === 'drivers') {
-    headers = [{ label: 'Pos.' }, { label: 'Driver' }, { label: 'Nationality', cls: 'hide-sm' }, { label: 'Team' }, { label: 'Pts.', cls: 'num' }];
-    rows = driverStandings(c, s.id).map(r => {
-      const d = driverOf(r.id), t = teamOf(r.teamId);
-      const others = r.teamsUsed.filter(x => x !== r.teamId).map(teamOf).filter(Boolean);
-      return `<tr style="--tc:${t ? t.color : '#666'}"><td>${r.position}</td><td>${driverLink(d, t)}</td><td class="hide-sm">${d ? esc(d.nationality) : ''}</td><td>${teamLink(t)}${others.length ? `<span class="also">also ${others.map(o => esc(o.name)).join(', ')}</span>` : ''}</td><td class="num">${r.points}</td></tr>`;
-    });
-  } else {
-    headers = [{ label: 'Pos.' }, { label: 'Team' }, { label: 'Wins', cls: 'num hide-sm' }, { label: 'Podiums', cls: 'num hide-sm' }, { label: 'Pts.', cls: 'num' }];
-    rows = teamStandings(c, s.id).map(r => `<tr><td>${r.position}</td><td>${teamLink(teamOf(r.id))}</td><td class="num hide-sm">${r.wins}</td><td class="num hide-sm">${r.podiums}</td><td class="num">${r.points}</td></tr>`);
-  }
-  return { title: `${s.year} ${kind === 'drivers' ? "Drivers'" : "Teams'"} Standings`, nav: 'standings', html: `
+  const edit = kind === 'drivers' && q.edit === '1';
+  const base = `#/standings/${kind}?season=${s.id}`;
+  const title = `${s.year} ${kind === 'drivers' ? "Drivers'" : "Teams'"} Standings`;
+  const tools = kind === 'drivers'
+    ? (edit ? `<a class="btn btn-red mx-edit-btn" href="${base}">Done editing</a>` : `<a class="btn btn-outline mx-edit-btn" href="${base}&edit=1">Edit results</a>`)
+    : `<a class="btn btn-ghost mx-edit-btn" href="#/standings/drivers?season=${s.id}&edit=1">Edit results in drivers' table ›</a>`;
+  return { title, nav: 'standings', html: `
     ${resultsSubnav(s, kind)}
-    <div class="wrap page">
-      <h1 class="h-page">${esc(s.year)} ${kind === 'drivers' ? "Drivers'" : "Teams'"} Standings</h1>
-      <p class="page-sub">After ${done} of ${total} rounds · ${esc(ruleFor(c, s.id).name || 'Points')}</p>
-      ${dataTable(headers, rows)}
-    </div>` };
+    <div class="wrap page" data-mx-wrap>
+      <div class="mx-top"><div><h1 class="h-page">${esc(title)}</h1>
+        <p class="page-sub">After ${done} of ${total} rounds · ${esc(ruleFor(c, s.id).name || 'Points')}</p></div>${tools}</div>
+      ${edit ? '<p class="mx-editing"><b>Editing.</b> Click any cell to set the position, Ret, DNS or DSQ, pole and fastest lap. Changes save and update the standings instantly.</p>' : ''}
+      ${kind === 'drivers' ? mxDriversTable(c, s, edit) : mxTeamsTable(c, s)}
+      ${mxLegend()}
+    </div>`, after: bindMatrix };
 }
 
 /* ======================= DRIVERS ========================================= */

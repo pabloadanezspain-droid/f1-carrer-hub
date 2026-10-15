@@ -33,7 +33,8 @@ function classify(c, result) {
   let pos = 0;
   return result.entries.map(e => {
     const classified = isClassified(e);
-    const position = classified ? ++pos : null;
+    // an entry may carry its exact position (set from the standings matrix), which allows gaps
+    const position = classified ? (pos = Number.isInteger(e.pos) && e.pos > pos ? e.pos : pos + 1) : null;
     let pts = 0;
     if (classified && position <= table.length) pts = Number(table[position - 1]) || 0;
     const fl = rule.fastestLap || {};

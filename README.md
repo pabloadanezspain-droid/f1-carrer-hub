@@ -8,7 +8,7 @@ A personal "living season" website for your F1 game career. Its visual language 
 | Home: lead story, next race, latest result, standings podium + tables, news | `#/` |
 | Calendar · race weekend | `#/schedule` · `#/schedule/<roundId>` |
 | Race results index · race / sprint / qualifying result | `#/results` · `#/results/<roundId>/<session>` |
-| Drivers' / Teams' standings | `#/standings/drivers` · `#/standings/teams` |
+| Drivers' / Teams' standings (Wikipedia-style results matrix; `&edit=1` makes cells editable) | `#/standings/drivers` · `#/standings/teams` |
 | Drivers directory · profile | `#/drivers` · `#/drivers/<id>` |
 | Teams directory · profile | `#/teams` · `#/teams/<id>` |
 | News index (category chips) · article | `#/news` · `#/news/<id>` |
@@ -23,6 +23,7 @@ src/tokens.css       design tokens (colours, type, spacing) measured from formul
 src/styles.css       layout + components
 src/components.js    shell (header, nav, race strip, mobile menu, footer) + cards, tables, atoms
 src/pages.js         public pages
+src/matrix.js        Wikipedia-style standings matrix + click-to-edit result cells
 src/editor.js        Edit Career forms, results grid editor, transfers, import/export
 src/store.js         data model, persistence, validation      (see DATA_MODEL.md)
 src/selectors.js     standings / line-ups / stats (pure functions)
