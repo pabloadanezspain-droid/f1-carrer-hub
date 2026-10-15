@@ -147,6 +147,10 @@ const FLAGS = {
   SGP: ['h2', '#ef3340', '#ffffff'], POR: ['pt'], CHI: ['h2', '#ffffff', '#d52b1e'], COL: ['h3', '#fcd116', '#003893', '#ce1126'],
 };
 function flagSvg(code) {
+  // accurate flags from flag-icons (MIT), injected by build.mjs as FLAG_DATA; hand-drawn shapes below are only a fallback
+  const fd = typeof FLAG_DATA !== 'undefined' ? FLAG_DATA : null;
+  const iso = fd && fd.codes[String(code || '').toUpperCase()];
+  if (iso && fd.svg[iso]) return svgUri(fd.svg[iso]);
   const f = FLAGS[code];
   const W = 30, H = 20;
   let b = '';
