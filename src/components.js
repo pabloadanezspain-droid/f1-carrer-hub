@@ -127,7 +127,7 @@ function footer() {
     <div class="footer-cols">
       <div><h4>Season</h4><a href="#/schedule">Schedule</a><a href="#/results">Results</a><a href="#/standings/drivers">Drivers' Standings</a><a href="#/standings/teams">Teams' Standings</a></div>
       <div><h4>Paddock</h4><a href="#/drivers">Drivers</a><a href="#/teams">Teams</a><a href="#/news">Latest news</a></div>
-      <div><h4>Career</h4><a href="#/edit">Edit Career</a><a href="#/edit/data">Import / Export</a></div>
+      <div><h4>Career</h4><a href="#/edit">Edit Career</a><a href="#/edit/data">Backup &amp; reset</a></div>
     </div>
     <p class="footer-fine">${esc(c.meta.careerName)}${c.meta.updatedAt ? ' · saved ' + esc(fmtDate(c.meta.updatedAt)) : ''}${Store.storageOk ? '' : ' · ⚠ browser storage unavailable — changes will not persist, use Export'}</p>
   </div></footer>`;

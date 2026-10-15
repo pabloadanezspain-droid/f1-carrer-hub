@@ -446,24 +446,129 @@ a:hover .media img { transform: scale(1.1); }
 .footer-fine { color: var(--n-6); font-size: 12px; margin: 0; }
 
 /* ---- editor -------------------------------------------------------------- */
-.edit-layout { display: grid; grid-template-columns: 220px 1fr; gap: 32px; align-items: start; }
-.edit-nav { display: flex; flex-direction: column; position: sticky; top: calc(var(--nav-h) + var(--strip-h) + 16px); background: var(--bg-card); border-radius: var(--radius); padding: 8px; }
-.edit-nav a { padding: 10px 14px; border-radius: 6px; font-weight: 600; color: var(--text-muted); border-left: 3px solid transparent; }
+.edit-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 32px; }
+.edit-head .h-page { margin: 0; }
+.edit-saved { font-size: var(--fs-sm); color: var(--text-muted); }
+.edit-saved::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #4ade80; margin-right: 8px; vertical-align: 1px; }
+.edit-layout { display: grid; grid-template-columns: 210px 1fr; gap: 40px; align-items: start; }
+.edit-nav { display: flex; flex-direction: column; gap: 2px; position: sticky; top: calc(var(--nav-h) + var(--strip-h) + 16px); }
+.edit-nav-group { display: flex; flex-direction: column; gap: 2px; margin-top: 18px; }
+.edit-nav-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--n-6); padding: 0 12px 4px; }
+.edit-nav a { padding: 8px 12px; border-radius: 6px; font-weight: 600; color: var(--text-muted); }
 .edit-nav a:hover { color: #fff; background: var(--tint-10); }
-.edit-nav a.is-active { color: #fff; border-left-color: var(--red); background: var(--tint-10); }
-.edit-main { min-width: 0; }
+.edit-nav a.is-active { color: #fff; background: var(--tint-10); box-shadow: inset 3px 0 0 var(--red); }
+.edit-main { min-width: 0; max-width: 980px; }
 .edit-main > * + * { margin-top: 24px; }
+.edit-title { font-family: var(--f-display); font-weight: 700; font-size: 28px; line-height: 1.2; margin: 0; }
+.edit-hello p { margin: 6px 0 0; }
 .edit-form .h-card { margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-code.id { font-size: 12px; background: var(--tint-10); padding: 2px 8px; border-radius: 4px; color: var(--text-muted); font-family: ui-monospace, Consolas, monospace; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
+.edit-foot { font-size: var(--fs-sm); }
+.edit-foot a, .ed-tip a { text-decoration: underline; }
+.ed-tip { font-size: var(--fs-sm); }
+
+/* start page tiles */
+.action-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.action-tile { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 24px 56px 24px 24px; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--line); transition: border-color .15s, transform .15s; }
+.action-tile b { font-family: var(--f-display); font-size: 20px; }
+.action-tile span { color: var(--text-muted); font-size: var(--fs-sm); }
+.action-tile i { position: absolute; right: 24px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 22px; color: var(--text-muted); transition: transform .15s, color .15s; }
+.action-tile:hover { border-color: #fff; }
+.action-tile:hover i { color: #fff; transform: translate(4px, -50%); }
+.action-tile.is-primary { background: var(--red); border-color: var(--red); }
+.action-tile.is-primary span, .action-tile.is-primary i { color: rgba(255,255,255,.85); }
+.action-tile.is-primary:hover { background: var(--red-hover); border-color: var(--red-hover); }
+
+/* lists: picture cards and simple rows */
+.ed-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.ed-card { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 10px; background: var(--bg-card); border: 1px solid var(--line); border-left: 4px solid var(--tc); transition: border-color .15s, background .15s; min-width: 0; }
+.ed-card:hover { background: var(--bg-raised); border-color: var(--n-6); border-left-color: var(--tc); }
+.ed-card-pic { flex: none; width: 52px; height: 52px; border-radius: 8px; overflow: hidden; background: color-mix(in srgb, var(--tc) 35%, #000); display: grid; place-items: center; position: relative; }
+.ed-card-pic img, .ed-card-pic > * { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ed-card-team .ed-card-pic { background: var(--tc); padding: 8px; }
+.ed-card-team .ed-card-pic img { object-fit: contain; object-position: center; }
+.ed-card-txt { display: flex; flex-direction: column; min-width: 0; }
+.ed-card-txt b, .ed-row-txt b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed-card-txt small, .ed-row-txt small { color: var(--text-muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed-rows { display: flex; flex-direction: column; background: var(--bg-card); border-radius: 10px; overflow: hidden; }
+.ed-row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-top: 1px solid var(--line); transition: background .15s; }
+.ed-row:first-child { border-top: 0; }
+.ed-row:hover { background: var(--bg-raised); }
+.ed-row-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.ed-row-go { color: var(--text-muted); font-size: 22px; }
+.ed-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; }
+.ed-filter { background: var(--n-3); border: 1px solid var(--n-5); border-radius: var(--pill); padding: 10px 18px; color: #fff; min-width: 220px; flex: 1; max-width: 340px; }
+.ed-filter:focus { outline: none; border-color: #fff; }
+.btn-add { margin-left: auto; }
+.ed-nomatch { margin-top: 12px; }
+[data-filter-list] > [hidden] { display: none; }
+
+/* focused edit screen */
+.back-link { display: inline-block; color: var(--text-muted); font-weight: 600; }
+.back-link:hover { color: #fff; }
+.back-link + .edit-form { margin-top: 12px; }
+.more-fields { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 16px; }
+.more-fields summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; align-items: center; gap: 8px; }
+.more-fields summary::-webkit-details-marker { display: none; }
+.more-fields summary::before { content: '+'; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--tint-10); font-size: 16px; }
+.more-fields[open] summary::before { content: '−'; }
+.more-fields[open] summary { margin-bottom: 20px; }
+.form-actions-sticky { position: sticky; bottom: 0; background: var(--bg-card); margin: 24px -32px -24px; padding: 16px 32px; border-top: 1px solid var(--line); border-radius: 0 0 var(--radius) var(--radius); z-index: 2; }
+.btn-danger-text { color: #ff6b66; margin-left: auto; }
+.btn-danger-text:hover { color: #fff; background: var(--red); }
+.panel-accent { border: 1px solid var(--n-5); }
+.panel-danger { border: 1px solid var(--red-20); }
+.form-grid.form-grid-3 { grid-template-columns: 2fr 2fr 1fr; }
+.file-btn { cursor: pointer; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 24px; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.field-textarea, .field-multi, .field-sessions { grid-column: 1 / -1; }
-.field label { font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }
+.field-textarea, .field-multi, .field-sessions, .field-urls { grid-column: 1 / -1; }
+.field label { font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); }
+.field-hint { font-size: 12px; color: var(--text-muted); }
 .field input[type=text], .field input[type=number], .field input[type=date], .field input[type=datetime-local], .field select, .field textarea, .edit-table input, .edit-table select {
   background: var(--n-3); border: 1px solid var(--n-5); border-radius: 6px; padding: 10px 12px; color: #fff; width: 100%; min-width: 0; }
 .field textarea { resize: vertical; line-height: 1.5; }
 .field input:focus, .field select:focus, .field textarea:focus, .edit-table input:focus, .edit-table select:focus { outline: none; border-color: #fff; }
 .field select option, .edit-table select option { background: var(--n-3); }
+
+/* on/off switch (replaces bare checkboxes) */
+.switch { display: inline-flex; align-items: center; gap: 12px; cursor: pointer; font-weight: 600; color: #fff; user-select: none; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch-ui { flex: none; width: 40px; height: 22px; border-radius: 11px; background: var(--n-5); position: relative; transition: background .15s; }
+.switch-ui::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.switch input:checked + .switch-ui { background: var(--red); }
+.switch input:checked + .switch-ui::after { transform: translateX(18px); }
+.switch input:focus-visible + .switch-ui { outline: 2px solid #fff; outline-offset: 2px; }
+.switch-sm { font-size: var(--fs-sm); color: var(--text-2); }
+.field-checkbox { justify-content: center; }
+
+/* chip-style multi select */
+.multi-chips { display: flex !important; flex-wrap: wrap; gap: 8px; max-height: none !important; background: none !important; border: 0 !important; padding: 0 !important; }
+.multi-chips label { position: relative; cursor: pointer; }
+.multi-chips input { position: absolute; opacity: 0; }
+.multi-chips span { display: inline-block; padding: 7px 12px; border-radius: var(--pill); background: var(--tint-10); font-size: 13px; font-weight: 600; transition: background .15s; }
+.multi-chips label:hover span { background: var(--tint-20); }
+.multi-chips input:checked + span { background: #fff; color: #000; }
+.multi-chips input:focus-visible + span { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* results editor */
+.segmented { display: inline-flex; background: var(--n-3); border: 1px solid var(--n-5); border-radius: var(--pill); padding: 3px; }
+.seg { padding: 7px 16px; border-radius: var(--pill); font-weight: 700; font-size: var(--fs-sm); color: var(--text-muted); }
+.seg:hover { color: #fff; }
+.seg.is-active { background: #fff; color: #000; }
+.res-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.res-head .h-card { margin: 0; }
+.res-table { margin-top: 12px; }
+.res-table .x-col { display: none; }
+.res-table.show-x .x-col { display: table-cell; }
+.res-table tbody tr td:first-child { box-shadow: inset 4px 0 0 var(--tc); padding-left: 12px; }
+.res-table .drv-cell select { min-width: 190px; font-weight: 600; }
+.fl-cell { text-align: center; }
+.row-btns { width: 1%; white-space: nowrap; }
+.res-table .icon-btn { background: transparent; color: var(--text-muted); }
+.res-table tr:hover .icon-btn { background: var(--tint-10); color: #fff; }
+.fl-cell input { width: 18px; height: 18px; accent-color: #a855f7; }
+.icon-btn-x:hover { background: var(--red); }
 .color-in { display: flex; align-items: center; gap: 10px; }
 .color-in input { width: 48px; height: 40px; padding: 0; border: 1px solid var(--n-5); border-radius: 6px; background: none; cursor: pointer; }
 .check { display: flex; align-items: center; gap: 8px; color: #fff !important; font-weight: 600; }
@@ -509,9 +614,18 @@ body.scrolled .mainbar { box-shadow: 0 6px 20px rgba(0,0,0,.35); }
   .sched-heroes { grid-template-columns: repeat(2, 1fr); }
   .row-cards, .news-list { grid-template-columns: 1fr; }
   .edit-layout { grid-template-columns: 1fr; }
-  .edit-nav { position: static; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
-  .edit-nav a { white-space: nowrap; border-left: 0; border-bottom: 3px solid transparent; }
-  .edit-nav a.is-active { border-bottom-color: var(--red); }
+  .edit-nav { position: static; flex-direction: row; overflow-x: auto; scrollbar-width: none; gap: 6px; margin: 0 calc(var(--gutter) * -1); padding: 0 var(--gutter) 4px; }
+  .edit-nav::-webkit-scrollbar { display: none; }
+  .edit-nav-group { flex-direction: row; margin: 0; gap: 6px; }
+  .edit-nav-label { display: none; }
+  .edit-nav a { white-space: nowrap; background: var(--tint-10); border-radius: var(--pill); padding: 8px 14px; }
+  .edit-nav a.is-active { background: #fff; color: #000; box-shadow: none; }
+  .action-tiles, .form-grid.form-grid-3 { grid-template-columns: 1fr; }
+  .form-actions-sticky { margin: 20px -20px -20px; padding: 12px 20px; flex-wrap: nowrap; overflow-x: auto; gap: 4px; scrollbar-width: none; }
+  .form-actions-sticky .btn { flex: none; }
+  .btn-add { margin-left: 0; }
+  .ed-filter { max-width: none; min-width: 0; width: 100%; }
+  .edit-head { margin-bottom: 20px; }
   .podium-name { font-size: 18px; line-height: 22px; }
 }
 @media (max-width: 767px) {
@@ -909,7 +1023,7 @@ const Store = {
     let raw = null;
     try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { this.storageOk = false; }
     if (raw) {
-      try { this.data = normalizeCareer(JSON.parse(raw)); return; }
+      try { this.data = normalizeCareer(JSON.parse(raw)); this.dropOldSampleNews(); return; }
       catch (e) { console.warn('Saved career unreadable, loading sample', e); }
     }
     this.data = normalizeCareer(clone(sample));
@@ -921,6 +1035,13 @@ const Store = {
     this.listeners.forEach(fn => fn());
   },
   onChange(fn) { this.listeners.push(fn); },
+  // one-time cleanup: news stories from the old fictional 2030 sample career
+  dropOldSampleNews() {
+    const old = new Set(['art_season_preview', 'art_r1_report', 'art_r2_report', 'art_r3_report', 'art_transfer_swap', 'art_r6_report', 'art_grant_injury', 'art_r8_report', 'art_vantage_analysis']);
+    const n = this.data.articles.length;
+    this.data.articles = this.data.articles.filter(a => !old.has(a.id));
+    if (this.data.articles.length !== n) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {} }
+  },
   reset(sample) { this.data = normalizeCareer(clone(sample)); this.save(); },
   replace(raw) {
     const c = normalizeCareer(raw);
@@ -2173,7 +2294,7 @@ function footer() {
     <div class="footer-cols">
       <div><h4>Season</h4><a href="#/schedule">Schedule</a><a href="#/results">Results</a><a href="#/standings/drivers">Drivers' Standings</a><a href="#/standings/teams">Teams' Standings</a></div>
       <div><h4>Paddock</h4><a href="#/drivers">Drivers</a><a href="#/teams">Teams</a><a href="#/news">Latest news</a></div>
-      <div><h4>Career</h4><a href="#/edit">Edit Career</a><a href="#/edit/data">Import / Export</a></div>
+      <div><h4>Career</h4><a href="#/edit">Edit Career</a><a href="#/edit/data">Backup &amp; reset</a></div>
     </div>
     <p class="footer-fine">${esc(c.meta.careerName)}${c.meta.updatedAt ? ' · saved ' + esc(fmtDate(c.meta.updatedAt)) : ''}${Store.storageOk ? '' : ' · ⚠ browser storage unavailable — changes will not persist, use Export'}</p>
   </div></footer>`;
@@ -2872,124 +2993,133 @@ document.addEventListener('touchend', ev => {
    Generic form specs drive most collections; results get a dedicated grid editor.
    ========================================================================== */
 
-const EDIT_SECTIONS = [
-  ['overview', 'Career'], ['seasons', 'Seasons'], ['points', 'Points rules'], ['teams', 'Teams'], ['drivers', 'Drivers'],
-  ['assignments', 'Line-ups & transfers'], ['rounds', 'Calendar'], ['results', 'Results'], ['articles', 'Articles'], ['studio', 'Portrait studio'], ['assets', 'Images'], ['data', 'Import / Export'],
+const EDIT_GROUPS = [
+  ['Race weekend', [['results', 'Enter results'], ['rounds', 'Calendar']]],
+  ['Grid', [['drivers', 'Drivers'], ['teams', 'Teams'], ['assignments', 'Line-ups & transfers']]],
+  ['Stories', [['articles', 'News']]],
+  ['Pictures', [['studio', 'Portrait studio'], ['assets', 'Uploaded images']]],
+  ['Setup', [['settings', 'Career settings'], ['seasons', 'Seasons'], ['points', 'Points rules'], ['data', 'Backup & reset']]],
 ];
+const EDIT_SECTIONS = [['overview', 'Start'], ...EDIT_GROUPS.flatMap(([, items]) => items)];
+const STATUS_LABELS = { FIN: 'Finished', DNF: 'Did not finish', DNS: 'Did not start', DSQ: 'Disqualified' };
 
 const opt = (list, label) => () => list().map(r => [r.id, label(r)]);
 const seasonOpts = opt(() => seasonsDesc(D()), s => `${s.year} — ${s.name}`);
 const teamOpts = opt(() => [...D().teams].sort((a, b) => a.name.localeCompare(b.name)), t => t.name);
-const driverOpts = opt(() => [...D().drivers].sort((a, b) => a.lastName.localeCompare(b.lastName)), d => `${d.lastName}, ${d.firstName} (#${d.number ?? '–'})`);
+const driverOpts = opt(() => [...D().drivers].sort((a, b) => a.lastName.localeCompare(b.lastName)), d => `${d.firstName} ${d.lastName}`);
 const ruleOpts = opt(() => D().pointsRules, r => r.name);
 
 const SPECS = {
   seasons: {
-    title: 'Seasons', coll: 'seasons', sort: (a, b) => b.year - a.year,
-    cols: [['Year', r => r.year], ['Name', r => r.name], ['Points rule', r => (byId(D().pointsRules, r.pointsRuleId) || {}).name || '—'], ['Rounds', r => roundsOf(D(), r.id).length]],
+    title: 'Seasons', one: 'season', coll: 'seasons', sort: (a, b) => b.year - a.year,
+    name: r => `${r.year} · ${r.name}`, sub: r => `${roundsOf(D(), r.id).length} races · ${(byId(D().pointsRules, r.pointsRuleId) || {}).name || 'no points rule'}`,
     fields: [
       { key: 'year', label: 'Year', type: 'number', required: true },
-      { key: 'name', label: 'Season name', type: 'text', required: true, placeholder: '2031 Career Season' },
-      { key: 'pointsRuleId', label: 'Points rule', type: 'select', options: ruleOpts, required: true },
-      { key: 'notes', label: 'Notes', type: 'textarea' },
+      { key: 'name', label: 'Season name', type: 'text', required: true, placeholder: '2027 Career Season' },
+      { key: 'pointsRuleId', label: 'Points system', type: 'select', options: ruleOpts, required: true },
+      { key: 'notes', label: 'Notes', type: 'textarea', more: true },
     ],
   },
   points: {
-    title: 'Points rules', coll: 'pointsRules',
-    cols: [['Name', r => r.name], ['Race', r => (r.race || []).join('-')], ['Sprint', r => (r.sprint || []).join('-') || '—'], ['Fastest lap', r => r.fastestLap && r.fastestLap.points ? `${r.fastestLap.points} (top ${r.fastestLap.maxPosition})` : '—']],
+    title: 'Points rules', one: 'points rule', coll: 'pointsRules',
+    name: r => r.name, sub: r => `Race ${(r.race || []).join('-')}${(r.sprint || []).length ? ` · Sprint ${r.sprint.join('-')}` : ''}`,
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },
-      { key: 'race', label: 'Race points by position (comma separated)', type: 'list', placeholder: '25,18,15,12,10,8,6,4,2,1' },
-      { key: 'sprint', label: 'Sprint points by position', type: 'list', placeholder: '8,7,6,5,4,3,2,1' },
-      { key: 'fastestLap.points', label: 'Fastest-lap bonus points', type: 'number' },
-      { key: 'fastestLap.maxPosition', label: 'Fastest-lap bonus only if finishing in top…', type: 'number' },
+      { key: 'race', label: 'Race points', hint: 'Points for P1, P2, P3 … separated by commas', type: 'list', placeholder: '25,18,15,12,10,8,6,4,2,1' },
+      { key: 'sprint', label: 'Sprint points', hint: 'Leave empty if sprints give no points', type: 'list', placeholder: '8,7,6,5,4,3,2,1' },
+      { key: 'fastestLap.points', label: 'Bonus for fastest lap', type: 'number' },
+      { key: 'fastestLap.maxPosition', label: 'Bonus only if finishing in the top …', type: 'number' },
     ],
     defaults: () => ({ race: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], sprint: [8, 7, 6, 5, 4, 3, 2, 1], fastestLap: { points: 0, maxPosition: 10 } }),
   },
   teams: {
-    title: 'Teams', coll: 'teams', sort: (a, b) => a.name.localeCompare(b.name),
-    cols: [['', r => teamDot(r)], ['Name', r => esc(r.name)], ['Base', r => esc(r.base || '')], ['Power unit', r => esc(r.powerUnit || '')]], html: true,
+    title: 'Teams', one: 'team', coll: 'teams', sort: (a, b) => a.name.localeCompare(b.name), cards: 'team',
+    name: r => r.name, sub: r => r.powerUnit ? `${r.powerUnit} power` : (r.base || ''),
     fields: [
-      { key: 'name', label: 'Short name', type: 'text', required: true },
-      { key: 'fullName', label: 'Full team name', type: 'text' },
+      { key: 'name', label: 'Team name', type: 'text', required: true },
       { key: 'color', label: 'Team colour', type: 'color', required: true },
-      { key: 'colorDark', label: 'Team colour (dark tone)', type: 'color' },
-      { key: 'base', label: 'Base', type: 'text' }, { key: 'principal', label: 'Team chief', type: 'text' },
-      { key: 'technicalChief', label: 'Technical chief', type: 'text' }, { key: 'chassis', label: 'Chassis', type: 'text' },
-      { key: 'powerUnit', label: 'Power unit', type: 'text' }, { key: 'firstEntry', label: 'First entry (year)', type: 'number' },
-      { key: 'championships', label: 'Prior world titles (before this career)', type: 'number' },
-      { key: 'logoUrl', label: 'Logo image (optional)', type: 'image', lib: 'teams/' },
-      { key: 'carUrl', label: 'Car image (optional)', type: 'image', lib: 'teams/' },
-      { key: 'bio', label: 'Team history / notes', type: 'textarea' },
+      { key: 'logoUrl', label: 'Logo', type: 'image', lib: 'teams/' },
+      { key: 'carUrl', label: 'Car picture', type: 'image', lib: 'teams/' },
+      { key: 'fullName', label: 'Full official name', type: 'text', more: true },
+      { key: 'colorDark', label: 'Second colour (darker)', type: 'color', more: true },
+      { key: 'base', label: 'Base', type: 'text', more: true }, { key: 'principal', label: 'Team chief', type: 'text', more: true },
+      { key: 'technicalChief', label: 'Technical chief', type: 'text', more: true }, { key: 'chassis', label: 'Chassis', type: 'text', more: true },
+      { key: 'powerUnit', label: 'Engine', type: 'text', more: true }, { key: 'firstEntry', label: 'First season in F1', type: 'number', more: true },
+      { key: 'championships', label: 'Titles won before this career', type: 'number', more: true },
+      { key: 'bio', label: 'Team history', type: 'textarea', more: true },
     ],
     defaults: () => ({ color: '#e10600', colorDark: '#4a0200', championships: 0 }),
   },
   drivers: {
-    title: 'Drivers', coll: 'drivers', sort: (a, b) => a.lastName.localeCompare(b.lastName),
-    cols: [['No.', r => esc(r.number ?? '')], ['Name', r => `${esc(r.firstName)} <b>${esc(r.lastName)}</b>`], ['Code', r => esc(r.code || '')], ['Nat.', r => flag(r.nationality) + ' ' + esc(r.nationality || '')]], html: true,
+    title: 'Drivers', one: 'driver', coll: 'drivers', sort: (a, b) => a.lastName.localeCompare(b.lastName), cards: 'driver',
+    name: r => `${r.firstName} ${r.lastName}`, sub: r => [r.number != null ? '#' + r.number : '', countryName(r.nationality) || r.nationality].filter(Boolean).join(' · '),
     fields: [
       { key: 'firstName', label: 'First name', type: 'text', required: true }, { key: 'lastName', label: 'Last name', type: 'text', required: true },
-      { key: 'code', label: '3-letter code', type: 'text', maxlength: 3, upper: true }, { key: 'number', label: 'Race number', type: 'number' },
-      { key: 'nationality', label: 'Nationality (3-letter code, e.g. GBR)', type: 'text', maxlength: 3, upper: true, datalist: Object.keys(COUNTRY_NAMES) },
-      { key: 'dob', label: 'Date of birth', type: 'date' }, { key: 'birthplace', label: 'Place of birth', type: 'text' },
-      { key: 'championships', label: 'Prior world titles', type: 'number' },
-      { key: 'portraitUrl', label: 'Portrait image (optional)', type: 'image', lib: 'drivers/' },
-      { key: 'portraitTeamId', label: 'Team suit worn in that portrait (blank = any team)', type: 'select', options: () => [['', '— any / unknown —'], ...teamOpts()] },
-      { key: 'numberUrl', label: 'Race-number artwork (optional)', type: 'image', lib: 'drivers/' },
-      { key: 'photoUrls', label: 'Trackside photos, one path/URL per line (used for news images)', type: 'urls', lib: 'photos/' },
-      { key: 'bio', label: 'Biography', type: 'textarea' },
+      { key: 'number', label: 'Race number', type: 'number' },
+      { key: 'code', label: 'Short code', hint: '3 letters, e.g. SAI', type: 'text', maxlength: 3, upper: true },
+      { key: 'nationality', label: 'Nationality', hint: '3 letters, e.g. ESP', type: 'text', maxlength: 3, upper: true, datalist: Object.keys(COUNTRY_NAMES) },
+      { key: 'portraitUrl', label: 'Portrait', type: 'image', lib: 'drivers/' },
+      { key: 'dob', label: 'Date of birth', type: 'date', more: true }, { key: 'birthplace', label: 'Place of birth', type: 'text', more: true },
+      { key: 'championships', label: 'Titles won before this career', type: 'number', more: true },
+      { key: 'portraitTeamId', label: 'Team suit in the portrait', hint: 'Lets the Portrait studio swap the suit after a transfer', type: 'select', options: () => [['', 'Any / unknown'], ...teamOpts()], more: true },
+      { key: 'numberUrl', label: 'Race-number artwork', type: 'image', lib: 'drivers/', more: true },
+      { key: 'photoUrls', label: 'Track photos for news', hint: 'One picture per line', type: 'urls', lib: 'photos/', more: true },
+      { key: 'bio', label: 'Biography', type: 'textarea', more: true },
     ],
     defaults: () => ({ championships: 0 }),
   },
   assignments: {
-    title: 'Line-ups & transfers', coll: 'assignments', seasonScoped: true,
+    title: 'Line-ups & transfers', one: 'seat', coll: 'assignments', seasonScoped: true,
     sort: (a, b) => { const ta = teamOf(a.teamId), tb = teamOf(b.teamId); return (ta ? ta.name : '').localeCompare(tb ? tb.name : '') || a.fromRound - b.fromRound; },
-    cols: [['Team', r => teamLink(teamOf(r.teamId))], ['Driver', r => esc(nameOf(driverOf(r.driverId)))], ['Role', r => esc(r.role)], ['Rounds', r => `${r.fromRound}${r.toRound ? '–' + r.toRound : ' →'}`]], html: true,
+    name: r => nameOf(driverOf(r.driverId)), sub: r => `${(teamOf(r.teamId) || {}).name || '?'} · ${r.role === 'reserve' ? 'Reserve · ' : ''}${r.toRound ? `rounds ${r.fromRound}–${r.toRound}` : r.fromRound > 1 ? `from round ${r.fromRound}` : 'whole season'}`,
+    dot: r => (teamOf(r.teamId) || {}).color,
     fields: [
-      { key: 'seasonId', label: 'Season', type: 'select', options: seasonOpts, required: true },
       { key: 'driverId', label: 'Driver', type: 'select', options: driverOpts, required: true },
       { key: 'teamId', label: 'Team', type: 'select', options: teamOpts, required: true },
       { key: 'role', label: 'Role', type: 'select', options: () => [['race', 'Race driver'], ['reserve', 'Reserve']], required: true },
       { key: 'fromRound', label: 'From round', type: 'number', required: true },
-      { key: 'toRound', label: 'To round (blank = rest of season)', type: 'number' },
+      { key: 'toRound', label: 'Until round', hint: 'Empty = rest of the season', type: 'number' },
+      { key: 'seasonId', label: 'Season', type: 'select', options: seasonOpts, required: true, more: true },
     ],
     defaults: () => ({ role: 'race', fromRound: 1, toRound: null }),
   },
   rounds: {
-    title: 'Calendar rounds', coll: 'rounds', seasonScoped: true, sort: (a, b) => a.round - b.round,
-    cols: [['Rnd', r => r.round], ['Grand Prix', r => `${flag(r.countryCode)} ${esc(r.name)}`], ['Dates', r => esc(fmtRange(r.dateStart, r.dateEnd))], ['Results', r => sessionsWithResults(D(), r.id).map(cap).join(', ') || '—']], html: true,
+    title: 'Calendar', one: 'race', coll: 'rounds', seasonScoped: true, sort: (a, b) => a.round - b.round,
+    name: r => `${flag(r.countryCode)} R${r.round} · ${esc(r.name)}`, nameHtml: true,
+    sub: r => `${fmtRange(r.dateStart, r.dateEnd)}${r.sprint ? ' · Sprint' : ''}${resultFor(D(), r.id, 'race') ? ' · ✓ result entered' : ''}`,
     fields: [
-      { key: 'seasonId', label: 'Season', type: 'select', options: seasonOpts, required: true },
-      { key: 'round', label: 'Round number', type: 'number', required: true },
-      { key: 'name', label: 'Short name (e.g. country)', type: 'text', required: true },
-      { key: 'country', label: 'Country', type: 'text' },
-      { key: 'countryCode', label: 'Country code (3 letters)', type: 'text', maxlength: 3, upper: true, datalist: Object.keys(COUNTRY_NAMES) },
-      { key: 'officialName', label: 'Official event name', type: 'text' },
-      { key: 'circuit', label: 'Circuit', type: 'text' }, { key: 'city', label: 'City', type: 'text' },
-      { key: 'laps', label: 'Laps', type: 'number' }, { key: 'lengthKm', label: 'Lap length (km)', type: 'number', step: '0.001' },
+      { key: 'round', label: 'Round', type: 'number', required: true },
+      { key: 'name', label: 'Name', hint: 'Usually the country, e.g. Spain', type: 'text', required: true },
       { key: 'dateStart', label: 'First day', type: 'date' }, { key: 'dateEnd', label: 'Race day', type: 'date' },
+      { key: 'circuit', label: 'Circuit', type: 'text' },
       { key: 'sprint', label: 'Sprint weekend', type: 'checkbox' },
-      { key: 'sessions', label: 'Sessions — one per line: Label | YYYY-MM-DD | HH:MM', type: 'sessions' },
-      { key: 'imageUrl', label: 'Header image (optional)', type: 'image', lib: 'circuits/' },
+      { key: 'seasonId', label: 'Season', type: 'select', options: seasonOpts, required: true, more: true },
+      { key: 'country', label: 'Country', type: 'text', more: true },
+      { key: 'countryCode', label: 'Country code', hint: '3 letters, used for the flag', type: 'text', maxlength: 3, upper: true, datalist: Object.keys(COUNTRY_NAMES), more: true },
+      { key: 'officialName', label: 'Official event name', type: 'text', more: true },
+      { key: 'city', label: 'City', type: 'text', more: true },
+      { key: 'laps', label: 'Laps', type: 'number', more: true }, { key: 'lengthKm', label: 'Lap length (km)', type: 'number', step: '0.001', more: true },
+      { key: 'imageUrl', label: 'Header picture', type: 'image', lib: 'circuits/', more: true },
+      { key: 'sessions', label: 'Session times', hint: 'One per line: Name | YYYY-MM-DD | HH:MM', type: 'sessions', more: true },
     ],
     defaults: () => ({ sprint: false, sessions: [], status: 'scheduled' }),
   },
   articles: {
-    title: 'Articles', coll: 'articles', sort: (a, b) => String(b.publishedAt).localeCompare(String(a.publishedAt)),
-    cols: [['Date', r => esc(fmtDate(r.publishedAt))], ['Title', r => `<a href="#/news/${r.id}">${esc(r.title)}</a>${r.featured ? ' ' + tag('Lead', 'red') : ''}`], ['Category', r => esc(r.category)]], html: true,
+    title: 'News', one: 'story', coll: 'articles', sort: (a, b) => String(b.publishedAt).localeCompare(String(a.publishedAt)),
+    name: r => r.title, sub: r => `${fmtDate(r.publishedAt)} · ${r.category}${r.featured ? ' · Lead story' : ''}`,
     fields: [
       { key: 'title', label: 'Headline', type: 'text', required: true },
       { key: 'category', label: 'Category', type: 'select', options: () => ARTICLE_CATEGORIES.map(x => [x, x]) },
-      { key: 'seasonId', label: 'Season', type: 'select', options: seasonOpts, required: true },
-      { key: 'roundId', label: 'Linked round (optional)', type: 'select', options: () => [['', '— none —'], ...D().rounds.slice().sort((a, b) => a.round - b.round).map(r => [r.id, `${(seasonOf(D(), r.seasonId) || {}).year} R${r.round} ${r.name}`])] },
-      { key: 'publishedAt', label: 'Published', type: 'datetime' },
-      { key: 'standfirst', label: 'Standfirst (summary)', type: 'textarea', rows: 2 },
-      { key: 'body', label: 'Body — blank line between paragraphs', type: 'textarea', rows: 10 },
-      { key: 'author', label: 'Author', type: 'text' },
-      { key: 'featured', label: 'Lead story on the homepage', type: 'checkbox' },
-      { key: 'imageUrl', label: 'Image (optional; otherwise a photo of a driver in the story)', type: 'image', lib: 'photos/' },
+      { key: 'featured', label: 'Show as lead story on the homepage', type: 'checkbox' },
+      { key: 'standfirst', label: 'Short summary', hint: 'One or two sentences shown under the headline', type: 'textarea', rows: 2 },
+      { key: 'body', label: 'Story', hint: 'Leave an empty line between paragraphs', type: 'textarea', rows: 10 },
       { key: 'driverIds', label: 'Drivers in this story', type: 'multi', options: driverOpts },
-      { key: 'teamIds', label: 'Teams in this story', type: 'multi', options: teamOpts },
+      { key: 'imageUrl', label: 'Picture', hint: 'Empty = a track photo of a driver in the story', type: 'image', lib: 'photos/', more: true },
+      { key: 'teamIds', label: 'Teams in this story', type: 'multi', options: teamOpts, more: true },
+      { key: 'roundId', label: 'Linked race', type: 'select', options: () => [['', 'None'], ...D().rounds.slice().sort((a, b) => a.round - b.round).map(r => [r.id, `${(seasonOf(D(), r.seasonId) || {}).year} R${r.round} ${r.name}`])], more: true },
+      { key: 'seasonId', label: 'Season', type: 'select', options: seasonOpts, required: true, more: true },
+      { key: 'publishedAt', label: 'Published', type: 'datetime', more: true },
+      { key: 'author', label: 'Author', type: 'text', more: true },
     ],
     defaults: () => ({ category: 'News', author: 'Career Desk', publishedAt: new Date().toISOString(), driverIds: [], teamIds: [], body: '', featured: false, seasonId: (activeSeason(D()) || {}).id }),
   },
@@ -3007,17 +3137,17 @@ function fieldHtml(f, rec) {
   switch (f.type) {
     case 'textarea': input = `<textarea id="${id}" name="${f.key}" rows="${f.rows || 4}" ${req}>${esc(v || '')}</textarea>`; break;
     case 'select': input = `<select id="${id}" name="${f.key}" ${req}>${f.required ? '' : ''}${f.options().map(([val, lab]) => `<option value="${esc(val)}" ${String(v ?? '') === String(val) ? 'selected' : ''}>${esc(lab)}</option>`).join('')}</select>`; break;
-    case 'multi': input = `<div class="multi" id="${id}">${f.options().map(([val, lab]) => `<label><input type="checkbox" name="${f.key}" value="${esc(val)}" ${(v || []).includes(val) ? 'checked' : ''}> ${esc(lab)}</label>`).join('')}</div>`; break;
-    case 'checkbox': input = `<label class="check"><input type="checkbox" id="${id}" name="${f.key}" ${v ? 'checked' : ''}> Yes</label>`; break;
+    case 'multi': input = `<div class="multi multi-chips" id="${id}">${f.options().map(([val, lab]) => `<label><input type="checkbox" name="${f.key}" value="${esc(val)}" ${(v || []).includes(val) ? 'checked' : ''}><span>${esc(lab)}</span></label>`).join('')}</div>`; break;
+    case 'checkbox': return `<div class="field field-checkbox"><label class="switch"><input type="checkbox" id="${id}" name="${f.key}" ${v ? 'checked' : ''}><span class="switch-ui" aria-hidden="true"></span><span>${esc(f.label)}</span></label></div>`;
     case 'list': input = `<input id="${id}" name="${f.key}" type="text" value="${esc((v || []).join(', '))}" placeholder="${esc(f.placeholder || '')}">`; break;
     case 'sessions': input = `<textarea id="${id}" name="${f.key}" rows="6" placeholder="Practice 1 | 2031-03-07 | 12:30">${esc((v || []).map(s => [s.label, s.date, s.time].join(' | ')).join('\n'))}</textarea>`; break;
     case 'datetime': input = `<input id="${id}" name="${f.key}" type="datetime-local" value="${esc(v ? String(v).slice(0, 16) : '')}">`; break;
-    case 'image': input = `<span class="img-in"><input id="${id}" name="${f.key}" type="text" value="${esc(v || '')}" list="lib_${f.lib.replace('/', '')}" placeholder="Pick from library or paste a URL" data-img-input><img class="img-prev" src="${esc(v || '')}" alt="" ${v ? '' : 'hidden'}></span>${libDatalist(f.lib)}`; break;
+    case 'image': input = `<span class="img-in"><input id="${id}" name="${f.key}" type="text" value="${esc(v || '')}" list="lib_${f.lib.replace('/', '')}" placeholder="Pick a picture or paste a link" data-img-input><img class="img-prev" src="${esc(v || '')}" alt="" ${v ? '' : 'hidden'}></span>${libDatalist(f.lib)}`; break;
     case 'urls': input = `<textarea id="${id}" name="${f.key}" rows="3" list="lib_${f.lib.replace('/', '')}" placeholder="assets/f1com/photos/...webp">${esc((v || []).join('\n'))}</textarea>${libDatalist(f.lib)}`; break;
     case 'color': input = `<span class="color-in"><input id="${id}" name="${f.key}" type="color" value="${esc(v || '#888888')}"><code>${esc(v || '')}</code></span>`; break;
     default: input = `<input id="${id}" name="${f.key}" type="${f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}" ${f.step ? `step="${f.step}"` : f.type === 'number' ? 'step="any"' : ''} value="${esc(v ?? '')}" ${f.maxlength ? `maxlength="${f.maxlength}"` : ''} ${f.placeholder ? `placeholder="${esc(f.placeholder)}"` : ''} ${f.datalist ? `list="${id}_dl"` : ''} ${req}>${f.datalist ? `<datalist id="${id}_dl">${f.datalist.map(x => `<option value="${x}">`).join('')}</datalist>` : ''}`;
   }
-  return `<div class="field field-${f.type}"><label for="${id}">${esc(f.label)}${f.required ? ' *' : ''}</label>${input}</div>`;
+  return `<div class="field field-${f.type}"><label for="${id}">${esc(f.label)}</label>${input}${f.hint ? `<small class="field-hint">${esc(f.hint)}</small>` : ''}</div>`;
 }
 
 function readForm(form, spec, base) {
@@ -3073,73 +3203,118 @@ function mergeRealGrid(c) {
 /* --- page ------------------------------------------------------------------ */
 function pageEdit(section, q) {
   section = section || 'overview';
-  const nav = `<nav class="edit-nav" aria-label="Edit sections">${EDIT_SECTIONS.map(([k, l]) => `<a class="${k === section ? 'is-active' : ''}" href="#/edit/${k}">${l}</a>`).join('')}</nav>`;
+  const link = (k, l) => `<a class="${k === section ? 'is-active' : ''}" href="#/edit/${k}">${l}</a>`;
+  const nav = `<nav class="edit-nav" aria-label="Edit sections">${link('overview', 'Start')}${EDIT_GROUPS.map(([g, items]) =>
+    `<div class="edit-nav-group"><span class="edit-nav-label">${g}</span>${items.map(([k, l]) => link(k, l)).join('')}</div>`).join('')}</nav>`;
   let body;
-  if (section === 'overview') body = editOverview();
+  if (section === 'overview') body = editHome();
+  else if (section === 'settings') body = editSettings();
   else if (section === 'results') body = editResults(q);
   else if (section === 'data') body = editData();
   else if (section === 'studio') body = editStudio(q);
   else if (section === 'assets') body = editAssets();
   else if (SPECS[section]) body = editCrud(section, q);
   else body = emptyState('Unknown section', '', { href: '#/edit', label: 'Back' });
+  const label = (EDIT_SECTIONS.find(([k]) => k === section) || [])[1];
   return { title: 'Edit Career', nav: 'edit', html: `
     <div class="wrap page edit-page">
-      <h1 class="h-page">Edit Career</h1>
-      <p class="page-sub">Changes save to this browser immediately. Use Import / Export to back up or move your save.</p>
-      <div class="edit-layout">${nav}<div class="edit-main">${body}</div></div>
+      <div class="edit-head"><h1 class="h-page">Edit Career</h1><span class="edit-saved">Everything saves automatically in this browser</span></div>
+      <div class="edit-layout">${nav}<div class="edit-main">${section !== 'overview' && label ? `<h2 class="edit-title">${esc(label)}</h2>` : ''}${body}</div></div>
     </div>`, after: root => { bindEditor(root); bindStudio(root); bindAssets(root); } };
 }
 
-function editOverview() {
-  const c = D(); const m = c.meta;
-  const counts = COLLECTIONS.map(k => `<div><dt>${k}</dt><dd>${c[k].length}</dd></div>`).join('');
+function editHome() {
+  const c = D(); const s = activeSeason(c);
+  const rounds = s ? roundsOf(c, s.id) : [];
+  const done = rounds.filter(r => resultFor(c, r.id, 'race')).length;
+  const next = s && nextRound(c, s.id);
+  const tile = (href, title, text, primary) => `<a class="action-tile${primary ? ' is-primary' : ''}" href="${href}"><b>${title}</b><span>${text}</span><i aria-hidden="true">→</i></a>`;
   const errs = validateCareer(c);
+  return `<div class="edit-hello"><h2 class="edit-title">What do you want to do?</h2>
+      <p class="muted">${s ? `${esc(s.name)} · ${done} of ${rounds.length} races entered` : 'No season yet'}</p></div>
+    <div class="action-tiles">
+      ${tile('#/edit/results', 'Enter a race result', next ? `Next up: ${flag(next.countryCode)} R${next.round} ${esc(next.name)}` : 'All races are entered', true)}
+      ${tile('#/edit/articles?id=new', 'Write a news story', `${c.articles.length} ${c.articles.length === 1 ? 'story' : 'stories'} so far`)}
+      ${tile('#/edit/assignments', 'Transfer a driver', 'Move a driver to another team')}
+      ${tile('#/edit/drivers', 'Edit drivers & teams', `${c.drivers.length} drivers · ${c.teams.length} teams`)}
+    </div>
+    ${errs.length ? `<div class="alert"><b>${errs.length} thing(s) need fixing</b><br>${errs.slice(0, 8).map(esc).join('<br>')}</div>` : ''}
+    <p class="edit-foot muted">Tip: download a backup now and then in <a href="#/edit/data">Backup &amp; reset</a>.</p>`;
+}
+
+function editSettings() {
+  const m = D().meta;
   return `<form class="edit-form panel" data-meta-form>
-      <h2 class="h-card">Career settings</h2>
       <div class="form-grid">
         ${fieldHtml({ key: 'careerName', label: 'Career name', type: 'text', required: true }, m)}
-        ${fieldHtml({ key: 'activeSeasonId', label: 'Active season (shown by default)', type: 'select', options: seasonOpts }, m)}
-        ${fieldHtml({ key: 'playerTeamId', label: 'Your team', type: 'select', options: () => [['', '— none —'], ...teamOpts()] }, m)}
-        ${fieldHtml({ key: 'isSample', label: 'Show “fictional sample” banner', type: 'checkbox' }, m)}
+        ${fieldHtml({ key: 'playerTeamId', label: 'Your team', hint: 'Highlighted across the site', type: 'select', options: () => [['', 'None'], ...teamOpts()] }, m)}
+        ${fieldHtml({ key: 'activeSeasonId', label: 'Season shown by default', type: 'select', options: seasonOpts }, m)}
       </div>
-      <div class="form-actions"><button class="btn btn-red" type="submit">Save settings</button></div>
-    </form>
-    <div class="panel"><h2 class="h-card">Records</h2><dl class="facts two-col">${counts}</dl>
-      ${errs.length ? `<div class="alert">${errs.length} integrity issue(s):<br>${errs.slice(0, 8).map(esc).join('<br>')}</div>` : '<p class="ok">✓ All references are consistent.</p>'}
-    </div>`;
+      <details class="more-fields"><summary>More options</summary><div class="form-grid">
+        ${fieldHtml({ key: 'isSample', label: 'Show the “sample career” banner', type: 'checkbox' }, m)}
+      </div></details>
+      <div class="form-actions"><button class="btn btn-red" type="submit">Save</button></div>
+    </form>`;
+}
+
+function crudCard(spec, r, href) {
+  const c = D();
+  if (spec.cards === 'driver') {
+    const s = activeSeason(c); const t = teamOf(s && driverCurrentTeam(c, r.id, s.id)) || null;
+    return `<a class="ed-card" href="${href}" style="--tc:${t ? t.color : '#606066'}" data-filter-text="${esc((spec.name(r) + ' ' + (t ? t.name : '')).toLowerCase())}">
+      <span class="ed-card-pic">${portraitImg(r, t, 'ed-portrait')}</span><span class="ed-card-txt"><b>${esc(spec.name(r))}</b><small>${esc(t ? t.name : spec.sub(r))}</small></span></a>`;
+  }
+  if (spec.cards === 'team') return `<a class="ed-card ed-card-team" href="${href}" style="--tc:${r.color}" data-filter-text="${esc(r.name.toLowerCase())}">
+      <span class="ed-card-pic">${logoImg(r, 'ed-logo')}</span><span class="ed-card-txt"><b>${esc(r.name)}</b><small>${esc(spec.sub(r))}</small></span></a>`;
+  const dot = spec.dot ? spec.dot(r) : null;
+  return `<a class="ed-row" href="${href}" data-filter-text="${esc(String(spec.nameHtml ? r.name : spec.name(r)).toLowerCase())}">${dot ? `<span class="ed-dot" style="background:${dot}"></span>` : ''}
+    <span class="ed-row-txt"><b>${spec.nameHtml ? spec.name(r) : esc(spec.name(r))}</b><small>${esc(spec.sub(r))}</small></span><span class="ed-row-go" aria-hidden="true">›</span></a>`;
 }
 
 function editCrud(section, q) {
   const spec = SPECS[section];
   const c = D();
   const season = spec.seasonScoped ? ((q.season && seasonOf(c, q.season)) || activeSeason(c)) : null;
+  const sq = season ? 'season=' + season.id + '&' : '';
+  const back = `#/edit/${section}${season ? '?season=' + season.id : ''}`;
+  const editing = q.id === 'new' ? Object.assign({ id: '' }, spec.defaults ? spec.defaults() : {}, season ? { seasonId: season.id } : {}) : q.id ? byId(c[spec.coll], q.id) : null;
+
+  if (editing) {                                    // focused edit screen
+    const main = spec.fields.filter(f => !f.more), more = spec.fields.filter(f => f.more);
+    return `<a class="back-link" href="${back}">‹ All ${esc(spec.title.toLowerCase())}</a>
+      <form class="edit-form panel" data-crud="${section}" data-id="${esc(editing.id || '')}">
+        <h3 class="h-card">${editing.id ? esc(String(spec.nameHtml ? editing.name : spec.name(editing))) : 'New ' + spec.one}</h3>
+        <div class="form-grid">${main.map(f => fieldHtml(f, editing)).join('')}</div>
+        ${more.length ? `<details class="more-fields"><summary>More details <span class="muted">(optional)</span></summary><div class="form-grid">${more.map(f => fieldHtml(f, editing)).join('')}</div></details>` : ''}
+        <div class="form-actions form-actions-sticky"><button class="btn btn-red" type="submit">Save</button><a class="btn btn-ghost" href="${back}">Cancel</a>
+          ${editing.id ? `<button class="btn btn-ghost btn-danger-text" type="button" data-delete="${spec.coll}|${editing.id}">Delete ${spec.one}</button>` : ''}</div>
+      </form>`;
+  }
+
   let list = c[spec.coll].filter(r => !season || r.seasonId === season.id);
   if (spec.sort) list = list.slice().sort(spec.sort);
-  const editing = q.id === 'new' ? Object.assign({ id: '' }, spec.defaults ? spec.defaults() : {}, season ? { seasonId: season.id } : {}) : q.id ? byId(c[spec.coll], q.id) : null;
-  const seasonBar = spec.seasonScoped ? `<div class="page-tools">${seasonSelect(season ? season.id : '', id => `#/edit/${section}?season=${id}`)}<a class="btn btn-red" href="#/edit/${section}?season=${season ? season.id : ''}&id=new">+ Add</a></div>`
-    : `<div class="page-tools"><a class="btn btn-red" href="#/edit/${section}?id=new">+ Add</a></div>`;
-  const rows = list.map(r => `<tr class="${editing && editing.id === r.id ? 'is-editing' : ''}">${spec.cols.map(([, fn]) => `<td>${spec.html ? fn(r) : esc(fn(r))}</td>`).join('')}
-      <td class="actions"><a class="chip" href="#/edit/${section}?${season ? 'season=' + season.id + '&' : ''}id=${r.id}">Edit</a><button class="chip chip-danger" type="button" data-delete="${spec.coll}|${r.id}">Delete</button></td></tr>`);
-  const form = editing ? `<form class="edit-form panel" data-crud="${section}" data-id="${esc(editing.id || '')}">
-      <h2 class="h-card">${editing.id ? 'Edit' : 'New'} ${esc(spec.title.replace(/s$/, '').toLowerCase())}${editing.id ? ` <code class="id">${esc(editing.id)}</code>` : ''}</h2>
-      <div class="form-grid">${spec.fields.map(f => fieldHtml(f, editing)).join('')}</div>
-      <div class="form-actions"><button class="btn btn-red" type="submit">Save</button><a class="btn btn-outline" href="#/edit/${section}${season ? '?season=' + season.id : ''}">Cancel</a></div>
-    </form>` : '';
+  const tools = `<div class="page-tools">
+      ${season ? seasonSelect(season.id, id => `#/edit/${section}?season=${id}`) : ''}
+      ${list.length > 8 ? `<input class="ed-filter" type="search" placeholder="Search ${esc(spec.title.toLowerCase())}…" aria-label="Search" data-filter>` : ''}
+      <a class="btn btn-red btn-add" href="#/edit/${section}?${sq}id=new">+ Add ${spec.one}</a></div>`;
+  const items = list.map(r => crudCard(spec, r, `#/edit/${section}?${sq}id=${r.id}`)).join('');
   const transfer = section === 'assignments' && season ? transferForm(season) : '';
-  return `${seasonBar}${form}${transfer}
-    ${dataTable([...spec.cols.map(([l]) => ({ label: l })), { label: '' }], rows, 'table-compact')}`;
+  return `${transfer}${tools}
+    ${list.length ? `<div class="${spec.cards ? 'ed-cards' : 'ed-rows'}" data-filter-list>${items}</div><p class="muted ed-nomatch" hidden data-nomatch>Nothing matches.</p>`
+      : emptyState(`No ${spec.title.toLowerCase()} yet`, '', { href: `#/edit/${section}?${sq}id=new`, label: `Add ${spec.one}` })}
+    <p class="muted ed-tip">Click any ${spec.one} to change it.</p>`;
 }
 
 function transferForm(season) {
-  return `<form class="edit-form panel" data-transfer="${season.id}">
-    <h2 class="h-card">Quick transfer</h2>
-    <p class="muted">Ends the driver's current race seat after the previous round and starts a new one. Results already raced keep their original team.</p>
-    <div class="form-grid">
+  return `<form class="edit-form panel panel-accent" data-transfer="${season.id}">
+    <h3 class="h-card">Transfer a driver</h3>
+    <p class="muted">Results already raced keep the old team.</p>
+    <div class="form-grid form-grid-3">
       ${fieldHtml({ key: 'driverId', label: 'Driver', type: 'select', options: driverOpts, required: true }, {})}
       ${fieldHtml({ key: 'teamId', label: 'New team', type: 'select', options: teamOpts, required: true }, {})}
-      ${fieldHtml({ key: 'fromRound', label: 'First round with new team', type: 'number', required: true }, { fromRound: (nextRound(D(), season.id) || { round: 1 }).round })}
+      ${fieldHtml({ key: 'fromRound', label: 'From round', type: 'number', required: true }, { fromRound: (nextRound(D(), season.id) || { round: 1 }).round })}
     </div>
-    <div class="form-actions"><button class="btn btn-red" type="submit">Apply transfer</button></div>
+    <div class="form-actions"><button class="btn btn-red" type="submit">Make transfer</button></div>
   </form>`;
 }
 
@@ -3150,42 +3325,45 @@ function editResults(q) {
   if (!season) return emptyState('No season', 'Create a season first.', { href: '#/edit/seasons?id=new', label: 'Add season' });
   const rounds = roundsOf(c, season.id);
   const round = (q.round && byId(c.rounds, q.round)) || nextRound(c, season.id) || rounds[0];
-  if (!round) return emptyState('No rounds', 'Add calendar rounds first.', { href: '#/edit/rounds?id=new', label: 'Add round' });
-  const session = SESSION_TYPES.includes(q.session) ? q.session : 'race';
+  if (!round) return emptyState('No races', 'Add races to the calendar first.', { href: '#/edit/rounds?id=new', label: 'Add race' });
+  const sessions = SESSION_TYPES.filter(s => s !== 'sprint' || round.sprint || resultFor(c, round.id, 'sprint'));
+  const session = sessions.includes(q.session) ? q.session : 'race';
   const res = resultFor(c, round.id, session);
   let entries = res ? res.entries : lineupEntries(season.id, round.round);
   const tOpts = c.teams.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
-  const dOpts = [...c.drivers].sort((a, b) => a.lastName.localeCompare(b.lastName)).map(d => `<option value="${d.id}">${esc(d.lastName)}, ${esc(d.firstName)}</option>`).join('');
+  const dOpts = [...c.drivers].sort((a, b) => a.lastName.localeCompare(b.lastName)).map(d => `<option value="${d.id}">${esc(d.firstName)} ${esc(d.lastName)}</option>`).join('');
   const sel = (opts, v) => opts.replace(`value="${v}"`, `value="${v}" selected`);
-  const row = (e, i) => `<tr data-row>
+  const quali = session === 'qualifying';
+  const row = (e, i) => `<tr data-row style="--tc:${(teamOf(e.teamId) || {}).color || 'transparent'}">
       <td class="pos-cell">${i + 1}</td>
-      <td><select name="driverId" data-driver>${sel(dOpts, e.driverId)}</select></td>
-      <td><select name="teamId">${sel(tOpts, e.teamId)}</select></td>
-      <td><select name="status">${RESULT_STATUSES.map(s => `<option ${e.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
-      ${session === 'qualifying' ? '' : `<td><input name="grid" type="number" min="1" value="${esc(e.grid ?? '')}" class="in-xs"></td><td><input name="laps" type="number" min="0" value="${esc(e.laps ?? '')}" class="in-xs"></td>`}
-      <td><input name="time" type="text" value="${esc(e.time || '')}" class="in-sm" placeholder="${session === 'qualifying' ? '1:29.123' : i ? '+5.123s' : '1:32:10.456'}"></td>
-      ${session === 'race' ? `<td><input type="radio" name="fastestLap" ${e.fastestLap ? 'checked' : ''} aria-label="Fastest lap"></td>` : ''}
-      ${session === 'qualifying' ? '' : `<td><input name="points" type="number" step="any" value="${esc(e.points ?? '')}" class="in-xs" placeholder="auto"></td>`}
-      <td class="actions"><button type="button" class="icon-btn" data-move="-1" aria-label="Move up">▲</button><button type="button" class="icon-btn" data-move="1" aria-label="Move down">▼</button><button type="button" class="icon-btn" data-remove-row aria-label="Remove">✕</button></td>
+      <td class="drv-cell"><select name="driverId" data-driver aria-label="Driver">${sel(dOpts, e.driverId)}</select></td>
+      <td class="x-col"><select name="teamId" data-team aria-label="Team">${sel(tOpts, e.teamId)}</select></td>
+      <td><select name="status" aria-label="Status">${RESULT_STATUSES.map(s => `<option value="${s}" ${e.status === s ? 'selected' : ''}>${STATUS_LABELS[s] || s}</option>`).join('')}</select></td>
+      <td><input name="time" type="text" value="${esc(e.time || '')}" class="in-sm" aria-label="${quali ? 'Best lap' : 'Time or gap'}" placeholder="${quali ? '1:29.123' : i ? '+5.123s' : '1:32:10.456'}"></td>
+      ${session === 'race' ? `<td class="fl-cell"><input type="radio" name="fastestLap" ${e.fastestLap ? 'checked' : ''} aria-label="Fastest lap"></td>` : ''}
+      ${quali ? '' : `<td class="x-col"><input name="grid" type="number" min="1" value="${esc(e.grid ?? '')}" class="in-xs" aria-label="Grid"></td><td class="x-col"><input name="laps" type="number" min="0" value="${esc(e.laps ?? '')}" class="in-xs" aria-label="Laps"></td><td class="x-col"><input name="points" type="number" step="any" value="${esc(e.points ?? '')}" class="in-xs" placeholder="auto" aria-label="Points"></td>`}
+      <td class="row-btns"><div class="actions"><button type="button" class="icon-btn" data-move="-1" aria-label="Move up">▲</button><button type="button" class="icon-btn" data-move="1" aria-label="Move down">▼</button><button type="button" class="icon-btn icon-btn-x" data-remove-row aria-label="Remove">✕</button></div></td>
     </tr>`;
-  const roundSel = rounds.map(r => `<option value="${r.id}" ${r.id === round.id ? 'selected' : ''}>R${r.round} ${esc(r.name)}${resultFor(c, r.id, 'race') ? ' ✓' : ''}</option>`).join('');
+  const roundSel = rounds.map(r => `<option value="${r.id}" ${r.id === round.id ? 'selected' : ''}>${resultFor(c, r.id, 'race') ? '✓ ' : ''}R${r.round} ${esc(r.name)}</option>`).join('');
+  const seg = sessions.map(s => `<a class="seg${s === session ? ' is-active' : ''}" href="#/edit/results?round=${round.id}&session=${s}">${cap(s)}${resultFor(c, round.id, s) ? ' ✓' : ''}</a>`).join('');
   return `<div class="page-tools">
       ${seasonSelect(season.id, id => `#/edit/results?season=${id}`)}
-      <label class="pill-select"><select data-nav-select="#/edit/results?round=__ID__&session=${session}" aria-label="Round">${roundSel}</select></label>
-      <label class="pill-select"><select data-nav-select="#/edit/results?round=${round.id}&session=__ID__" aria-label="Session">${SESSION_TYPES.map(s => `<option value="${s}" ${s === session ? 'selected' : ''}>${cap(s)}</option>`).join('')}</select></label>
+      <label class="pill-select"><select data-nav-select="#/edit/results?round=__ID__&session=${session}" aria-label="Race">${roundSel}</select></label>
+      <div class="segmented" role="tablist" aria-label="Session">${seg}</div>
     </div>
     <form class="edit-form panel" data-results="${round.id}|${session}">
-      <h2 class="h-card">${esc(round.name)} — ${cap(session)} ${res ? '<span class="tag tag-dark">saved</span>' : '<span class="tag tag-red">not entered</span>'}</h2>
-      <p class="muted">Order rows in finishing order (pole first for qualifying). Status other than FIN is shown as NC/DQ and scores no points. The team defaults to the driver's seat at this round, but you can change it — the team stored here is the one shown forever in this result. Leave Pts blank to use the season's points rule.</p>
-      <div class="table-scroll"><table class="f1-table edit-table"><thead><tr><th>#</th><th>Driver</th><th>Team</th><th>Status</th>${session === 'qualifying' ? '' : '<th>Grid</th><th>Laps</th>'}<th>${session === 'qualifying' ? 'Best lap' : 'Time / gap'}</th>${session === 'race' ? '<th>FL</th>' : ''}${session === 'qualifying' ? '' : '<th>Pts override</th>'}<th></th></tr></thead>
+      <div class="res-head"><h3 class="h-card">${flag(round.countryCode)} ${esc(round.name)} · ${cap(session)}</h3>${res ? '<span class="tag tag-dark">Saved</span>' : '<span class="tag tag-red">Not entered yet</span>'}</div>
+      <p class="muted">Put the drivers in ${quali ? 'qualifying order, pole first' : 'finishing order'}. Use ▲ ▼ to move them. Points are worked out for you.</p>
+      <label class="switch switch-sm"><input type="checkbox" data-xcols><span class="switch-ui" aria-hidden="true"></span><span>Show team, grid, laps &amp; points columns</span></label>
+      <div class="table-scroll"><table class="f1-table edit-table res-table" data-res-table><thead><tr><th>Pos</th><th>Driver</th><th class="x-col">Team</th><th>Status</th><th>${quali ? 'Best lap' : 'Time / gap'}</th>${session === 'race' ? '<th title="Fastest lap">Fastest lap</th>' : ''}${quali ? '' : '<th class="x-col">Grid</th><th class="x-col">Laps</th><th class="x-col">Points</th>'}<th></th></tr></thead>
       <tbody data-rows>${entries.map(row).join('')}</tbody></table></div>
       <template data-row-template>${row({ driverId: '', teamId: '', status: 'FIN', time: '' }, 0)}</template>
-      <div class="form-actions">
+      <div class="form-actions form-actions-sticky">
         <button class="btn btn-red" type="submit">Save result</button>
-        <button class="btn btn-outline" type="button" data-add-row>+ Add row</button>
-        <button class="btn btn-outline" type="button" data-fill-lineup="${season.id}|${round.round}">Reset to line-up</button>
-        ${res ? `<button class="btn btn-ghost" type="button" data-delete="results|${res.id}">Delete this result</button>` : ''}
-        <a class="btn btn-ghost" href="#/results/${round.id}/${session}">View public page</a>
+        <button class="btn btn-ghost" type="button" data-add-row>+ Add driver</button>
+        <button class="btn btn-ghost" type="button" data-fill-lineup="${season.id}|${round.round}">Start over from line-up</button>
+        ${res ? `<button class="btn btn-ghost btn-danger-text" type="button" data-delete="results|${res.id}">Delete result</button>` : ''}
+        ${res ? `<a class="btn btn-ghost" href="#/results/${round.id}/${session}">View on site ›</a>` : ''}
       </div>
     </form>`;
 }
@@ -3197,15 +3375,15 @@ function lineupEntries(seasonId, roundNo) {
 
 /* --- data ------------------------------------------------------------------ */
 function editData() {
-  return `<div class="panel"><h2 class="h-card">Export</h2><p>Download the whole career (all seasons, records and stable IDs) as JSON.</p>
-      <label class="check"><input type="checkbox" data-export-images checked> Include uploaded images (${D().assets.length}) so the file is a complete backup</label>
-      <div class="form-actions"><button class="btn btn-red" type="button" data-export>Download career JSON</button></div></div>
-    <div class="panel"><h2 class="h-card">Import</h2><p>Replace the current career with a JSON file. It is validated first; nothing changes if it has errors.</p>
-      <input type="file" accept="application/json,.json" data-import></div>
-    <div class="panel"><h2 class="h-card">Real 2026 grid</h2><p>The real 2026 line-up (22 drivers, 11 teams, 23 rounds) with the downloaded formula1.com portraits, cars, logos and circuit images. It has no results, so you can race your own season on it.</p>
-      <div class="form-actions"><button class="btn btn-red" type="button" data-add-real>Add to this career</button><button class="btn btn-outline" type="button" data-start-real>Start new career from it</button></div></div>
-    <div class="panel"><h2 class="h-card">Reset</h2><p>Discard this browser's career and reload the 2026 starter grid, or start from an empty career.</p>
-      <div class="form-actions"><button class="btn btn-outline" type="button" data-reset>Reset to 2026 grid</button><button class="btn btn-ghost" type="button" data-blank>Start empty career</button></div></div>`;
+  return `<div class="panel"><h3 class="h-card">Save a backup</h3><p class="muted">Downloads your whole career as one file. Keep it somewhere safe.</p>
+      <label class="switch switch-sm"><input type="checkbox" data-export-images checked><span class="switch-ui" aria-hidden="true"></span><span>Include my uploaded pictures (${D().assets.length})</span></label>
+      <div class="form-actions"><button class="btn btn-red" type="button" data-export>Download backup</button></div></div>
+    <div class="panel"><h3 class="h-card">Load a backup</h3><p class="muted">Replaces the current career with a backup file. Nothing changes if the file has errors.</p>
+      <label class="btn btn-outline file-btn">Choose backup file<input type="file" accept="application/json,.json" data-import hidden></label></div>
+    <div class="panel"><h3 class="h-card">Real 2026 grid</h3><p class="muted">The real 2026 drivers, teams and calendar with all pictures, but no results.</p>
+      <div class="form-actions"><button class="btn btn-outline" type="button" data-add-real>Add to this career</button><button class="btn btn-ghost" type="button" data-start-real>Start a new career with it</button></div></div>
+    <div class="panel panel-danger"><h3 class="h-card">Start over</h3><p class="muted">Deletes this browser's career. Download a backup first if you want to keep it.</p>
+      <div class="form-actions"><button class="btn btn-outline" type="button" data-reset>Reset to 2026 grid</button><button class="btn btn-ghost" type="button" data-blank>Start an empty career</button></div></div>`;
 }
 
 /* --- event binding -------------------------------------------------------- */
@@ -3241,9 +3419,18 @@ function bindEditor(root) {
 
   root.querySelectorAll('[data-delete]').forEach(b => b.addEventListener('click', () => {
     const [coll, id] = b.dataset.delete.split('|');
-    if (!confirm('Delete this record? This cannot be undone (export first if unsure).')) return;
-    try { Store.remove(coll, id); toast('Deleted'); } catch (e) { toast(e.message, true); }
+    if (!confirm('Delete this for good? This cannot be undone.')) return;
+    const form = b.closest('[data-crud]');
+    try { Store.remove(coll, id); toast('Deleted'); if (form) location.hash = form.querySelector('.form-actions a').getAttribute('href'); }
+    catch (e) { toast(e.message.replace(/still used/i, 'still used elsewhere, so it cannot be deleted yet'), true); }
   }));
+
+  const filter = root.querySelector('[data-filter]');
+  if (filter) filter.addEventListener('input', () => {
+    const qv = filter.value.trim().toLowerCase(); let shown = 0;
+    root.querySelectorAll('[data-filter-list] > *').forEach(el => { const ok = !qv || el.dataset.filterText.includes(qv); el.hidden = !ok; if (ok) shown++; });
+    root.querySelector('[data-nomatch]').hidden = shown > 0;
+  });
 
   const tf = root.querySelector('[data-transfer]');
   if (tf) tf.addEventListener('submit', ev => {
@@ -3261,6 +3448,11 @@ function bindEditor(root) {
   const rf = root.querySelector('[data-results]');
   if (rf) {
     const tbody = rf.querySelector('[data-rows]');
+    const table = rf.querySelector('[data-res-table]'), xc = rf.querySelector('[data-xcols]');
+    let xOn = false; try { xOn = localStorage.getItem('f1hub.xcols') === '1'; } catch (e) {}
+    xc.checked = xOn; table.classList.toggle('show-x', xOn);
+    xc.addEventListener('change', () => { table.classList.toggle('show-x', xc.checked); try { localStorage.setItem('f1hub.xcols', xc.checked ? '1' : '0'); } catch (e) {} });
+    const paint = tr => { const t = teamOf(tr.querySelector('[name=teamId]').value); tr.style.setProperty('--tc', t ? t.color : 'transparent'); };
     const renumber = () => tbody.querySelectorAll('[data-row]').forEach((tr, i) => { tr.querySelector('.pos-cell').textContent = i + 1; });
     rf.addEventListener('click', ev => {
       const b = ev.target.closest('button'); if (!b) return;
@@ -3275,15 +3467,17 @@ function bindEditor(root) {
         tmp.innerHTML = lineupEntries(sid, Number(rn)).map(() => rf.querySelector('[data-row-template]').innerHTML).join('');
         const list = lineupEntries(sid, Number(rn));
         [...tmp.children].forEach((tr, i) => { tr.querySelector('[name=driverId]').value = list[i].driverId; tr.querySelector('[name=teamId]').value = list[i].teamId; });
-        tbody.replaceChildren(...tmp.children); renumber();
+        tbody.replaceChildren(...tmp.children); tbody.querySelectorAll('[data-row]').forEach(paint); renumber();
       }
     });
     // picking a driver defaults the team to their seat at this round
     rf.addEventListener('change', ev => {
+      if (ev.target.matches('[data-team]')) return paint(ev.target.closest('tr'));
       if (!ev.target.matches('[data-driver]')) return;
       const [roundId] = rf.dataset.results.split('|'); const rd = byId(D().rounds, roundId);
       const t = driverTeamAt(D(), ev.target.value, rd.seasonId, rd.round);
       if (t) ev.target.closest('tr').querySelector('[name=teamId]').value = t;
+      paint(ev.target.closest('tr'));
     });
     rf.addEventListener('submit', ev => {
       ev.preventDefault();
@@ -3299,7 +3493,7 @@ function bindEditor(root) {
       const existing = resultFor(D(), roundId, session);
       Store.upsert('results', { id: existing ? existing.id : `res_${roundId.replace(/^rnd_/, '')}_${session}`, roundId, session, entries });
       const rd = byId(D().rounds, roundId); if (session === 'race') { rd.status = 'completed'; Store.save(); }
-      toast('Result saved — standings updated');
+      toast('Result saved, standings updated');
     });
   }
 

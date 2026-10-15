@@ -103,7 +103,7 @@ const Store = {
     let raw = null;
     try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { this.storageOk = false; }
     if (raw) {
-      try { this.data = normalizeCareer(JSON.parse(raw)); return; }
+      try { this.data = normalizeCareer(JSON.parse(raw)); this.dropOldSampleNews(); return; }
       catch (e) { console.warn('Saved career unreadable, loading sample', e); }
     }
     this.data = normalizeCareer(clone(sample));
@@ -115,6 +115,13 @@ const Store = {
     this.listeners.forEach(fn => fn());
   },
   onChange(fn) { this.listeners.push(fn); },
+  // one-time cleanup: news stories from the old fictional 2030 sample career
+  dropOldSampleNews() {
+    const old = new Set(['art_season_preview', 'art_r1_report', 'art_r2_report', 'art_r3_report', 'art_transfer_swap', 'art_r6_report', 'art_grant_injury', 'art_r8_report', 'art_vantage_analysis']);
+    const n = this.data.articles.length;
+    this.data.articles = this.data.articles.filter(a => !old.has(a.id));
+    if (this.data.articles.length !== n) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {} }
+  },
   reset(sample) { this.data = normalizeCareer(clone(sample)); this.save(); },
   replace(raw) {
     const c = normalizeCareer(raw);
