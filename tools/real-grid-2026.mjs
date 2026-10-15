@@ -111,9 +111,3 @@ export function realGrid(fs) {
     notes: 'Real 2026 line-up and calendar from formula1.com, with no results. Enter your own career results here, or start a new career from it in Import / Export.' };
   return { season, teams, drivers, assignments, rounds };
 }
-
-// circuit image for the fictional sample rounds, matched by country
-export const SAMPLE_ROUND_IMAGES = {
-  Bahrain: 'bahrain', Australia: 'australia', Japan: 'japan', China: 'china', 'United States': 'miami', Monaco: 'monaco',
-  Spain: 'barcelona-catalunya', Canada: 'canada', Austria: 'austria', 'Great Britain': 'great-britain', Belgium: 'belgium',
-};

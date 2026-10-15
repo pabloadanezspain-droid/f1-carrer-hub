@@ -89,7 +89,9 @@ test('uploaded originals referenced by a composite cannot be deleted', () => {
 
 test('driver without any photo gets the clean placeholder in the right team colours', () => {
   const c = fresh();
-  const r = A.resolvePortrait(c, by(c, 'drivers', 'drv_marchetti'), by(c, 'teams', 'team_vantage'));
+  c.teams.push({ id: 'team_new', name: 'Newco', color: '#2b6be0', colorDark: '#0f2f73' });
+  c.drivers.push({ id: 'drv_new', firstName: 'New', lastName: 'Driver', code: 'NEW', nationality: 'SUI', portraitUrl: '' });
+  const r = A.resolvePortrait(c, by(c, 'drivers', 'drv_new'), by(c, 'teams', 'team_new'));
   assert.equal(r.kind, 'placeholder');
   assert.match(decodeURIComponent(r.url), /#2b6be0/);
 });

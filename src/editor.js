@@ -181,7 +181,7 @@ function libDatalist(prefix) {
   return `<datalist id="${id}">${IMAGE_LIBRARY.filter(p => p.includes('/' + prefix)).map(p => `<option value="${esc(p)}">`).join('')}</datalist>`;
 }
 
-/* Real 2026 grid records shipped inside the sample (season sea_2026_grid). */
+/* Real 2026 grid records shipped as the starter career (season sea_2026_grid). */
 function realGridRecords() {
   const S = SAMPLE_CAREER, sid = 'sea_2026_grid';
   const season = S.seasons.find(x => x.id === sid);
@@ -335,8 +335,8 @@ function editData() {
       <input type="file" accept="application/json,.json" data-import></div>
     <div class="panel"><h2 class="h-card">Real 2026 grid</h2><p>The real 2026 line-up (22 drivers, 11 teams, 23 rounds) with the downloaded formula1.com portraits, cars, logos and circuit images. It has no results, so you can race your own season on it.</p>
       <div class="form-actions"><button class="btn btn-red" type="button" data-add-real>Add to this career</button><button class="btn btn-outline" type="button" data-start-real>Start new career from it</button></div></div>
-    <div class="panel"><h2 class="h-card">Reset</h2><p>Discard this browser's career and reload the fictional sample season, or start from an empty career.</p>
-      <div class="form-actions"><button class="btn btn-outline" type="button" data-reset>Reset to sample</button><button class="btn btn-ghost" type="button" data-blank>Start empty career</button></div></div>`;
+    <div class="panel"><h2 class="h-card">Reset</h2><p>Discard this browser's career and reload the 2026 starter grid, or start from an empty career.</p>
+      <div class="form-actions"><button class="btn btn-outline" type="button" data-reset>Reset to 2026 grid</button><button class="btn btn-ghost" type="button" data-blank>Start empty career</button></div></div>`;
 }
 
 /* --- event binding -------------------------------------------------------- */
@@ -457,7 +457,7 @@ function bindEditor(root) {
     catch (e) { toast(e.message, true); im.value = ''; }
   });
   const rs = root.querySelector('[data-reset]');
-  if (rs) rs.addEventListener('click', () => { if (confirm('Replace everything with the sample season?')) { Store.reset(SAMPLE_CAREER); toast('Sample restored'); location.hash = '#/'; } });
+  if (rs) rs.addEventListener('click', () => { if (confirm('Replace everything with the 2026 starter grid?')) { Store.reset(SAMPLE_CAREER); toast('2026 grid restored'); location.hash = '#/'; } });
   const ar = root.querySelector('[data-add-real]');
   if (ar) ar.addEventListener('click', () => {
     try { const n = mergeRealGrid(D()); Store.save(); toast(n ? `Added ${n} records. Pick 2026 in any season menu.` : 'Already in this career'); }

@@ -16,13 +16,13 @@ const ASSET_MANIFEST = {
     logoUrl: '',          // e.g. 'assets/brand/logo.svg' — empty = built-in wordmark
   },
   teams: {
-    // team_vantage: { logo: 'assets/teams/vantage-logo.png', car: 'assets/teams/vantage-car.png' },
+    // team_mclaren: { logo: 'assets/teams/mclaren-logo.png', car: 'assets/teams/mclaren-car.png' },
   },
   drivers: {
-    // drv_marchetti: { portrait: 'assets/drivers/marchetti.png' },
+    // drv_lando_norris: { portrait: 'assets/drivers/norris.png' },
   },
   rounds: {
-    // rnd_2030_01: { image: 'assets/circuits/bahrain.jpg' },
+    // rnd_2026_01: { image: 'assets/circuits/australia.jpg' },
   },
   articles: {
     // art_r1_report: { image: 'assets/news/r1.jpg' },
