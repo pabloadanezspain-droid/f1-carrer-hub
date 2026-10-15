@@ -103,18 +103,23 @@ const Store = {
     let raw = null;
     try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { this.storageOk = false; }
     if (raw) {
-      try { this.data = normalizeCareer(JSON.parse(raw)); this.dropOldSampleNews(); return; }
+      try { this.data = normalizeCareer(JSON.parse(raw)); this.dropOldSampleNews(); this.syncNewsQuietly(); return; }
       catch (e) { console.warn('Saved career unreadable, loading sample', e); }
     }
     this.data = normalizeCareer(clone(sample));
+    if (typeof syncAutoNews === 'function') syncAutoNews(this.data);
   },
   save() {
+    if (typeof syncAutoNews === 'function') syncAutoNews(this.data);   // keep auto-written news in step with results
     this.data.meta.updatedAt = new Date().toISOString();
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); this.storageOk = true; }
     catch (e) { this.storageOk = false; console.warn('localStorage unavailable', e); }
     this.listeners.forEach(fn => fn());
   },
   onChange(fn) { this.listeners.push(fn); },
+  syncNewsQuietly() {
+    if (typeof syncAutoNews === 'function' && syncAutoNews(this.data)) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {} }
+  },
   // one-time cleanup: news stories from the old fictional 2030 sample career
   dropOldSampleNews() {
     const old = new Set(['art_season_preview', 'art_r1_report', 'art_r2_report', 'art_r3_report', 'art_transfer_swap', 'art_r6_report', 'art_grant_injury', 'art_r8_report', 'art_vantage_analysis']);

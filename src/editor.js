@@ -116,7 +116,7 @@ const SPECS = {
   },
   articles: {
     title: 'News', one: 'story', coll: 'articles', sort: (a, b) => String(b.publishedAt).localeCompare(String(a.publishedAt)),
-    name: r => r.title, sub: r => `${fmtDate(r.publishedAt)} · ${r.category}${r.featured ? ' · Lead story' : ''}`,
+    name: r => r.title, sub: r => `${fmtDate(r.publishedAt)} · ${r.category}${r.featured ? ' · Lead story' : ''}${r.auto ? (ngSig(r) === r.auto.sig ? ' · Auto-written' : ' · Auto-written, edited by you') : ''}`,
     fields: [
       { key: 'title', label: 'Headline', type: 'text', required: true },
       { key: 'category', label: 'Category', type: 'select', options: () => ARTICLE_CATEGORIES.map(x => [x, x]) },
@@ -259,6 +259,7 @@ function editSettings() {
         ${fieldHtml({ key: 'careerName', label: 'Career name', type: 'text', required: true }, m)}
         ${fieldHtml({ key: 'playerTeamId', label: 'Your team', hint: 'Highlighted across the site', type: 'select', options: () => [['', 'None'], ...teamOpts()] }, m)}
         ${fieldHtml({ key: 'activeSeasonId', label: 'Season shown by default', type: 'select', options: seasonOpts }, m)}
+        ${fieldHtml({ key: 'autoNews', label: 'Write news automatically after each race', type: 'checkbox' }, { autoNews: m.autoNews !== false })}
       </div>
       <details class="more-fields"><summary>More options</summary><div class="form-grid">
         ${fieldHtml({ key: 'isSample', label: 'Show the “sample career” banner', type: 'checkbox' }, m)}
@@ -294,6 +295,7 @@ function editCrud(section, q) {
     return `<a class="back-link" href="${back}">‹ All ${esc(spec.title.toLowerCase())}</a>
       <form class="edit-form panel" data-crud="${section}" data-id="${esc(editing.id || '')}">
         <h3 class="h-card">${editing.id ? esc(String(spec.nameHtml ? editing.name : spec.name(editing))) : 'New ' + spec.one}</h3>
+        ${editing.auto ? `<div class="auto-note"><span>${ngSig(editing) === editing.auto.sig ? 'Written automatically. It updates when results change. If you edit it, it becomes yours and stays as you wrote it.' : 'Written automatically, then edited by you. It no longer updates by itself.'}</span><button class="btn btn-outline btn-sm" type="button" data-rewrite="${editing.id}">Rewrite</button></div>` : ''}
         <div class="form-grid">${main.map(f => fieldHtml(f, editing)).join('')}</div>
         ${more.length ? `<details class="more-fields"><summary>More details <span class="muted">(optional)</span></summary><div class="form-grid">${more.map(f => fieldHtml(f, editing)).join('')}</div></details>` : ''}
         <div class="form-actions form-actions-sticky"><button class="btn btn-red" type="submit">Save</button><a class="btn btn-ghost" href="${back}">Cancel</a>
@@ -308,7 +310,8 @@ function editCrud(section, q) {
       ${list.length > 8 ? `<input class="ed-filter" type="search" placeholder="Search ${esc(spec.title.toLowerCase())}…" aria-label="Search" data-filter>` : ''}
       <a class="btn btn-red btn-add" href="#/edit/${section}?${sq}id=new">+ Add ${spec.one}</a></div>`;
   const items = list.map(r => crudCard(spec, r, `#/edit/${section}?${sq}id=${r.id}`)).join('');
-  const transfer = section === 'assignments' && season ? transferForm(season) : '';
+  const transfer = section === 'assignments' && season ? transferForm(season) : section === 'articles'
+    ? `<p class="muted">${D().meta.autoNews === false ? 'Automatic news is off. Turn it on in <a href="#/edit/settings">Career settings</a>.' : 'Race reports, title-fight analysis, milestones and previews are written for you after each race. You can edit any of them or write your own.'}</p>` : '';
   return `${transfer}${tools}
     ${list.length ? `<div class="${spec.cards ? 'ed-cards' : 'ed-rows'}" data-filter-list>${items}</div><p class="muted ed-nomatch" hidden data-nomatch>Nothing matches.</p>`
       : emptyState(`No ${spec.title.toLowerCase()} yet`, '', { href: `#/edit/${section}?${sq}id=new`, label: `Add ${spec.one}` })}
@@ -409,7 +412,7 @@ function bindEditor(root) {
   if (meta) meta.addEventListener('submit', ev => {
     ev.preventDefault(); const fd = new FormData(meta); const m = D().meta;
     m.careerName = String(fd.get('careerName') || 'My Career'); m.activeSeasonId = fd.get('activeSeasonId') || m.activeSeasonId;
-    m.playerTeamId = fd.get('playerTeamId') || null; m.isSample = fd.get('isSample') === 'on';
+    m.playerTeamId = fd.get('playerTeamId') || null; m.isSample = fd.get('isSample') === 'on'; m.autoNews = fd.get('autoNews') === 'on';
     Store.save(); toast('Settings saved');
   });
 
@@ -433,6 +436,12 @@ function bindEditor(root) {
     const form = b.closest('[data-crud]');
     try { Store.remove(coll, id); toast('Deleted'); if (form) location.hash = form.querySelector('.form-actions a').getAttribute('href'); }
     catch (e) { toast(e.message.replace(/still used/i, 'still used elsewhere, so it cannot be deleted yet'), true); }
+  }));
+
+  root.querySelectorAll('[data-rewrite]').forEach(b => b.addEventListener('click', () => {
+    const a = byId(D().articles, b.dataset.rewrite);
+    if (a && ngSig(a) !== a.auto.sig && !confirm('Replace your edits with freshly written text?')) return;
+    rewriteAutoNews(D(), b.dataset.rewrite); Store.save(); toast('Rewritten');
   }));
 
   const filter = root.querySelector('[data-filter]');

@@ -126,7 +126,10 @@ function numberArt(driver, cls) {
 }
 /* first real trackside photo of any driver in the list (used for article fallbacks) */
 function driverPhoto(driverIds, seed) {
-  const pool = (driverIds || []).flatMap(id => ((byId(Store.data.drivers, id) || {}).photoUrls || []));
+  // prefer photos of the first driver tagged (the story's main subject); fall back to the others
+  const of = id => (byId(Store.data.drivers, id) || {}).photoUrls || [];
+  const first = (driverIds || []).find(id => of(id).length);
+  const pool = first ? of(first) : [];
   return pool.length ? pool[hashStr(seed) % pool.length] : '';
 }
 
