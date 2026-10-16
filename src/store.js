@@ -6,12 +6,15 @@
 
 const SCHEMA_VERSION = 1;
 const STORAGE_KEY = 'f1ch.career.v1';
-const COLLECTIONS = ['seasons', 'pointsRules', 'teams', 'drivers', 'assignments', 'rounds', 'results', 'articles', 'assets', 'composites'];
+const COLLECTIONS = ['seasons', 'pointsRules', 'teams', 'drivers', 'assignments', 'rounds', 'results', 'articles', 'assets', 'composites', 'academies'];
 const ID_PREFIX = {
   seasons: 'sea', pointsRules: 'pts', teams: 'team', drivers: 'drv',
   assignments: 'asg', rounds: 'rnd', results: 'res', articles: 'art',
-  assets: 'ast', composites: 'cmp',
+  assets: 'ast', composites: 'cmp', academies: 'acd',
 };
+const SERIES = ['f1', 'f2'];
+const CAREER_MODES = ['f1', 'f2', 'both'];
+const F2_POINTS_RULE = { id: 'pts_f2', name: 'FIA Formula 2', race: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], sprint: [10, 8, 6, 5, 4, 3, 2, 1], fastestLap: { points: 1, maxPosition: 10 }, pole: 2 };
 const ASSET_KINDS = ['headshot', 'suit', 'portrait', 'derived'];
 const RESULT_STATUSES = ['FIN', 'DNF', 'DNS', 'DSQ'];
 const SESSION_TYPES = ['race', 'sprint', 'qualifying'];
@@ -30,7 +33,7 @@ function slugify(s) {
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
 function emptyCareer() {
-  const c = { schemaVersion: SCHEMA_VERSION, meta: { careerName: 'My Career', isSample: false, activeSeasonId: null, playerTeamId: null, updatedAt: null } };
+  const c = { schemaVersion: SCHEMA_VERSION, meta: { careerName: 'My Career', isSample: false, activeSeasonId: null, playerTeamId: null, mode: 'f1', updatedAt: null } };
   COLLECTIONS.forEach(k => { c[k] = []; });
   return c;
 }
@@ -50,6 +53,12 @@ function normalizeCareer(raw) {
   c.rounds.forEach(r => { r.sessions = r.sessions || []; r.status = r.status || 'scheduled'; r.sprint = !!r.sprint; });
   c.articles.forEach(a => { a.driverIds = a.driverIds || []; a.teamIds = a.teamIds || []; a.body = a.body || ''; });
   c.drivers.forEach(d => { d.portraits = d.portraits || []; d.photoUrls = d.photoUrls || []; });
+  // Series: saves made before F2 support are all F1.
+  if (!CAREER_MODES.includes(c.meta.mode)) c.meta.mode = 'f1';
+  c.seasons.forEach(s => { if (!SERIES.includes(s.series)) s.series = 'f1'; });
+  c.teams.forEach(t => { if (!SERIES.includes(t.series)) t.series = 'f1'; });
+  c.academies.forEach(a => { a.driverIds = a.driverIds || []; a.fromSeasonId = a.fromSeasonId || null; a.toSeasonId = a.toSeasonId || null; });
+  if (c.seasons.some(s => s.series === 'f2') && !c.pointsRules.some(r => r.id === F2_POINTS_RULE.id)) c.pointsRules.push(clone(F2_POINTS_RULE));
   c.composites.forEach(x => { x.status = x.status || 'approved'; x.params = x.params || {}; x.version = x.version || 1; });
   // Library portraits are photos in a specific team's suit: infer that team for saves made before portraitTeamId existed.
   c.drivers.forEach(d => {
@@ -78,6 +87,7 @@ function validateCareer(c) {
   const need = (coll, id, where) => { if (id && !ids[coll].has(id)) errs.push(`${where} → unknown ${coll} id "${id}"`); };
   c.seasons.forEach(s => need('pointsRules', s.pointsRuleId, `season ${s.id}`));
   c.assignments.forEach(a => { need('seasons', a.seasonId, `assignment ${a.id}`); need('drivers', a.driverId, `assignment ${a.id}`); need('teams', a.teamId, `assignment ${a.id}`); });
+  c.academies.forEach(a => { need('teams', a.f1TeamId, `academy ${a.id}`); a.driverIds.forEach(id => need('drivers', id, `academy ${a.id}`)); });
   c.rounds.forEach(r => need('seasons', r.seasonId, `round ${r.id}`));
   c.results.forEach(r => {
     need('rounds', r.roundId, `result ${r.id}`);

@@ -16,14 +16,15 @@ Things that hold for every record:
     "sampleNotice": "…",
     "activeSeasonId": "sea_2026_grid", // default season for every page
     "playerTeamId": "team_x",     // your team (reserved for later features)
+    "mode": "f1" | "f2" | "both", // which series the hub shows (default "f1")
     "updatedAt": "ISO date"
   },
-  "seasons":     [{ "id", "year", "name", "pointsRuleId", "notes" }],
+  "seasons":     [{ "id", "year", "name", "series": "f1" | "f2", "pointsRuleId", "notes" }],
   "pointsRules": [{ "id", "name",
                     "race":   [25,18,15,12,10,8,6,4,2,1],   // points by finishing position
                     "sprint": [8,7,6,5,4,3,2,1],
                     "fastestLap": { "points": 1, "maxPosition": 10 } }],
-  "teams":   [{ "id", "name", "fullName", "color", "colorDark", "base", "principal", "technicalChief",
+  "teams":   [{ "id", "series": "f1" | "f2", "name", "fullName", "color", "colorDark", "base", "principal", "technicalChief",
                 "chassis", "powerUnit", "firstEntry", "championships", "logoUrl", "carUrl", "bio" }],
   "drivers": [{ "id", "firstName", "lastName", "code", "number", "nationality" /* ISO-3 e.g. GBR */,
                 "dob", "birthplace", "championships", "portraitUrl", "portraitTeamId" /* suit in that portrait; blank = any */,
@@ -45,6 +46,7 @@ Things that hold for every record:
                "driverId", "teamId", "uploadedAt",
                "fit": { "cx","nw","ct","cd","aspect","contour", "headMask","bodyMask","faceExt" /* derived asset ids */ },
                "derivedFrom", "role" /* derived files only */ }],   // blob itself: IndexedDB "f1ch-assets", key = id (never modified)
+  "academies": [{ "id", "f1TeamId", "name", "driverIds": [], "fromSeasonId", "toSeasonId" }], // F1 junior programmes
   "composites": [{ "id", "driverId", "teamId", "version", "status": "approved" | "superseded",
                    "face": REF, "faceSrc": "portrait" | "headshot", "suit": REF,
                    "params": { "mode": "fit" | undefined,

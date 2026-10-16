@@ -18,7 +18,10 @@ const ngOrd = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 
 const NG_GP = { Australia: 'Australian', China: 'Chinese', Japan: 'Japanese', Canada: 'Canadian', Austria: 'Austrian', 'Great Britain': 'British', Belgium: 'Belgian',
   Hungary: 'Hungarian', Netherlands: 'Dutch', Italy: 'Italian', Spain: 'Spanish', 'United States': 'United States', Mexico: 'Mexico City', Brazil: 'São Paulo',
   France: 'French', Germany: 'German', Portugal: 'Portuguese', 'Saudi Arabia': 'Saudi Arabian', Turkey: 'Turkish', Russia: 'Russian', Malaysia: 'Malaysian', Korea: 'Korean', India: 'Indian' };
-const ngGp = r => `${NG_GP[r.name] || r.name} Grand Prix`;
+// F2 rounds are named after the city ("the Baku Feature Race"); set per career by ngSeries().
+let NG_F2 = new Set();
+const ngSeries = c => { NG_F2 = new Set(c.seasons.filter(s => s.series === 'f2').map(s => s.id)); };
+const ngGp = r => NG_F2.has(r.seasonId) ? `${r.city || r.name} Feature Race` : `${NG_GP[r.name] || r.name} Grand Prix`;
 const ngWord = n => ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'][n] || String(n);
 
 /* --- phrase banks ---------------------------------------------------------- */
@@ -283,6 +286,7 @@ function ngPreview(c, round, w) {
 
 /* --- which stories, in what order ------------------------------------------ */
 function ngStoriesFor(c, round, usedHeads, variant) {
+  ngSeries(c);
   const f = ngFacts(c, round); if (!f) return [];
   const seed = `${round.id}|${variant || 0}`;
   const out = [ngRaceReport(f, ngWriter(seed + 'r', usedHeads), ngVars(f))];
@@ -293,8 +297,47 @@ function ngStoriesFor(c, round, usedHeads, variant) {
   if ((f.leaderBeforeEntry && !f.leaderBeforeEntry.position && f.leaderBefore) || f.dnfs.length >= 4) cands.push([55, () => ngDramaStory(f, ngWriter(seed + 'd', usedHeads), v)]);
   if (f.home) cands.push([40, () => ngHomeStory(f, ngWriter(seed + 'h', usedHeads), v)]);
   if (f.playerTeam && f.player.length) cands.push([50, () => ngPlayerStory(f, ngWriter(seed + 'p', usedHeads), v, c)]);
+  const junior = ngJunior(c, f);
+  if (junior) cands.push([junior.score, () => ngAcademyStory(c, f, ngWriter(seed + 'a', usedHeads), v, junior)]);
   cands.sort((a, b) => b[0] - a[0]).slice(0, 2).forEach(([, mk]) => out.push(mk()));
   return out;
+}
+
+/* --- academies: F2 results seen from the F1 team that owns the driver ------- */
+// The best-placed academy driver on the podium, or the academy driver leading the F2 standings.
+function ngJunior(c, f) {
+  if (!NG_F2.has(f.round.seasonId) || !(c.academies || []).length) return null;
+  const pod = [f.W, f.P2, f.P3].filter(Boolean).map((e, i) => ({ e, pos: i + 1, a: academyOf(c, e.driverId) })).find(x => x.a);
+  if (pod) return { kind: pod.pos === 1 ? 'win' : 'podium', driverId: pod.e.driverId, teamId: pod.e.teamId, pos: pod.pos, academy: pod.a, score: pod.pos === 1 ? 52 : 35 };
+  const la = f.L && f.raced >= 3 && academyOf(c, f.L.id);
+  return la ? { kind: 'leader', driverId: f.L.id, teamId: driverCurrentTeam(c, f.L.id, f.round.seasonId), academy: la, score: 42 } : null;
+}
+function ngAcademyStory(c, f, w, v, j) {
+  const X = f.d(j.driverId), ft = byId(c.teams, j.academy.f1TeamId), F1 = ft ? ft.name : 'his F1 team';
+  const vars = Object.assign({}, v, { X: X.lastName, Xfull: `${X.firstName} ${X.lastName}`, F1, XP: ngOrd(j.pos || 1), prog: j.academy.name || `${F1} Academy` });
+  const H = { win: ['{F1} junior {X} wins in {city}', '{X} gives {F1} reason to smile in {city}', 'Academy star {X} takes {city} victory'],
+    podium: ['{F1} junior {X} on the podium in {city}', '{X} keeps {F1} watching with {XP} in {city}'],
+    leader: ['{F1} watching {X} closely as he leads F2', 'F1 seat talk grows as {X} tops the F2 standings', 'Is {X} ready for {F1}?'] }[j.kind];
+  const B = {
+    win: ['{Xfull} won {gp} for {T}, and the result will not go unnoticed at {F1}.', 'Victory in {city} adds to the case for {Xfull}, a member of the {prog}.'],
+    podium: ['{Xfull} finished {XP} in {gp}, another strong result for the {prog} driver.', 'A {XP} place in {city} keeps {Xfull} in the spotlight at {F1}.'],
+    leader: ['{Xfull} leads the Formula 2 championship, and the paddock is already asking when {F1} will make its move.', 'At the top of the F2 table, {Xfull} has given the {prog} a big decision to make.'] }[j.kind];
+  const Q = ['"Every race here is a test. I want to show {F1} I am ready," {X} said.', '"We know who is watching. That is extra motivation," said {X}.', 'A {F1} source said the team is "very happy" with how {X} is developing.'];
+  return { type: 'academy', category: 'News', title: ngHeadline(ngFill(w.pick(H), vars)), standfirst: ngFill(w.pick(['The view from the {F1} junior programme.', 'The {prog} has a driver in form.']), vars),
+    body: [ngFill(w.pick(B), vars), ngFill(w.pick(Q), vars)], drivers: [j.driverId], teams: [j.teamId, j.academy.f1TeamId].filter(Boolean), hours: 26, academyTeamId: j.academy.f1TeamId };
+}
+
+/* --- pictures: a stable photo per story -------------------------------------- */
+// Academy stories use the parent F1 team's photos; others the lead driver's photos, then the season's photo pool.
+function ngImage(c, rd, st, key) {
+  const pick = list => list.length ? list[ngHash(key) % list.length] : '';
+  const photosOf = ids => ids.flatMap(id => (byId(c.drivers, id) || {}).photoUrls || []);
+  if (st.academyTeamId) {
+    const f1 = allSeasonsDesc(c).find(s => (s.series || 'f1') === 'f1');
+    const ids = f1 ? [...new Set(assignmentsOf(c, f1.id).filter(a => a.teamId === st.academyTeamId).map(a => a.driverId))] : [];
+    const img = pick(photosOf(ids)); if (img) return img;
+  }
+  return pick(photosOf(st.drivers.slice(0, 1))) || pick(photosOf(st.drivers)) || pick((byId(c.seasons, rd.seasonId) || {}).photoUrls || []);
 }
 
 /* --- sync with the career -------------------------------------------------- */
@@ -305,6 +348,7 @@ function ngIso(dateStr, hours) { const d = parseDate(dateStr) || new Date(); ret
 
 function syncAutoNews(c) {
   if (!c || c.meta.autoNews === false) return false;
+  ngSeries(c);
   let changed = false;
   const wanted = new Map();
   c.seasons.forEach(s => {
@@ -337,7 +381,7 @@ function syncAutoNews(c) {
       id, seasonId: rd.seasonId, roundId: rd.id, category: st.category, title: st.title, slug: slugify(st.title),
       standfirst: st.standfirst, body: st.body.join('\n\n'), author: authors[ngHash(key) % authors.length],
       publishedAt: st.hoursBefore ? ngIso(rd.dateStart || rd.dateEnd, -st.hoursBefore + 9) : ngIso(rd.dateEnd || rd.dateStart, 4 + st.hours),
-      featured: old ? !!old.featured : false, imageUrl: old ? old.imageUrl || '' : '',
+      featured: old ? !!old.featured : false, imageUrl: (old && old.imageUrl) || ngImage(c, rd, st, key),
       driverIds: [...new Set(st.drivers)].filter(x => byId(c.drivers, x)), teamIds: [...new Set(st.teams)].filter(x => byId(c.teams, x)),
     };
     rec.auto = { key, round: rd.id, variant, sig: ngSig(rec) };

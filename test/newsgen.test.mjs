@@ -122,4 +122,24 @@ if (process.argv.includes('--show')) {
   c.articles.filter(a => /rnd_2026_0[5-8]|rnd_2026_09/.test(a.auto.key)).sort((a, b) => a.publishedAt.localeCompare(b.publishedAt))
     .forEach(a => console.log(`\n[${a.category}] ${a.publishedAt.slice(0, 16)} by ${a.author}\n# ${a.title}\n> ${a.standfirst}\n${a.body}`));
 }
+test('F2 rounds get Feature Race wording, academy stories and photos', () => {
+  const c = fresh(); const F2 = 'sea_f2_2026';
+  const drivers = c.assignments.filter(a => a.seasonId === F2).map(a => a.driverId);
+  // Câmara (Ferrari Academy) wins round 1, the rest follow the line-up order
+  const order = ['drv_rafael_camara', ...drivers.filter(d => d !== 'drv_rafael_camara')];
+  const rd = A.roundsOf(c, F2)[0];
+  order.forEach((d, i) => A.mxSetResult(c, rd.id, 'race', d, i + 1));
+  A.syncAutoNews(c);
+  const mine = c.articles.filter(a => a.roundId === rd.id);
+  const report = mine.find(a => a.auto.key.endsWith(':report'));
+  assert.match(report.title + report.body, /Feature Race/);
+  assert.doesNotMatch(report.title + report.body, /Grand Prix/);
+  const acd = mine.find(a => a.auto.key.endsWith(':academy'));
+  assert.ok(acd, 'academy story written');
+  assert.match(acd.title + acd.body, /Ferrari/);
+  assert.ok(acd.teamIds.includes('team_ferrari'));
+  assert.match(acd.imageUrl, /^assets\/f1com\/photos\/(charles-leclerc|lewis-hamilton)-/, 'academy story uses a Ferrari F1 photo');
+  assert.match(report.imageUrl, /^assets\/f2\/photos\//, 'race report uses an F2 photo');
+});
+
 console.log(`\n${pass} tests passed`);

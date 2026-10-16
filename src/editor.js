@@ -5,7 +5,7 @@
 
 const EDIT_GROUPS = [
   ['Race weekend', [['results', 'Enter results'], ['rounds', 'Calendar']]],
-  ['Grid', [['drivers', 'Drivers'], ['teams', 'Teams'], ['assignments', 'Line-ups & transfers']]],
+  ['Grid', [['drivers', 'Drivers'], ['teams', 'Teams'], ['assignments', 'Line-ups & transfers'], ['academies', 'Academies']]],
   ['Stories', [['articles', 'News']]],
   ['Pictures', [['studio', 'Portrait studio'], ['assets', 'Uploaded images']]],
   ['Setup', [['settings', 'Career settings'], ['seasons', 'Seasons'], ['points', 'Points rules'], ['data', 'Backup & reset']]],
@@ -14,9 +14,11 @@ const EDIT_SECTIONS = [['overview', 'Start'], ...EDIT_GROUPS.flatMap(([, items])
 const STATUS_LABELS = { FIN: 'Finished', DNF: 'Did not finish', DNS: 'Did not start', DSQ: 'Disqualified' };
 
 const opt = (list, label) => () => list().map(r => [r.id, label(r)]);
-const seasonOpts = opt(() => seasonsDesc(D()), s => `${s.year} — ${s.name}`);
+const seasonOpts = opt(() => allSeasonsDesc(D()), s => `${s.year} — ${s.name}`);
 const teamOpts = opt(() => [...D().teams].sort((a, b) => a.name.localeCompare(b.name)), t => t.name);
 const driverOpts = opt(() => [...D().drivers].sort((a, b) => a.lastName.localeCompare(b.lastName)), d => `${d.firstName} ${d.lastName}`);
+const SERIES_OPTS = () => [['f1', 'Formula 1'], ['f2', 'Formula 2']];
+const f1TeamOpts = opt(() => D().teams.filter(t => seriesOf(t) === 'f1').sort((a, b) => a.name.localeCompare(b.name)), t => t.name);
 const ruleOpts = opt(() => D().pointsRules, r => r.name);
 
 const SPECS = {
@@ -26,6 +28,7 @@ const SPECS = {
     fields: [
       { key: 'year', label: 'Year', type: 'number', required: true },
       { key: 'name', label: 'Season name', type: 'text', required: true, placeholder: '2027 Career Season' },
+      { key: 'series', label: 'Series', type: 'select', options: SERIES_OPTS, required: true },
       { key: 'pointsRuleId', label: 'Points system', type: 'select', options: ruleOpts, required: true },
       { key: 'notes', label: 'Notes', type: 'textarea', more: true },
     ],
@@ -47,6 +50,7 @@ const SPECS = {
     name: r => r.name, sub: r => r.powerUnit ? `${r.powerUnit} power` : (r.base || ''),
     fields: [
       { key: 'name', label: 'Team name', type: 'text', required: true },
+      { key: 'series', label: 'Series', type: 'select', options: SERIES_OPTS, required: true },
       { key: 'color', label: 'Team colour', type: 'color', required: true },
       { key: 'logoUrl', label: 'Logo', type: 'image', lib: 'teams/' },
       { key: 'carUrl', label: 'Car picture', type: 'image', lib: 'teams/' },
@@ -113,6 +117,16 @@ const SPECS = {
       { key: 'sessions', label: 'Session times', hint: 'One per line: Name | YYYY-MM-DD | HH:MM', type: 'sessions', more: true },
     ],
     defaults: () => ({ sprint: false, sessions: [], status: 'scheduled' }),
+  },
+  academies: {
+    title: 'Academies', one: 'academy', coll: 'academies', sort: (a, b) => ((byId(D().teams, a.f1TeamId) || {}).name || '').localeCompare((byId(D().teams, b.f1TeamId) || {}).name || ''),
+    name: r => r.name || `${(byId(D().teams, r.f1TeamId) || {}).name || '?'} Academy`, sub: r => r.driverIds.map(id => { const d = byId(D().drivers, id); return d ? d.lastName : '?'; }).join(', ') || 'No drivers',
+    fields: [
+      { key: 'f1TeamId', label: 'F1 team', type: 'select', options: f1TeamOpts, required: true },
+      { key: 'driverIds', label: 'Junior drivers', hint: 'Shown on the F1 team page and as a badge on each driver', type: 'multi', options: driverOpts },
+      { key: 'name', label: 'Programme name', hint: 'Blank = “<team> Academy”', type: 'text', more: true, placeholder: 'Ferrari Driver Academy' },
+    ],
+    defaults: () => ({ driverIds: [], fromSeasonId: null, toSeasonId: null }),
   },
   articles: {
     title: 'News', one: 'story', coll: 'articles', sort: (a, b) => String(b.publishedAt).localeCompare(String(a.publishedAt)),
@@ -259,6 +273,7 @@ function editSettings() {
         ${fieldHtml({ key: 'careerName', label: 'Career name', type: 'text', required: true }, m)}
         ${fieldHtml({ key: 'playerTeamId', label: 'Your team', hint: 'Highlighted across the site', type: 'select', options: () => [['', 'None'], ...teamOpts()] }, m)}
         ${fieldHtml({ key: 'activeSeasonId', label: 'Season shown by default', type: 'select', options: seasonOpts }, m)}
+        ${fieldHtml({ key: 'mode', label: 'Series in this career', hint: 'Both shows an F1 / F2 switch in the header', type: 'select', options: () => [['f1', 'Formula 1 only'], ['f2', 'Formula 2 only'], ['both', 'Formula 1 and Formula 2']] }, { mode: m.mode || 'f1' })}
         ${fieldHtml({ key: 'autoNews', label: 'Write news automatically after each race', type: 'checkbox' }, { autoNews: m.autoNews !== false })}
       </div>
       <details class="more-fields"><summary>More options</summary><div class="form-grid">
@@ -412,7 +427,7 @@ function bindEditor(root) {
   if (meta) meta.addEventListener('submit', ev => {
     ev.preventDefault(); const fd = new FormData(meta); const m = D().meta;
     m.careerName = String(fd.get('careerName') || 'My Career'); m.activeSeasonId = fd.get('activeSeasonId') || m.activeSeasonId;
-    m.playerTeamId = fd.get('playerTeamId') || null; m.isSample = fd.get('isSample') === 'on'; m.autoNews = fd.get('autoNews') === 'on';
+    m.playerTeamId = fd.get('playerTeamId') || null; m.mode = fd.get('mode') || 'f1'; m.isSample = fd.get('isSample') === 'on'; m.autoNews = fd.get('autoNews') === 'on';
     Store.save(); toast('Settings saved');
   });
 

@@ -5,6 +5,7 @@
   "isSample": false,
   "activeSeasonId": "sea_2026_grid",
   "playerTeamId": null,
+  "mode": "both",
   "updatedAt": null
  },
  "seasons": [
@@ -13,7 +14,32 @@
    "year": 2026,
    "name": "2026 Real Grid (starter)",
    "pointsRuleId": "pts_standard",
-   "notes": "Real 2026 line-up and calendar from formula1.com, with no results. Enter your own career results here, or start a new career from it in Import / Export."
+   "notes": "Real 2026 line-up and calendar from formula1.com, with no results. Enter your own career results here, or start a new career from it in Import / Export.",
+   "series": "f1"
+  },
+  {
+   "id": "sea_f2_2026",
+   "series": "f2",
+   "year": 2026,
+   "name": "2026 FIA Formula 2 (starter)",
+   "pointsRuleId": "pts_f2",
+   "photoUrls": [
+    "assets/f2/photos/f2-1.webp",
+    "assets/f2/photos/f2-10.webp",
+    "assets/f2/photos/f2-11.webp",
+    "assets/f2/photos/f2-12.webp",
+    "assets/f2/photos/f2-13.webp",
+    "assets/f2/photos/f2-14.webp",
+    "assets/f2/photos/f2-2.webp",
+    "assets/f2/photos/f2-3.webp",
+    "assets/f2/photos/f2-4.webp",
+    "assets/f2/photos/f2-5.webp",
+    "assets/f2/photos/f2-6.webp",
+    "assets/f2/photos/f2-7.webp",
+    "assets/f2/photos/f2-8.webp",
+    "assets/f2/photos/f2-9.webp"
+   ],
+   "notes": "Real 2026 F2 line-up and calendar from fiaformula2.com, with no results."
   }
  ],
  "pointsRules": [
@@ -65,6 +91,37 @@
     "points": 0,
     "maxPosition": 10
    }
+  },
+  {
+   "id": "pts_f2",
+   "name": "FIA Formula 2",
+   "race": [
+    25,
+    18,
+    15,
+    12,
+    10,
+    8,
+    6,
+    4,
+    2,
+    1
+   ],
+   "sprint": [
+    10,
+    8,
+    6,
+    5,
+    4,
+    3,
+    2,
+    1
+   ],
+   "fastestLap": {
+    "points": 1,
+    "maxPosition": 10
+   },
+   "pole": 2
   }
  ],
  "teams": [
@@ -83,7 +140,8 @@
    "championships": 8,
    "logoUrl": "assets/f1com/teams/mercedes-logo.webp",
    "carUrl": "assets/f1com/teams/mercedes-car.webp",
-   "bio": ""
+   "bio": "",
+   "series": "f1"
   },
   {
    "id": "team_ferrari",
@@ -100,7 +158,8 @@
    "championships": 16,
    "logoUrl": "assets/f1com/teams/ferrari-logo.webp",
    "carUrl": "assets/f1com/teams/ferrari-car.webp",
-   "bio": ""
+   "bio": "",
+   "series": "f1"
   },
   {
    "id": "team_mclaren",
@@ -117,7 +176,8 @@
    "championships": 10,
    "logoUrl": "assets/f1com/teams/mclaren-logo.webp",
    "carUrl": "assets/f1com/teams/mclaren-car.webp",
-   "bio": ""
+   "bio": "",
+   "series": "f1"
   },
   {
    "id": "team_red_bull_racing",
@@ -134,7 +194,8 @@
    "championships": 6,
    "logoUrl": "assets/f1com/teams/redbullracing-logo.webp",
    "carUrl": "assets/f1com/teams/redbullracing-car.webp",
-   "bio": ""
+   "bio": "",
+   "series": "f1"
   },
   {
    "id": "team_racing_bulls",
@@ -151,7 +212,8 @@
    "championships": 0,
    "logoUrl": "assets/f1com/teams/racingbulls-logo.webp",
    "carUrl": "assets/f1com/teams/racingbulls-car.webp",
-   "bio": ""
+   "bio": "",
+   "series": "f1"
   },
   {
    "id": "team_alpine",
@@ -168,7 +230,8 @@
    "championships": 2,
    "logoUrl": "assets/f1com/teams/alpine-logo.webp",
    "carUrl": "assets/f1com/teams/alpine-car.webp",
-   "bio": ""
+   "bio": "",
+   "series": "f1"
   },
   {
    "id": "team_haas",
@@ -185,7 +248,8 @@
    "championships": 0,
    "logoUrl": "assets/f1com/teams/haasf1team-logo.webp",
    "carUrl": "assets/f1com/teams/haasf1team-car.webp",
-   "bio": ""
+   "bio": "",
+   "series": "f1"
   },
   {
    "id": "team_audi",
@@ -202,7 +266,8 @@
    "championships": 0,
    "logoUrl": "assets/f1com/teams/audi-logo.webp",
    "carUrl": "assets/f1com/teams/audi-car.webp",
-   "bio": ""
+   "bio": "",
+   "series": "f1"
   },
   {
    "id": "team_williams",
@@ -219,7 +284,8 @@
    "championships": 8,
    "logoUrl": "assets/f1com/teams/williams-logo.webp",
    "carUrl": "assets/f1com/teams/williams-car.webp",
-   "bio": ""
+   "bio": "",
+   "series": "f1"
   },
   {
    "id": "team_aston_martin",
@@ -236,7 +302,8 @@
    "championships": 0,
    "logoUrl": "assets/f1com/teams/astonmartin-logo.webp",
    "carUrl": "assets/f1com/teams/astonmartin-car.webp",
-   "bio": ""
+   "bio": "",
+   "series": "f1"
   },
   {
    "id": "team_cadillac",
@@ -253,6 +320,205 @@
    "championships": 0,
    "logoUrl": "assets/f1com/teams/cadillac-logo.webp",
    "carUrl": "assets/f1com/teams/cadillac-car.webp",
+   "bio": "",
+   "series": "f1"
+  },
+  {
+   "id": "team_f2_invicta",
+   "series": "f2",
+   "name": "Invicta Racing",
+   "fullName": "Invicta Racing",
+   "color": "#f5d000",
+   "colorDark": "#5c4e00",
+   "base": "Silverstone, United Kingdom",
+   "principal": "",
+   "technicalChief": "",
+   "chassis": "Dallara F2 2024",
+   "powerUnit": "Mecachrome",
+   "firstEntry": null,
+   "championships": 0,
+   "logoUrl": "assets/f2/teams/invictaracing-logo.webp",
+   "carUrl": "assets/f2/teams/invictaracing-car.webp",
+   "bio": ""
+  },
+  {
+   "id": "team_f2_hitech",
+   "series": "f2",
+   "name": "Hitech",
+   "fullName": "Hitech TGR",
+   "color": "#e4e4e4",
+   "colorDark": "#5a5a5a",
+   "base": "Silverstone, United Kingdom",
+   "principal": "",
+   "technicalChief": "",
+   "chassis": "Dallara F2 2024",
+   "powerUnit": "Mecachrome",
+   "firstEntry": null,
+   "championships": 0,
+   "logoUrl": "assets/f2/teams/hitech-logo.webp",
+   "carUrl": "assets/f2/teams/hitech-car.webp",
+   "bio": ""
+  },
+  {
+   "id": "team_f2_campos",
+   "series": "f2",
+   "name": "Campos Racing",
+   "fullName": "Campos Racing",
+   "color": "#d6001c",
+   "colorDark": "#5a000c",
+   "base": "Alzira, Spain",
+   "principal": "",
+   "technicalChief": "",
+   "chassis": "Dallara F2 2024",
+   "powerUnit": "Mecachrome",
+   "firstEntry": null,
+   "championships": 0,
+   "logoUrl": "assets/f2/teams/camposracing-logo.webp",
+   "carUrl": "assets/f2/teams/camposracing-car.webp",
+   "bio": ""
+  },
+  {
+   "id": "team_f2_dams",
+   "series": "f2",
+   "name": "DAMS Lucas Oil",
+   "fullName": "DAMS Lucas Oil",
+   "color": "#2fc1c9",
+   "colorDark": "#0e4a4e",
+   "base": "Le Mans, France",
+   "principal": "",
+   "technicalChief": "",
+   "chassis": "Dallara F2 2024",
+   "powerUnit": "Mecachrome",
+   "firstEntry": null,
+   "championships": 0,
+   "logoUrl": "assets/f2/teams/damslucasoil-logo.webp",
+   "carUrl": "assets/f2/teams/damslucasoil-car.webp",
+   "bio": ""
+  },
+  {
+   "id": "team_f2_mp",
+   "series": "f2",
+   "name": "MP Motorsport",
+   "fullName": "MP Motorsport",
+   "color": "#ff6a13",
+   "colorDark": "#6a2a00",
+   "base": "Westmaas, Netherlands",
+   "principal": "",
+   "technicalChief": "",
+   "chassis": "Dallara F2 2024",
+   "powerUnit": "Mecachrome",
+   "firstEntry": null,
+   "championships": 0,
+   "logoUrl": "assets/f2/teams/mpmotorsport-logo.webp",
+   "carUrl": "assets/f2/teams/mpmotorsport-car.webp",
+   "bio": ""
+  },
+  {
+   "id": "team_f2_prema",
+   "series": "f2",
+   "name": "Prema Racing",
+   "fullName": "Prema Racing",
+   "color": "#e10600",
+   "colorDark": "#5a0200",
+   "base": "Grisignano di Zocco, Italy",
+   "principal": "",
+   "technicalChief": "",
+   "chassis": "Dallara F2 2024",
+   "powerUnit": "Mecachrome",
+   "firstEntry": null,
+   "championships": 0,
+   "logoUrl": "assets/f2/teams/premaracing-logo.webp",
+   "carUrl": "assets/f2/teams/premaracing-car.webp",
+   "bio": ""
+  },
+  {
+   "id": "team_f2_rodin",
+   "series": "f2",
+   "name": "Rodin Motorsport",
+   "fullName": "Rodin Motorsport",
+   "color": "#3a3a3a",
+   "colorDark": "#111111",
+   "base": "Farnham, United Kingdom",
+   "principal": "",
+   "technicalChief": "",
+   "chassis": "Dallara F2 2024",
+   "powerUnit": "Mecachrome",
+   "firstEntry": null,
+   "championships": 0,
+   "logoUrl": "assets/f2/teams/rodinmotorsport-logo.webp",
+   "carUrl": "assets/f2/teams/rodinmotorsport-car.webp",
+   "bio": ""
+  },
+  {
+   "id": "team_f2_art",
+   "series": "f2",
+   "name": "ART Grand Prix",
+   "fullName": "ART Grand Prix",
+   "color": "#9a9a9a",
+   "colorDark": "#3a3a3a",
+   "base": "Villeneuve-la-Guyonnière, France",
+   "principal": "",
+   "technicalChief": "",
+   "chassis": "Dallara F2 2024",
+   "powerUnit": "Mecachrome",
+   "firstEntry": null,
+   "championships": 0,
+   "logoUrl": "assets/f2/teams/artgrandprix-logo.webp",
+   "carUrl": "assets/f2/teams/artgrandprix-car.webp",
+   "bio": ""
+  },
+  {
+   "id": "team_f2_aix",
+   "series": "f2",
+   "name": "AIX Racing",
+   "fullName": "AIX Racing",
+   "color": "#5fd35f",
+   "colorDark": "#1d5a1d",
+   "base": "Prague, Czechia",
+   "principal": "",
+   "technicalChief": "",
+   "chassis": "Dallara F2 2024",
+   "powerUnit": "Mecachrome",
+   "firstEntry": null,
+   "championships": 0,
+   "logoUrl": "assets/f2/teams/aixracing-logo.webp",
+   "carUrl": "assets/f2/teams/aixracing-car.webp",
+   "bio": ""
+  },
+  {
+   "id": "team_f2_trident",
+   "series": "f2",
+   "name": "Trident",
+   "fullName": "Trident Motorsport",
+   "color": "#1f4fc0",
+   "colorDark": "#0b1e4a",
+   "base": "Pozzolo Formigaro, Italy",
+   "principal": "",
+   "technicalChief": "",
+   "chassis": "Dallara F2 2024",
+   "powerUnit": "Mecachrome",
+   "firstEntry": null,
+   "championships": 0,
+   "logoUrl": "assets/f2/teams/trident-logo.webp",
+   "carUrl": "assets/f2/teams/trident-car.webp",
+   "bio": ""
+  },
+  {
+   "id": "team_f2_var",
+   "series": "f2",
+   "name": "Van Amersfoort Racing",
+   "fullName": "Van Amersfoort Racing",
+   "color": "#ff7a1a",
+   "colorDark": "#5a2600",
+   "base": "Zeddam, Netherlands",
+   "principal": "",
+   "technicalChief": "",
+   "chassis": "Dallara F2 2024",
+   "powerUnit": "Mecachrome",
+   "firstEntry": null,
+   "championships": 0,
+   "logoUrl": "assets/f2/teams/vanamersfoortracing-logo.webp",
+   "carUrl": "assets/f2/teams/vanamersfoortracing-car.webp",
    "bio": ""
   }
  ],
@@ -718,6 +984,418 @@
     "assets/f1com/photos/valtteri-bottas-3.webp"
    ],
    "bio": ""
+  },
+  {
+   "id": "drv_rafael_camara",
+   "firstName": "Rafael",
+   "lastName": "Câmara",
+   "code": "CAM",
+   "number": 1,
+   "nationality": "BRA",
+   "dob": "2005-05-05",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/rafael-camara.webp",
+   "portraitTeamId": "team_f2_invicta",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/rafael-camara-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/rafael-camara-1.webp",
+    "assets/f2/photos/rafael-camara-2.webp",
+    "assets/f2/photos/rafael-camara-3.webp",
+    "assets/f2/photos/rafael-camara-4.webp",
+    "assets/f2/photos/rafael-camara-5.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_joshua_durksen",
+   "firstName": "Joshua",
+   "lastName": "Dürksen",
+   "code": "DUR",
+   "number": 2,
+   "nationality": "PAR",
+   "dob": "2003-10-27",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/joshua-durksen.webp",
+   "portraitTeamId": "team_f2_invicta",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/joshua-durksen-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/joshua-durksen-1.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_ritomo_miyata",
+   "firstName": "Ritomo",
+   "lastName": "Miyata",
+   "code": "MIY",
+   "number": 3,
+   "nationality": "JPN",
+   "dob": "1999-08-10",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/ritomo-miyata.webp",
+   "portraitTeamId": "team_f2_hitech",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/ritomo-miyata-number.webp",
+   "photoUrls": [],
+   "bio": ""
+  },
+  {
+   "id": "drv_colton_herta",
+   "firstName": "Colton",
+   "lastName": "Herta",
+   "code": "HER",
+   "number": 4,
+   "nationality": "USA",
+   "dob": "2000-03-30",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/colton-herta.webp",
+   "portraitTeamId": "team_f2_hitech",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/colton-herta-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/colton-herta-1.webp",
+    "assets/f2/photos/colton-herta-2.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_noel_leon",
+   "firstName": "Noel",
+   "lastName": "León",
+   "code": "LEO",
+   "number": 5,
+   "nationality": "MEX",
+   "dob": "2004-12-21",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/noel-leon.webp",
+   "portraitTeamId": "team_f2_campos",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/noel-leon-number.webp",
+   "photoUrls": [],
+   "bio": ""
+  },
+  {
+   "id": "drv_nikola_tsolov",
+   "firstName": "Nikola",
+   "lastName": "Tsolov",
+   "code": "TSO",
+   "number": 6,
+   "nationality": "BUL",
+   "dob": "2006-12-21",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/nikola-tsolov.webp",
+   "portraitTeamId": "team_f2_campos",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/nikola-tsolov-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/nikola-tsolov-1.webp",
+    "assets/f2/photos/nikola-tsolov-2.webp",
+    "assets/f2/photos/nikola-tsolov-3.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_dino_beganovic",
+   "firstName": "Dino",
+   "lastName": "Beganovic",
+   "code": "BEG",
+   "number": 7,
+   "nationality": "SWE",
+   "dob": "2004-01-19",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/dino-beganovic.webp",
+   "portraitTeamId": "team_f2_dams",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/dino-beganovic-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/dino-beganovic-1.webp",
+    "assets/f2/photos/dino-beganovic-2.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_roman_bilinski",
+   "firstName": "Roman",
+   "lastName": "Bilinski",
+   "code": "BIL",
+   "number": 8,
+   "nationality": "POL",
+   "dob": "",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/roman-bilinski.webp",
+   "portraitTeamId": "team_f2_dams",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/roman-bilinski-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/roman-bilinski-1.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_gabriele_mini",
+   "firstName": "Gabriele",
+   "lastName": "Minì",
+   "code": "MIN",
+   "number": 9,
+   "nationality": "ITA",
+   "dob": "2005-03-20",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/gabriele-mini.webp",
+   "portraitTeamId": "team_f2_mp",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/gabriele-mini-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/gabriele-mini-1.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_oliver_goethe",
+   "firstName": "Oliver",
+   "lastName": "Goethe",
+   "code": "GOE",
+   "number": 10,
+   "nationality": "GER",
+   "dob": "2004-10-14",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/oliver-goethe.webp",
+   "portraitTeamId": "team_f2_mp",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/oliver-goethe-number.webp",
+   "photoUrls": [],
+   "bio": ""
+  },
+  {
+   "id": "drv_sebastian_montoya",
+   "firstName": "Sebastián",
+   "lastName": "Montoya",
+   "code": "MON",
+   "number": 11,
+   "nationality": "COL",
+   "dob": "",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/sebastian-montoya.webp",
+   "portraitTeamId": "team_f2_prema",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/sebastian-montoya-number.webp",
+   "photoUrls": [],
+   "bio": ""
+  },
+  {
+   "id": "drv_mari_boya",
+   "firstName": "Mari",
+   "lastName": "Boya",
+   "code": "BOY",
+   "number": 12,
+   "nationality": "ESP",
+   "dob": "2004-04-13",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/mari-boya.webp",
+   "portraitTeamId": "team_f2_prema",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/mari-boya-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/mari-boya-1.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_martinius_stenshorne",
+   "firstName": "Martinius",
+   "lastName": "Stenshorne",
+   "code": "STE",
+   "number": 14,
+   "nationality": "NOR",
+   "dob": "2006-02-02",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/martinius-stenshorne.webp",
+   "portraitTeamId": "team_f2_rodin",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/martinius-stenshorne-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/martinius-stenshorne-1.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_alexander_dunne",
+   "firstName": "Alexander",
+   "lastName": "Dunne",
+   "code": "DUN",
+   "number": 15,
+   "nationality": "IRL",
+   "dob": "2005-11-11",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/alexander-dunne.webp",
+   "portraitTeamId": "team_f2_rodin",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/alexander-dunne-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/alexander-dunne-1.webp",
+    "assets/f2/photos/alexander-dunne-2.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_kush_maini",
+   "firstName": "Kush",
+   "lastName": "Maini",
+   "code": "MAI",
+   "number": 16,
+   "nationality": "IND",
+   "dob": "2000-09-22",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/kush-maini.webp",
+   "portraitTeamId": "team_f2_art",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/kush-maini-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/kush-maini-1.webp",
+    "assets/f2/photos/kush-maini-2.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_tasanapol_inthraphuvasak",
+   "firstName": "Tasanapol",
+   "lastName": "Inthraphuvasak",
+   "code": "INT",
+   "number": 17,
+   "nationality": "THA",
+   "dob": "",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/tasanapol-inthraphuvasak.webp",
+   "portraitTeamId": "team_f2_art",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/tasanapol-inthraphuvasak-number.webp",
+   "photoUrls": [],
+   "bio": ""
+  },
+  {
+   "id": "drv_emerson_fittipaldi_jr",
+   "firstName": "Emerson",
+   "lastName": "Fittipaldi Jr",
+   "code": "FIT",
+   "number": 20,
+   "nationality": "BRA",
+   "dob": "2007-03-07",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/emerson-fittipaldi-jr.webp",
+   "portraitTeamId": "team_f2_aix",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/emerson-fittipaldi-jr-number.webp",
+   "photoUrls": [],
+   "bio": ""
+  },
+  {
+   "id": "drv_cian_shields",
+   "firstName": "Cian",
+   "lastName": "Shields",
+   "code": "SHI",
+   "number": 21,
+   "nationality": "GBR",
+   "dob": "2005-03-07",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/cian-shields.webp",
+   "portraitTeamId": "team_f2_aix",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/cian-shields-number.webp",
+   "photoUrls": [],
+   "bio": ""
+  },
+  {
+   "id": "drv_hiyu_yamakoshi",
+   "firstName": "Hiyu",
+   "lastName": "Yamakoshi",
+   "code": "YAM",
+   "number": 22,
+   "nationality": "JPN",
+   "dob": "2006-10-13",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/hiyu-yamakoshi.webp",
+   "portraitTeamId": "team_f2_var",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/hiyu-yamakoshi-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/hiyu-yamakoshi-1.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_rafael_villagomez",
+   "firstName": "Rafael",
+   "lastName": "Villagómez",
+   "code": "VIL",
+   "number": 23,
+   "nationality": "MEX",
+   "dob": "2001-11-10",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/rafael-villagomez.webp",
+   "portraitTeamId": "team_f2_var",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/rafael-villagomez-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/rafael-villagomez-1.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_laurens_van_hoepen",
+   "firstName": "Laurens",
+   "lastName": "van Hoepen",
+   "code": "VAN",
+   "number": 24,
+   "nationality": "NED",
+   "dob": "2005-09-06",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/laurens-van-hoepen.webp",
+   "portraitTeamId": "team_f2_trident",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/laurens-van-hoepen-number.webp",
+   "photoUrls": [
+    "assets/f2/photos/laurens-van-hoepen-1.webp"
+   ],
+   "bio": ""
+  },
+  {
+   "id": "drv_john_bennett",
+   "firstName": "John",
+   "lastName": "Bennett",
+   "code": "BEN",
+   "number": 25,
+   "nationality": "GBR",
+   "dob": "2003-09-15",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/f2/drivers/john-bennett.webp",
+   "portraitTeamId": "team_f2_trident",
+   "portraits": [],
+   "numberUrl": "assets/f2/drivers/john-bennett-number.webp",
+   "photoUrls": [],
+   "bio": ""
   }
  ],
  "assignments": [
@@ -915,6 +1593,204 @@
    "seasonId": "sea_2026_grid",
    "driverId": "drv_valtteri_bottas",
    "teamId": "team_cadillac",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_01",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_rafael_camara",
+   "teamId": "team_f2_invicta",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_02",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_joshua_durksen",
+   "teamId": "team_f2_invicta",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_03",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_ritomo_miyata",
+   "teamId": "team_f2_hitech",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_04",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_colton_herta",
+   "teamId": "team_f2_hitech",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_05",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_noel_leon",
+   "teamId": "team_f2_campos",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_06",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_nikola_tsolov",
+   "teamId": "team_f2_campos",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_07",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_dino_beganovic",
+   "teamId": "team_f2_dams",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_08",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_roman_bilinski",
+   "teamId": "team_f2_dams",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_09",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_gabriele_mini",
+   "teamId": "team_f2_mp",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_10",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_oliver_goethe",
+   "teamId": "team_f2_mp",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_11",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_sebastian_montoya",
+   "teamId": "team_f2_prema",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_12",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_mari_boya",
+   "teamId": "team_f2_prema",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_13",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_martinius_stenshorne",
+   "teamId": "team_f2_rodin",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_14",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_alexander_dunne",
+   "teamId": "team_f2_rodin",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_15",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_kush_maini",
+   "teamId": "team_f2_art",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_16",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_tasanapol_inthraphuvasak",
+   "teamId": "team_f2_art",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_17",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_emerson_fittipaldi_jr",
+   "teamId": "team_f2_aix",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_18",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_cian_shields",
+   "teamId": "team_f2_aix",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_19",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_hiyu_yamakoshi",
+   "teamId": "team_f2_var",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_20",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_rafael_villagomez",
+   "teamId": "team_f2_var",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_21",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_laurens_van_hoepen",
+   "teamId": "team_f2_trident",
+   "fromRound": 1,
+   "toRound": null,
+   "role": "race"
+  },
+  {
+   "id": "asg_f2_2026_22",
+   "seasonId": "sea_f2_2026",
+   "driverId": "drv_john_bennett",
+   "teamId": "team_f2_trident",
    "fromRound": 1,
    "toRound": null,
    "role": "race"
@@ -1955,8 +2831,633 @@
    ],
    "status": "scheduled",
    "imageUrl": ""
+  },
+  {
+   "id": "rnd_f2_2026_01",
+   "seasonId": "sea_f2_2026",
+   "round": 1,
+   "name": "Australia",
+   "country": "Australia",
+   "countryCode": "AUS",
+   "officialName": "FIA Formula 2 Round 1, Melbourne 2026",
+   "circuit": "Albert Park Circuit",
+   "city": "Melbourne",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-03-06",
+   "dateEnd": "2026-03-08",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-03-06",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-03-06",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-03-07",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-03-08",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/australia.webp"
+  },
+  {
+   "id": "rnd_f2_2026_02",
+   "seasonId": "sea_f2_2026",
+   "round": 2,
+   "name": "Miami",
+   "country": "Miami",
+   "countryCode": "USA",
+   "officialName": "FIA Formula 2 Round 2, Miami 2026",
+   "circuit": "Miami International Autodrome",
+   "city": "Miami",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-05-01",
+   "dateEnd": "2026-05-03",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-05-01",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-05-01",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-05-02",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-05-03",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/miami.webp"
+  },
+  {
+   "id": "rnd_f2_2026_03",
+   "seasonId": "sea_f2_2026",
+   "round": 3,
+   "name": "Canada",
+   "country": "Canada",
+   "countryCode": "CAN",
+   "officialName": "FIA Formula 2 Round 3, Montréal 2026",
+   "circuit": "Circuit Gilles Villeneuve",
+   "city": "Montréal",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-05-22",
+   "dateEnd": "2026-05-24",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-05-22",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-05-22",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-05-23",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-05-24",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/canada.webp"
+  },
+  {
+   "id": "rnd_f2_2026_04",
+   "seasonId": "sea_f2_2026",
+   "round": 4,
+   "name": "Monaco",
+   "country": "Monaco",
+   "countryCode": "MON",
+   "officialName": "FIA Formula 2 Round 4, Monte Carlo 2026",
+   "circuit": "Circuit de Monaco",
+   "city": "Monte Carlo",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-06-04",
+   "dateEnd": "2026-06-07",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-06-04",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-06-04",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-06-06",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-06-07",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/monaco.webp"
+  },
+  {
+   "id": "rnd_f2_2026_05",
+   "seasonId": "sea_f2_2026",
+   "round": 5,
+   "name": "Barcelona-Catalunya",
+   "country": "Barcelona-Catalunya",
+   "countryCode": "ESP",
+   "officialName": "FIA Formula 2 Round 5, Barcelona 2026",
+   "circuit": "Circuit de Barcelona-Catalunya",
+   "city": "Barcelona",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-06-12",
+   "dateEnd": "2026-06-14",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-06-12",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-06-12",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-06-13",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-06-14",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/barcelona-catalunya.webp"
+  },
+  {
+   "id": "rnd_f2_2026_06",
+   "seasonId": "sea_f2_2026",
+   "round": 6,
+   "name": "Austria",
+   "country": "Austria",
+   "countryCode": "AUT",
+   "officialName": "FIA Formula 2 Round 6, Spielberg 2026",
+   "circuit": "Red Bull Ring",
+   "city": "Spielberg",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-06-26",
+   "dateEnd": "2026-06-28",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-06-26",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-06-26",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-06-27",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-06-28",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/austria.webp"
+  },
+  {
+   "id": "rnd_f2_2026_07",
+   "seasonId": "sea_f2_2026",
+   "round": 7,
+   "name": "Great Britain",
+   "country": "Great Britain",
+   "countryCode": "GBR",
+   "officialName": "FIA Formula 2 Round 7, Silverstone 2026",
+   "circuit": "Silverstone Circuit",
+   "city": "Silverstone",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-07-03",
+   "dateEnd": "2026-07-05",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-07-03",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-07-03",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-07-04",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-07-05",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/great-britain.webp"
+  },
+  {
+   "id": "rnd_f2_2026_08",
+   "seasonId": "sea_f2_2026",
+   "round": 8,
+   "name": "Belgium",
+   "country": "Belgium",
+   "countryCode": "BEL",
+   "officialName": "FIA Formula 2 Round 8, Spa-Francorchamps 2026",
+   "circuit": "Circuit de Spa-Francorchamps",
+   "city": "Spa",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-07-17",
+   "dateEnd": "2026-07-19",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-07-17",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-07-17",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-07-18",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-07-19",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/belgium.webp"
+  },
+  {
+   "id": "rnd_f2_2026_09",
+   "seasonId": "sea_f2_2026",
+   "round": 9,
+   "name": "Hungary",
+   "country": "Hungary",
+   "countryCode": "HUN",
+   "officialName": "FIA Formula 2 Round 9, Budapest 2026",
+   "circuit": "Hungaroring",
+   "city": "Budapest",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-07-24",
+   "dateEnd": "2026-07-26",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-07-24",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-07-24",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-07-25",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-07-26",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/hungary.webp"
+  },
+  {
+   "id": "rnd_f2_2026_10",
+   "seasonId": "sea_f2_2026",
+   "round": 10,
+   "name": "Italy",
+   "country": "Italy",
+   "countryCode": "ITA",
+   "officialName": "FIA Formula 2 Round 10, Monza 2026",
+   "circuit": "Autodromo Nazionale Monza",
+   "city": "Monza",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-09-04",
+   "dateEnd": "2026-09-06",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-09-04",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-09-04",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-09-05",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-09-06",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/italy.webp"
+  },
+  {
+   "id": "rnd_f2_2026_11",
+   "seasonId": "sea_f2_2026",
+   "round": 11,
+   "name": "Spain",
+   "country": "Spain",
+   "countryCode": "ESP",
+   "officialName": "FIA Formula 2 Round 11, Madrid 2026",
+   "circuit": "Madring",
+   "city": "Madrid",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-09-11",
+   "dateEnd": "2026-09-13",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-09-11",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-09-11",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-09-12",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-09-13",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/spain.webp"
+  },
+  {
+   "id": "rnd_f2_2026_12",
+   "seasonId": "sea_f2_2026",
+   "round": 12,
+   "name": "Azerbaijan",
+   "country": "Azerbaijan",
+   "countryCode": "AZE",
+   "officialName": "FIA Formula 2 Round 12, Baku 2026",
+   "circuit": "Baku City Circuit",
+   "city": "Baku",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-09-24",
+   "dateEnd": "2026-09-26",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-09-24",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-09-24",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-09-25",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-09-26",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/azerbaijan.webp"
+  },
+  {
+   "id": "rnd_f2_2026_13",
+   "seasonId": "sea_f2_2026",
+   "round": 13,
+   "name": "Qatar",
+   "country": "Qatar",
+   "countryCode": "QAT",
+   "officialName": "FIA Formula 2 Round 13, Lusail 2026",
+   "circuit": "Lusail International Circuit",
+   "city": "Lusail",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-11-27",
+   "dateEnd": "2026-11-29",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-11-27",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-11-27",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-11-28",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-11-29",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/qatar.webp"
+  },
+  {
+   "id": "rnd_f2_2026_14",
+   "seasonId": "sea_f2_2026",
+   "round": 14,
+   "name": "Abu Dhabi",
+   "country": "Abu Dhabi",
+   "countryCode": "UAE",
+   "officialName": "FIA Formula 2 Round 14, Yas Marina 2026",
+   "circuit": "Yas Marina Circuit",
+   "city": "Abu Dhabi",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-12-04",
+   "dateEnd": "2026-12-06",
+   "sprint": true,
+   "sessions": [
+    {
+     "label": "Practice",
+     "date": "2026-12-04",
+     "time": "10:00"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-12-04",
+     "time": "15:00"
+    },
+    {
+     "label": "Sprint Race",
+     "date": "2026-12-05",
+     "time": "14:15"
+    },
+    {
+     "label": "Feature Race",
+     "date": "2026-12-06",
+     "time": "10:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": ""
   }
  ],
  "results": [],
- "articles": []
+ "articles": [],
+ "academies": [
+  {
+   "id": "acd_ferrari",
+   "f1TeamId": "team_ferrari",
+   "name": "",
+   "driverIds": [
+    "drv_rafael_camara",
+    "drv_dino_beganovic"
+   ],
+   "fromSeasonId": "sea_f2_2026",
+   "toSeasonId": null
+  },
+  {
+   "id": "acd_haas",
+   "f1TeamId": "team_haas",
+   "name": "",
+   "driverIds": [
+    "drv_ritomo_miyata"
+   ],
+   "fromSeasonId": "sea_f2_2026",
+   "toSeasonId": null
+  },
+  {
+   "id": "acd_cadillac",
+   "f1TeamId": "team_cadillac",
+   "name": "",
+   "driverIds": [
+    "drv_colton_herta"
+   ],
+   "fromSeasonId": "sea_f2_2026",
+   "toSeasonId": null
+  },
+  {
+   "id": "acd_red_bull_racing",
+   "f1TeamId": "team_red_bull_racing",
+   "name": "",
+   "driverIds": [
+    "drv_nikola_tsolov"
+   ],
+   "fromSeasonId": "sea_f2_2026",
+   "toSeasonId": null
+  },
+  {
+   "id": "acd_alpine",
+   "f1TeamId": "team_alpine",
+   "name": "",
+   "driverIds": [
+    "drv_gabriele_mini",
+    "drv_alexander_dunne",
+    "drv_kush_maini"
+   ],
+   "fromSeasonId": "sea_f2_2026",
+   "toSeasonId": null
+  },
+  {
+   "id": "acd_aston_martin",
+   "f1TeamId": "team_aston_martin",
+   "name": "",
+   "driverIds": [
+    "drv_mari_boya"
+   ],
+   "fromSeasonId": "sea_f2_2026",
+   "toSeasonId": null
+  }
+ ]
 }

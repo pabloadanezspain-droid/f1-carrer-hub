@@ -44,11 +44,12 @@ function career() {
 const c = career();
 const racedSessions = () => c.results.filter(r => r.session !== 'qualifying');
 
-test('starter career is internally consistent and only holds the real 2026 grid', () => {
+test('starter career is internally consistent and holds the real 2026 F1 and F2 grids', () => {
   assert.deepEqual([...A.validateCareer(A.normalizeCareer(A.clone(sample)))], []);
-  assert.deepEqual(sample.seasons.map(s => s.id), [SID]);
-  assert.equal(sample.teams.length, 11);
-  assert.equal(sample.drivers.length, 22);
+  assert.deepEqual(sample.seasons.map(s => s.id), [SID, 'sea_f2_2026']);
+  assert.equal(sample.teams.filter(t => t.series === 'f1').length, 11);
+  assert.equal(sample.teams.filter(t => t.series === 'f2').length, 11);
+  assert.equal(sample.drivers.length, 44);
   assert.equal(sample.results.length, 0);
 });
 
