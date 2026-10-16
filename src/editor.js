@@ -325,12 +325,35 @@ function editCrud(section, q) {
       ${list.length > 8 ? `<input class="ed-filter" type="search" placeholder="Search ${esc(spec.title.toLowerCase())}…" aria-label="Search" data-filter>` : ''}
       <a class="btn btn-red btn-add" href="#/edit/${section}?${sq}id=new">+ Add ${spec.one}</a></div>`;
   const items = list.map(r => crudCard(spec, r, `#/edit/${section}?${sq}id=${r.id}`)).join('');
-  const transfer = section === 'assignments' && season ? transferForm(season) : section === 'articles'
+  const transfer = section === 'assignments' && season ? lineupBoard(season, q) : section === 'articles'
     ? `<p class="muted">${D().meta.autoNews === false ? 'Automatic news is off. Turn it on in <a href="#/edit/settings">Career settings</a>.' : 'Race reports, title-fight analysis, milestones and previews are written for you after each race. You can edit any of them or write your own.'}</p>` : '';
   return `${transfer}${tools}
     ${list.length ? `<div class="${spec.cards ? 'ed-cards' : 'ed-rows'}" data-filter-list>${items}</div><p class="muted ed-nomatch" hidden data-nomatch>Nothing matches.</p>`
       : emptyState(`No ${spec.title.toLowerCase()} yet`, '', { href: `#/edit/${section}?${sq}id=new`, label: `Add ${spec.one}` })}
     <p class="muted ed-tip">Click any ${spec.one} to change it.</p>`;
+}
+
+/* --- drag-and-drop line-up board ------------------------------------------ */
+function lineupBoard(season, q) {
+  const c = D(); const rounds = roundsOf(c, season.id);
+  const from = Math.max(1, Number(q.from) || (nextRound(c, season.id) || rounds[rounds.length - 1] || { round: 1 }).round);
+  const seats = seatsAt(c, season.id, from);
+  const teams = c.teams.filter(t => seriesOf(t) === seriesOf(season)).sort((a, b) => a.name.localeCompare(b.name));
+  const card = (d, t) => `<div class="lu-card" draggable="true" data-lu-driver="${d.id}" tabindex="0" style="--tc:${t ? t.color : '#606066'}"><span class="lu-face head-crop">${portraitImg(d, t, 'head-crop-img')}</span><span class="lu-name"><small>${esc(d.firstName)}</small><b>${esc(d.lastName)}</b></span><span class="lu-num">${esc(d.number ?? '')}</span></div>`;
+  const slot = (t, role, i, id) => `<div class="lu-slot lu-${role}" data-lu-drop="${t.id}|${role}">${id && driverOf(id) ? card(driverOf(id), t) : `<span class="lu-empty">${role === 'reserve' ? 'Reserve' : 'Empty seat'}</span>`}</div>`;
+  const teamBox = t => { const s = seats[t.id] || { race: [], reserve: [] }; const race = s.race.slice(); while (race.length < 2) race.push(null);
+    return `<div class="lu-team" style="--tc:${t.color};--td:${t.colorDark || t.color}"><div class="lu-team-head">${logoImg(t, 'lu-logo')}<b>${esc(t.name)}</b></div>
+      <div class="lu-seats">${race.map((id, i) => slot(t, 'race', i, id)).join('')}${(s.reserve.length ? s.reserve : [null]).map((id, i) => slot(t, 'reserve', i, id)).join('')}</div></div>`; };
+  const fa = freeAgents(c, season.id, from);
+  const other = seriesOf(season) === 'f2' ? 'Formula 1' : 'Formula 2';
+  return `<section class="lu-board panel" data-lu-board="${season.id}" data-lu-from="${from}">
+    <div class="lu-tools"><h3 class="h-card">Line-up board</h3>
+      <label class="lu-from">Changes apply from round <select data-lu-round>${(rounds.length ? rounds : [{ round: 1, name: '' }]).map(r => `<option value="${r.round}" ${r.round === from ? 'selected' : ''}>R${r.round} ${esc(r.name)}</option>`).join('')}</select></label></div>
+    <p class="muted">Drag a driver onto a seat, or tap a driver and then tap a seat. Dropping on a taken seat swaps the two drivers. Drop on Free agents to release a driver. Results already raced keep the old team.</p>
+    <div class="lu-teams">${teams.map(teamBox).join('')}</div>
+    <div class="lu-pool"><h4 class="h-sub">Free agents</h4><div class="lu-free" data-lu-drop="free">${fa.free.map(d => card(d, null)).join('') || '<span class="lu-empty">Drop a driver here to release him</span>'}</div>
+      ${fa.other.length ? `<details class="lu-other"><summary>Drivers racing in ${other} this year (${fa.other.length})</summary><div class="lu-free">${fa.other.map(d => card(d, null)).join('')}</div></details>` : ''}</div>
+  </section>`;
 }
 
 function transferForm(season) {
@@ -354,7 +377,7 @@ function editResults(q) {
   const rounds = roundsOf(c, season.id);
   const round = (q.round && byId(c.rounds, q.round)) || nextRound(c, season.id) || rounds[0];
   if (!round) return emptyState('No races', 'Add races to the calendar first.', { href: '#/edit/rounds?id=new', label: 'Add race' });
-  const sessions = SESSION_TYPES.filter(s => s !== 'sprint' || round.sprint || resultFor(c, round.id, 'sprint'));
+  const sessions = roundSessionKeys(c, round);
   const session = sessions.includes(q.session) ? q.session : 'race';
   const res = resultFor(c, round.id, session);
   let entries = res ? res.entries : lineupEntries(season.id, round.round);
@@ -362,18 +385,19 @@ function editResults(q) {
   const dOpts = [...c.drivers].sort((a, b) => a.lastName.localeCompare(b.lastName)).map(d => `<option value="${d.id}">${esc(d.firstName)} ${esc(d.lastName)}</option>`).join('');
   const sel = (opts, v) => opts.replace(`value="${v}"`, `value="${v}" selected`);
   const quali = session === 'qualifying';
+  const flSession = session === 'race' || session === 'race2' || (session === 'sprint' && ruleFor(c, season.id).fastestLapSprint);
   const row = (e, i) => `<tr data-row style="--tc:${(teamOf(e.teamId) || {}).color || 'transparent'}">
       <td class="pos-cell">${i + 1}</td>
       <td class="drv-cell"><select name="driverId" data-driver aria-label="Driver">${sel(dOpts, e.driverId)}</select></td>
       <td class="x-col"><select name="teamId" data-team aria-label="Team">${sel(tOpts, e.teamId)}</select></td>
       <td><select name="status" aria-label="Status">${RESULT_STATUSES.map(s => `<option value="${s}" ${e.status === s ? 'selected' : ''}>${STATUS_LABELS[s] || s}</option>`).join('')}</select></td>
       <td><input name="time" type="text" value="${esc(e.time || '')}" class="in-sm" aria-label="${quali ? 'Best lap' : 'Time or gap'}" placeholder="${quali ? '1:29.123' : i ? '+5.123s' : '1:32:10.456'}"></td>
-      ${session === 'race' ? `<td class="fl-cell"><input type="radio" name="fastestLap" ${e.fastestLap ? 'checked' : ''} aria-label="Fastest lap"></td>` : ''}
+      ${flSession ? `<td class="fl-cell"><input type="radio" name="fastestLap" ${e.fastestLap ? 'checked' : ''} aria-label="Fastest lap"></td>` : ''}
       ${quali ? '' : `<td class="x-col"><input name="grid" type="number" min="1" value="${esc(e.grid ?? '')}" class="in-xs" aria-label="Grid"></td><td class="x-col"><input name="laps" type="number" min="0" value="${esc(e.laps ?? '')}" class="in-xs" aria-label="Laps"></td><td class="x-col"><input name="points" type="number" step="any" value="${esc(e.points ?? '')}" class="in-xs" placeholder="auto" aria-label="Points"></td>`}
       <td class="row-btns"><div class="actions"><button type="button" class="icon-btn" data-move="-1" aria-label="Move up">▲</button><button type="button" class="icon-btn" data-move="1" aria-label="Move down">▼</button><button type="button" class="icon-btn icon-btn-x" data-remove-row aria-label="Remove">✕</button></div></td>
     </tr>`;
   const roundSel = rounds.map(r => `<option value="${r.id}" ${r.id === round.id ? 'selected' : ''}>${resultFor(c, r.id, 'race') ? '✓ ' : ''}R${r.round} ${esc(r.name)}</option>`).join('');
-  const seg = sessions.map(s => `<a class="seg${s === session ? ' is-active' : ''}" href="#/edit/results?round=${round.id}&session=${s}">${cap(s)}${resultFor(c, round.id, s) ? ' ✓' : ''}</a>`).join('');
+  const seg = sessions.map(s => `<a class="seg${s === session ? ' is-active' : ''}" href="#/edit/results?round=${round.id}&session=${s}">${esc(sessionName(c, round, s))}${resultFor(c, round.id, s) ? ' ✓' : ''}</a>`).join('');
   return `<div class="page-tools">
       ${seasonSelect(season.id, id => `#/edit/results?season=${id}`)}
       <label class="pill-select"><select data-nav-select="#/edit/results?round=__ID__&session=${session}" aria-label="Race">${roundSel}</select></label>
@@ -383,7 +407,7 @@ function editResults(q) {
       <div class="res-head"><h3 class="h-card">${flag(round.countryCode)} ${esc(round.name)} · ${cap(session)}</h3>${res ? '<span class="tag tag-dark">Saved</span>' : '<span class="tag tag-red">Not entered yet</span>'}</div>
       <p class="muted">Put the drivers in ${quali ? 'qualifying order, pole first' : 'finishing order'}. Use ▲ ▼ to move them. Points are worked out for you.</p>
       <label class="switch switch-sm"><input type="checkbox" data-xcols><span class="switch-ui" aria-hidden="true"></span><span>Show team, grid, laps &amp; points columns</span></label>
-      <div class="table-scroll"><table class="f1-table edit-table res-table" data-res-table><thead><tr><th>Pos</th><th>Driver</th><th class="x-col">Team</th><th>Status</th><th>${quali ? 'Best lap' : 'Time / gap'}</th>${session === 'race' ? '<th title="Fastest lap">Fastest lap</th>' : ''}${quali ? '' : '<th class="x-col">Grid</th><th class="x-col">Laps</th><th class="x-col">Points</th>'}<th></th></tr></thead>
+      <div class="table-scroll"><table class="f1-table edit-table res-table" data-res-table><thead><tr><th>Pos</th><th>Driver</th><th class="x-col">Team</th><th>Status</th><th>${quali ? 'Best lap' : 'Time / gap'}</th>${flSession ? '<th title="Fastest lap">Fastest lap</th>' : ''}${quali ? '' : '<th class="x-col">Grid</th><th class="x-col">Laps</th><th class="x-col">Points</th>'}<th></th></tr></thead>
       <tbody data-rows>${entries.map(row).join('')}</tbody></table></div>
       <template data-row-template>${row({ driverId: '', teamId: '', status: 'FIN', time: '' }, 0)}</template>
       <div class="form-actions form-actions-sticky">
@@ -418,6 +442,39 @@ function editData() {
 function toast(msg, bad) {
   const t = document.createElement('div'); t.className = 'toast' + (bad ? ' toast-bad' : ''); t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), bad ? 6000 : 2600);
+}
+
+function bindLineupBoard(lb) {
+  const seasonId = lb.dataset.luBoard, from = Number(lb.dataset.luFrom);
+  lb.querySelector('[data-lu-round]').addEventListener('change', ev => { location.hash = `#/edit/assignments?season=${seasonId}&from=${ev.target.value}`; });
+  // where a driver sits now: { teamId, role } or null
+  const seatOf = id => { const a = assignmentsOf(D(), seasonId).find(x => x.driverId === id && assignmentActive(x, from)); return a ? { teamId: a.teamId, role: a.role } : null; };
+  const move = (driverId, target) => {
+    const c = D(); const src = seatOf(driverId);
+    if (target === 'free') { if (!src) return; transferDriver(c, seasonId, driverId, null, from); Store.save(); return toast(`${nameOf(driverOf(driverId))} is now a free agent from round ${from}`); }
+    const [teamId, role] = target.split('|');
+    if (src && src.teamId === teamId && src.role === role) return;
+    const seats = (seatsAt(c, seasonId, from)[teamId] || { race: [], reserve: [] })[role];
+    const full = role === 'race' ? seats.length >= 2 : seats.length >= 1;
+    const dropEl = lb.querySelector(`[data-lu-drop="${teamId}|${role}"] [data-lu-driver]`);
+    const bumped = full ? (dropEl && dropEl.dataset.luDriver) || seats[seats.length - 1] : null;
+    transferDriver(c, seasonId, driverId, teamId, from, role);
+    if (bumped && bumped !== driverId) transferDriver(c, seasonId, bumped, src ? src.teamId : null, from, src ? src.role : 'race');   // swap, or release
+    Store.save();
+    toast(`${nameOf(driverOf(driverId))} → ${teamOf(teamId).name}${role === 'reserve' ? ' (reserve)' : ''} from round ${from}${bumped && bumped !== driverId ? ` · ${nameOf(driverOf(bumped))} ${src ? 'swapped' : 'released'}` : ''}`);
+  };
+  let picked = null;
+  lb.addEventListener('dragstart', ev => { const k = ev.target.closest('[data-lu-driver]'); if (!k) return; ev.dataTransfer.setData('text/plain', k.dataset.luDriver); ev.dataTransfer.effectAllowed = 'move'; k.classList.add('is-dragging'); });
+  lb.addEventListener('dragend', ev => { const k = ev.target.closest('[data-lu-driver]'); if (k) k.classList.remove('is-dragging'); });
+  lb.addEventListener('dragover', ev => { const z = ev.target.closest('[data-lu-drop]'); if (!z) return; ev.preventDefault(); lb.querySelectorAll('.is-over').forEach(x => x !== z && x.classList.remove('is-over')); z.classList.add('is-over'); });
+  lb.addEventListener('dragleave', ev => { const z = ev.target.closest('[data-lu-drop]'); if (z && !z.contains(ev.relatedTarget)) z.classList.remove('is-over'); });
+  lb.addEventListener('drop', ev => { const z = ev.target.closest('[data-lu-drop]'); if (!z) return; ev.preventDefault(); z.classList.remove('is-over'); const id = ev.dataTransfer.getData('text/plain'); if (id) move(id, z.dataset.luDrop); });
+  // tap fallback (touch screens): tap a driver, then tap a seat
+  lb.addEventListener('click', ev => {
+    const k = ev.target.closest('[data-lu-driver]'), z = ev.target.closest('[data-lu-drop]');
+    if (picked && z && (!k || k.dataset.luDriver !== picked)) { const id = picked; picked = null; return move(id, z.dataset.luDrop); }
+    if (k) { lb.querySelectorAll('.is-picked').forEach(x => x.classList.remove('is-picked')); picked = picked === k.dataset.luDriver ? null : k.dataset.luDriver; if (picked) k.classList.add('is-picked'); }
+  });
 }
 
 function bindEditor(root) {
@@ -466,16 +523,14 @@ function bindEditor(root) {
     root.querySelector('[data-nomatch]').hidden = shown > 0;
   });
 
+  const lb = root.querySelector('[data-lu-board]');
+  if (lb) bindLineupBoard(lb);
   const tf = root.querySelector('[data-transfer]');
   if (tf) tf.addEventListener('submit', ev => {
     ev.preventDefault(); const fd = new FormData(tf); const seasonId = tf.dataset.transfer;
     const driverId = fd.get('driverId'), teamId = fd.get('teamId'), from = Number(fd.get('fromRound'));
     if (!(from >= 1)) return toast('Enter a valid round.', true);
-    const mine = a => a.seasonId === seasonId && a.driverId === driverId && a.role === 'race';
-    // seats that start on/after the transfer round are superseded; the running seat ends the round before
-    D().assignments = D().assignments.filter(a => !(mine(a) && a.fromRound >= from));
-    D().assignments.filter(a => mine(a) && assignmentActive(a, from)).forEach(a => { a.toRound = from - 1; });
-    Store.upsert('assignments', { id: newId('assignments'), seasonId, driverId, teamId, fromRound: from, toRound: null, role: 'race' });
+    transferDriver(D(), seasonId, driverId, teamId, from, 'race'); Store.save();
     toast(`${nameOf(driverOf(driverId))} → ${teamOf(teamId).name} from round ${from}`);
   });
 

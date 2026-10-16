@@ -100,6 +100,54 @@ function standingsWidget(s) {
 }
 
 /* ======================= SCHEDULE ======================================== */
+/* ======================= LINE-UP POSTER ================================== */
+// Teams in championship order with the race drivers for the next round (or the last round once the season is over).
+function lineupData(c, s) {
+  const rounds = roundsOf(c, s.id); const rd = nextRound(c, s.id) || rounds[rounds.length - 1] || { round: 1 };
+  const lu = lineupAt(c, s.id, rd.round);
+  const order = teamStandings(c, s.id).map(r => r.id);
+  const teams = c.teams.filter(t => seriesOf(t) === seriesOf(s) && (lu[t.id] || []).length).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  return { round: rd, teams: teams.map(t => ({ t, drivers: (lu[t.id] || []).map(driverOf).filter(Boolean).slice(0, 2) })) };
+}
+function pageLineup(q) {
+  const c = D(); const s = pickSeason(q); if (!s) return noSeason();
+  const { round, teams } = lineupData(c, s);
+  const f2 = seriesOf(s) === 'f2';
+  const half = Math.ceil(teams.length / 2);
+  const box = ({ t, drivers }) => `<div class="lp-team" style="--tc:${t.color};--td:${t.colorDark || t.color}">
+      <div class="lp-heads">${drivers.map(d => `<a class="lp-head head-crop" href="#/drivers/${d.id}" title="${esc(nameOf(d))}">${portraitImg(d, t, 'head-crop-img')}</a>`).join(`<a class="lp-logo" href="#/teams/${t.id}">${logoImg(t, '')}</a>`)}</div>
+      <div class="lp-bar">${drivers.map(d => `<span${d.lastName.length > 11 ? ' class="lp-long"' : ''}>${esc(d.lastName.toUpperCase())}</span>`).join('')}</div></div>`;
+  return { title: `${s.year} Line-up`, nav: 'lineup', html: `
+    <div class="wrap page">
+      <div class="page-tools">${seasonSelect(s.id, id => `#/lineup?season=${id}`)}<span class="spacer"></span><button class="btn btn-red" type="button" data-lineup-card="${s.id}">Save as image</button></div>
+      <section class="lp-poster">
+        <div class="lp-col">${teams.slice(0, half).map(box).join('')}</div>
+        <div class="lp-title"><span class="lp-series">${f2 ? 'FIA FORMULA 2' : 'FORMULA 1'}</span><b>${esc(s.year)}</b><b>DRIVER</b><b>LINE-UP</b><small>Round ${round.round} · ${esc(round.name || '')}</small></div>
+        <div class="lp-col">${teams.slice(half).map(box).join('')}</div>
+      </section>
+      <p class="footnote">Race drivers for round ${round.round}. Change seats in <a href="#/edit/assignments?season=${s.id}">Edit Career → Line-ups &amp; transfers</a>.</p>
+    </div>` };
+}
+
+/* F2 has rounds and feature races, not Grands Prix. */
+const gpCol = () => CUR_SERIES === 'f2' ? 'Round' : 'Grand Prix';
+const gpWord = () => CUR_SERIES === 'f2' ? 'Feature' : 'Grand Prix';
+
+/* Wikipedia-style F2 calendar: round, circuit, sprint and feature dates, winners once raced. */
+function f2CalendarTable(c, rounds) {
+  const dateOf = (r, key) => { const x = (r.sessions || []).filter(s => sessionKeyOf(s.label) === key).map(s => s.date); return x.length ? x.map(d => fmtDay(d)).join(' & ') : '—'; };
+  const winner = (r, key) => { const e = classify(c, resultFor(c, r.id, key)).find(x => x.position === 1); const d = e && driverOf(e.driverId); return d ? `${flag(d.nationality, 'mx-flag')} <a href="#/drivers/${d.id}">${esc(nameOf(d))}</a>` : ''; };
+  const rows = rounds.map(r => {
+    const fea = [dateOf(r, 'race'), hasRace2(c, r) ? dateOf(r, 'race2') : null].filter(Boolean).join(' & ');
+    const feaWin = [winner(r, 'race'), hasRace2(c, r) ? winner(r, 'race2') : ''].filter(Boolean).join('<br>');
+    return `<tr><th scope="row"><a href="#/schedule/${r.id}">${r.round}</a></th>
+      <td class="mx-left">${flag(r.countryCode, 'mx-flag')} ${esc(r.circuit || r.name)}, ${esc(r.city || '')}</td>
+      <td>${esc(dateOf(r, 'sprint'))}</td><td>${esc(fea)}</td>
+      <td class="mx-left">${winner(r, 'sprint')}</td><td class="mx-left">${feaWin}</td></tr>`;
+  }).join('');
+  return `<div class="mx-scroll"><table class="mx-table mx-cal"><thead><tr><th>Round</th><th>Circuit</th><th>Sprint race</th><th>Feature race(s)</th><th>Sprint winner</th><th>Feature winner</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
 function pageSchedule(q) {
   const c = D(); const s = pickSeason(q); if (!s) return noSeason();
   const rounds = roundsOf(c, s.id);
@@ -118,6 +166,13 @@ function pageSchedule(q) {
         : `<span class="sched-status">${isNext ? tag('Next race', 'red') : '<span class="muted">Upcoming</span>'}</span>`}
     </a>`;
   };
+  if (seriesOf(s) === 'f2') return { title: `${s.year} Calendar`, nav: 'schedule', html: `
+    <div class="wrap page">
+      <div class="page-tools">${seasonSelect(s.id, id => `#/schedule?season=${id}`)}</div>
+      <h1 class="h-page">${esc(s.year)} FIA Formula 2 Calendar</h1>
+      ${hero.length ? `<div class="sched-heroes">${hero.map(heroCard).join('')}</div>` : ''}
+      ${rounds.length ? f2CalendarTable(c, rounds) : emptyState('No rounds', 'Add calendar rounds in Edit Career.', { href: '#/edit/rounds', label: 'Add round' })}
+    </div>` };
   return { title: `${s.year} Schedule`, nav: 'schedule', html: `
     <div class="wrap page">
       <div class="page-tools">${seasonSelect(s.id, id => `#/schedule?season=${id}`)}</div>
@@ -147,7 +202,7 @@ function pageRound(id) {
     <div class="wrap page round-body">
       <div class="round-main">
         <h2 class="h-section">Schedule</h2>
-        <ul class="timetable">${r.sessions.map(x => { const key = /sprint$/i.test(x.label) ? 'sprint' : /^race$/i.test(x.label) ? 'race' : /^qualifying$/i.test(x.label) ? 'qualifying' : null; const has = key && resultFor(c, r.id, key);
+        <ul class="timetable">${r.sessions.map(x => { const key = sessionKeyOf(x.label); const has = key && resultFor(c, r.id, key);
           return `<li><span class="tt-day"><b>${esc(fmtDay(x.date).split(' ')[0])}</b><small>${esc(fmtDay(x.date).split(' ')[1] || '')}</small></span><span class="tt-name">${esc(x.label)}</span><span class="tt-time">${esc(x.time || 'TBC')}</span>${has ? `<a class="chip" href="#/results/${r.id}/${key}">Results</a>` : '<span></span>'}</li>`; }).join('') || '<li class="muted">No sessions listed.</li>'}</ul>
         ${race.length ? `<h2 class="h-section">Race podium</h2><div class="round-podium">${race.slice(0, 3).map(e => { const d = driverOf(e.driverId), t = teamOf(e.teamId); return `<a href="#/drivers/${d ? d.id : ''}" class="rp" style="--tc:${t ? t.color : '#666'};--td:${t ? t.colorDark : '#222'}"><span class="podium-pos">${e.position}<sup>${ordinal(e.position)}</sup></span>${portraitImg(d, t, '')}<span class="podium-name">${esc(d ? d.firstName : '')} <b>${esc(d ? d.lastName : '')}</b></span><span class="podium-sub">${esc(t ? t.name : '')} · ${esc(e.time)}</span></a>`; }).join('')}</div>
           <a class="btn btn-outline" href="#/results/${r.id}">Full race result</a>` : ''}
@@ -191,7 +246,7 @@ function pageResultsIndex(q) {
   return { title: `${s.year} Race Results`, nav: 'results', html: `
     ${resultsSubnav(s, 'races')}
     <div class="wrap page"><h1 class="h-page">${esc(s.year)} Race Results</h1>
-    ${dataTable([{ label: 'Grand Prix' }, { label: 'Date' }, { label: 'Winner' }, { label: 'Team' }, { label: 'Laps', cls: 'num hide-sm' }, { label: 'Time', cls: 'num hide-sm' }], rows)}</div>` };
+    ${dataTable([{ label: gpCol() }, { label: 'Date' }, { label: 'Winner' }, { label: 'Team' }, { label: 'Laps', cls: 'num hide-sm' }, { label: 'Time', cls: 'num hide-sm' }], rows)}</div>` };
 }
 
 function pageRaceResult(roundId, session) {
@@ -202,7 +257,7 @@ function pageRaceResult(roundId, session) {
   const res = resultFor(c, r.id, session);
   const rows = classify(c, res);
   const roundOpts = roundsOf(c, r.seasonId).map(x => `<option value="${x.id}" ${x.id === r.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
-  const sessOpts = avail.map(x => `<option value="${x}" ${x === session ? 'selected' : ''}>${cap(x)} Result</option>`).join('');
+  const sessOpts = avail.map(x => `<option value="${x}" ${x === session ? 'selected' : ''}>${esc(sessionName(c, r, x))} Result</option>`).join('');
   const isQ = session === 'qualifying';
   const headers = isQ ? [{ label: 'Pos.' }, { label: 'No.', cls: 'hide-sm' }, { label: 'Driver' }, { label: 'Team' }, { label: 'Time', cls: 'num' }]
     : [{ label: 'Pos.' }, { label: 'No.', cls: 'hide-sm' }, { label: 'Driver' }, { label: 'Team' }, { label: 'Laps', cls: 'num hide-sm' }, { label: 'Time / Retired', cls: 'num' }, { label: 'Pts.', cls: 'num' }];
@@ -212,7 +267,7 @@ function pageRaceResult(roundId, session) {
     return isQ ? `<tr><td>${e.posLabel}</td><td class="hide-sm">${esc(d ? d.number : '')}</td><td>${driverLink(d, t)}</td><td>${teamLink(t)}</td><td class="num">${esc(e.time)}</td></tr>`
       : `<tr class="${e.position ? '' : 'is-nc'}"><td>${e.posLabel}</td><td class="hide-sm">${esc(d ? d.number : '')}</td><td>${driverLink(d, t)}${fl}</td><td>${teamLink(t)}</td><td class="num hide-sm">${esc(e.laps ?? '')}</td><td class="num">${esc(e.time)}</td><td class="num">${e.pts}</td></tr>`;
   });
-  return { title: `${r.name} ${cap(session)} Result`, nav: 'results', html: `
+  return { title: `${r.name} ${sessionName(c, r, session)} Result`, nav: 'results', html: `
     ${resultsSubnav(s, 'races')}
     <div class="wrap page">
       <div class="page-tools">
@@ -220,7 +275,7 @@ function pageRaceResult(roundId, session) {
         ${avail.length ? `<label class="pill-select"><select data-nav-select="#/results/${r.id}/__ID__" aria-label="Session">${sessOpts}</select></label>` : ''}
         <span class="spacer"></span>${flag(r.countryCode, 'flag-round flag-lg')}
       </div>
-      <h1 class="h-page">${esc(r.officialName || r.name)} - ${esc(cap(session))} Result</h1>
+      <h1 class="h-page">${esc(r.officialName || r.name)} - ${esc(sessionName(c, r, session))} Result</h1>
       <p class="page-sub"><b>${esc(fmtRange(r.dateStart, r.dateEnd)).toUpperCase()} ${esc(parseDate(r.dateEnd)?.getUTCFullYear() || '')}</b><br>${esc([r.circuit, r.city].filter(Boolean).join(', '))}</p>
       ${res ? dataTable(headers, trs) : emptyState('No result yet', 'This session has not been entered.', { href: `#/edit/results?round=${r.id}`, label: 'Enter result' })}
       ${res && !isQ ? '<p class="footnote">Team shown is the team the driver raced for at this round. FL = fastest lap.</p>' : ''}
@@ -269,6 +324,7 @@ function pageDrivers(q) {
       <p class="page-intro">The race line-up for Round ${nx.round}${nx.name ? ' · ' + esc(nx.name) : ''}.</p>
       <div class="card-grid-2">${current.map(([did, tid]) => { const d = driverOf(did); return d ? card(d, teamOf(tid)) : ''; }).join('') || emptyState('No drivers', 'Assign drivers to teams in Edit Career.', { href: '#/edit/assignments', label: 'Assign drivers' })}</div>
       ${former.length ? `<h2 class="h-section spaced">Also raced or contracted this season</h2><div class="card-grid-2">${former.map(d => card(d, teamOf(driverCurrentTeam(c, d.id, s.id)))).join('')}</div>` : ''}
+      ${(fa => fa.length ? `<h2 class="h-section spaced">Free agents</h2><p class="page-intro">Drivers without a seat. Sign one on the <a href="#/edit/assignments?season=${s.id}">line-up board</a>.</p><div class="card-grid-2 is-free">${fa.map(d => card(d, null)).join('')}</div>` : '')(freeAgents(c, s.id, nx.round).free.filter(d => !former.some(x => x.id === d.id)))}
     </div>` };
 }
 
@@ -300,7 +356,7 @@ function pageDriver(id, q) {
       <div class="profile-cols">
         <div>
           <h2 class="h-section">${s ? esc(s.year) + ' Season' : 'Season'}</h2>
-          ${st ? statDl([['Season position', pos && completedRounds(c, s.id).length ? pos + ordinal(pos) : '—'], ['Season points', st.points], ['Grand Prix races', st.races], ['Wins', st.wins], ['Podiums', st.podiums], ['Poles', st.poles], ['Top 10s', st.top10], ['Fastest laps', st.fastestLaps], ['DNFs', st.dnfs], ['Sprint points', st.sprintPoints]]) : ''}
+          ${st ? statDl([['Season position', pos && completedRounds(c, s.id).length ? pos + ordinal(pos) : '—'], ['Season points', st.points], [gpWord() + ' races', st.races], ['Wins', st.wins], ['Podiums', st.podiums], ['Poles', st.poles], ['Top 10s', st.top10], ['Fastest laps', st.fastestLaps], ['DNFs', st.dnfs], ['Sprint points', st.sprintPoints]]) : ''}
         </div>
         <div class="panel panel-raised">
           <h2 class="h-card">Career summary</h2>
@@ -309,7 +365,7 @@ function pageDriver(id, q) {
       </div>
       ${hist.length ? `<h2 class="h-section spaced">${esc(s.year)} Teams</h2><ul class="history">${hist.map(a => { const tt = teamOf(a.teamId); return `<li style="--tc:${tt ? tt.color : '#666'}">${teamLink(tt)}<span class="muted">${a.role === 'reserve' ? 'Reserve · ' : ''}Round ${a.fromRound}${a.toRound ? '–' + a.toRound : ' onwards'}</span></li>`; }).join('')}</ul>` : ''}
       <h2 class="h-section spaced" id="results">${s ? esc(s.year) + ' Results' : 'Results'}</h2>
-      ${dataTable([{ label: 'Rnd' }, { label: 'Grand Prix' }, { label: 'Team' }, { label: 'Grid', cls: 'num hide-sm' }, { label: 'Pos.', cls: 'num' }, { label: 'Sprint', cls: 'num hide-sm' }, { label: 'Pts.', cls: 'num' }],
+      ${dataTable([{ label: 'Rnd' }, { label: gpCol() }, { label: 'Team' }, { label: 'Grid', cls: 'num hide-sm' }, { label: 'Pos.', cls: 'num' }, { label: 'Sprint', cls: 'num hide-sm' }, { label: 'Pts.', cls: 'num' }],
         seasonRes.map(x => `<tr><td>${x.round.round}</td><td><a class="strong-link" href="#/results/${x.round.id}">${flag(x.round.countryCode)} ${esc(x.round.name)}</a></td><td>${teamLink(teamOf((x.entry || x.sprint).teamId))}</td><td class="num hide-sm">${esc(x.entry ? x.entry.grid ?? '' : '')}</td><td class="num">${x.entry ? x.entry.posLabel + (x.entry.status !== 'FIN' ? ` <small class="muted">${esc(x.entry.status)}</small>` : '') : '—'}</td><td class="num hide-sm">${x.sprint ? x.sprint.posLabel : ''}</td><td class="num">${x.points}</td></tr>`))}
       <h2 class="h-section spaced" id="bio">Profile</h2>
       <div class="profile-cols">
@@ -377,13 +433,13 @@ function pageTeam(id, q) {
       <h2 class="h-section spaced" id="stats">Statistics</h2>
       <div class="profile-cols">
         <div><h3 class="h-sub">${s ? esc(s.year) + ' Season' : ''}</h3>
-          ${st ? statDl([['Season position', pos && completedRounds(c, s.id).length ? pos + ordinal(pos) : '—'], ['Season points', pts], ['Grand Prix races', st.races], ['Grand Prix wins', st.wins], ['Grand Prix podiums', st.podiums], ['Grand Prix poles', st.poles], ['Top 10s', st.top10], ['Fastest laps', st.fastestLaps], ['DNFs', st.dnfs], ['Sprint points', st.sprintPoints]]) : ''}
+          ${st ? statDl([['Season position', pos && completedRounds(c, s.id).length ? pos + ordinal(pos) : '—'], ['Season points', pts], [gpWord() + ' races', st.races], [gpWord() + ' wins', st.wins], [gpWord() + ' podiums', st.podiums], [gpWord() + ' poles', st.poles], ['Top 10s', st.top10], ['Fastest laps', st.fastestLaps], ['DNFs', st.dnfs], ['Sprint points', st.sprintPoints]]) : ''}
         </div>
         <div class="panel panel-raised"><h3 class="h-sub">Team summary</h3>
           <dl class="facts">${[['Grands Prix entered (career)', all.races], ['Team points (career)', all.points], ['Highest race finish', all.best ? all.best + ordinal(all.best) : '—'], ['Podiums', all.podiums], ['Pole positions', all.poles], ['World Championships', (Number(t.championships) || 0) + all.titles]].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
         </div>
       </div>
-      ${resRows.length ? `<h3 class="h-sub spaced">Results by round</h3>${dataTable([{ label: 'Rnd' }, { label: 'Grand Prix' }, { label: 'Finishes' }, { label: 'Pts.', cls: 'num' }], resRows)}` : ''}
+      ${resRows.length ? `<h3 class="h-sub spaced">Results by round</h3>${dataTable([{ label: 'Rnd' }, { label: gpCol() }, { label: 'Finishes' }, { label: 'Pts.', cls: 'num' }], resRows)}` : ''}
       <h2 class="h-section spaced" id="profile">Team profile</h2>
       <dl class="facts panel two-col">${[['Full team name', t.fullName], ['Base', t.base], ['Team chief', t.principal], ['Technical chief', t.technicalChief], ['Chassis', t.chassis], ['Power unit', t.powerUnit], ['First team entry', t.firstEntry]].map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v || '—')}</dd></div>`).join('')}</dl>
       ${t.bio ? `<div class="prose">${t.bio.split(/\n+/).map(p => `<p>${esc(p)}</p>`).join('')}</div>` : ''}

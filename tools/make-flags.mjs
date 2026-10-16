@@ -9,6 +9,7 @@ const MAP = {
   USA: 'us', BRA: 'br', MEX: 'mx', SUI: 'ch', CHE: 'ch', NZL: 'nz', THA: 'th', SWE: 'se', NOR: 'no', QAT: 'qa', SGP: 'sg', HUN: 'hu',
   AZE: 'az', UAE: 'ae', ARE: 'ae', POR: 'pt', PRT: 'pt', COL: 'co', CHI: 'cl', CHL: 'cl', IRL: 'ie', IDN: 'id', RSA: 'za', ZAF: 'za',
   RUS: 'ru', KOR: 'kr', MAS: 'my', MYS: 'my', VEN: 've', URU: 'uy', URY: 'uy', EST: 'ee', LIE: 'li', ISR: 'il',
+  PAR: 'py', PRY: 'py', BGR: 'bg', PER: 'pe', ROM: 'ro', HKG: 'hk', PHI: 'ph', PHL: 'ph', CYP: 'cy', MLT: 'mt',
   TUR: 'tr', VIE: 'vn', VNM: 'vn', MAR: 'ma', ISL: 'is', LUX: 'lu', GRE: 'gr', GRC: 'gr', ROU: 'ro', BUL: 'bg', SLO: 'si', SVK: 'sk', UKR: 'ua', LAT: 'lv', LTU: 'lt',
 };
 const out = { codes: MAP, svg: {} };

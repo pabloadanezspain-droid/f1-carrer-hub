@@ -32,6 +32,7 @@ function route() {
     case 'standings': return pageStandings(b === 'teams' ? 'teams' : 'drivers', q);
     case 'drivers': return b ? pageDriver(b, q) : pageDrivers(q);
     case 'teams': return b ? pageTeam(b, q) : pageTeams(q);
+    case 'lineup': return pageLineup(q);
     case 'showroom': return b === 'grid' ? pageShowroomGrid(q) : pageShowroom(b, q);
     case 'news': return b ? pageArticle(b) : pageNews(q);
     case 'edit': return pageEdit(b, q);
@@ -113,4 +114,4 @@ render();
 // uploaded images live in IndexedDB; re-render once their object URLs are ready
 AssetStore.boot().then(() => { if (Object.keys(AssetStore.urls).length) render(); });
 // read-only hooks for the offline QA tools (tools/qa-matrix.mjs); not used by the site itself
-window.CareerHubDebug = { data: () => Store.data, draftComposite, resolvePortrait, drawComposite, drawPortrait, lineupAt, FRAME_ASPECT };
+window.CareerHubDebug = { data: () => Store.data, draftComposite, resolvePortrait, drawComposite, drawPortrait, lineupAt, FRAME_ASPECT, renderLineupCard, renderTeamCard };

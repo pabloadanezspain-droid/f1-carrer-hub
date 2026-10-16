@@ -200,6 +200,61 @@ async function renderTeamCard(teamId, seasonId, safe) {
   return cv;
 }
 
+/* Line-up poster as a 1600×900 image, laid out like the official line-up graphic. */
+async function renderLineupCard(seasonId, safe) {
+  const c = D(); const s = seasonOf(c, seasonId); const { round, teams } = lineupData(c, s);
+  await Promise.all(['900 80px Formula1', '700 30px Formula1', '700 20px "Titillium Web"'].map(f => document.fonts.load(f).catch(() => null)));
+  const usable = u => !safe || /^(data:|blob:)/.test(u || '');
+  const W = 1600, H = 900, cv = mkCanvas(W, H), g = cv.getContext('2d');
+  g.fillStyle = '#f4f4f4'; g.fillRect(0, 0, W, H);
+  g.fillStyle = s.series === 'f2' ? '#0090d0' : '#e10600';
+  [[0, 22], [0, 40]].forEach(([x, y]) => g.fillRect(x, y, W, 8));
+  g.fillStyle = '#15151e'; g.textAlign = 'center';
+  g.font = '700 26px Formula1, sans-serif'; g.fillText(s.series === 'f2' ? 'FIA FORMULA 2' : 'FORMULA 1', W / 2, 330);
+  g.font = '900 120px Formula1, sans-serif'; g.fillText(String(s.year), W / 2, 450);
+  g.font = '900 86px Formula1, sans-serif'; g.fillText('DRIVER', W / 2, 545); g.fillText('LINE-UP', W / 2, 635);
+  g.font = '700 20px "Titillium Web", sans-serif'; g.fillStyle = '#555'; g.fillText(`ROUND ${round.round} · ${(round.name || '').toUpperCase()}`, W / 2, 680);
+  g.textAlign = 'left';
+  const half = Math.ceil(teams.length / 2), rowH = Math.min(140, (H - 100) / half);
+  for (let i = 0; i < teams.length; i++) {
+    const { t, drivers } = teams[i]; const left = i < half, k = left ? i : i - half;
+    const x0 = left ? 40 : W - 40 - 560, y0 = 80 + k * rowH, barY = y0 + rowH - 50;
+    // heads: crop the top of each portrait (frame x 30–70 %, y 1.5–13 %)
+    for (let j = 0; j < drivers.length; j++) {
+      const headH = Math.min(110, rowH - 48), d = drivers[j], cx = x0 + (j ? 420 : 140), dw = headH * 2.55, sc = dw / 720;
+      g.save(); g.beginPath(); g.rect(cx - headH * .65, barY - headH, headH * 1.3, headH); g.clip();
+      try { const r = resolvePortrait(c, d, t); const urls = r.comp ? [refUrl(r.comp.face, t), refUrl(r.comp.suit, t)] : [r.url];
+        if (urls.every(usable)) await drawPortrait(g, d, t, cx - dw / 2, barY - headH - 10 * sc, dw); } catch (e) { console.warn(e); }
+      g.restore();
+    }
+    g.beginPath(); g.arc(x0 + 280, barY - 45, 30, 0, 7); g.fillStyle = t.colorDark || t.color; g.fill();
+    try { const lu = teamLogo(t); if (usable(lu)) { const im = await loadImage(lu); const h = 30, w = Math.min(42, h * im.naturalWidth / im.naturalHeight); g.drawImage(im, x0 + 280 - w / 2, barY - 45 - h / 2, w, h); } } catch (e) { /* logo optional */ }
+    // slanted bar in team colours with the surnames
+    g.save(); g.beginPath(); g.moveTo(x0 + 20, barY); g.lineTo(x0 + 560, barY); g.lineTo(x0 + 540, barY + 40); g.lineTo(x0, barY + 40); g.closePath();
+    const gr = g.createLinearGradient(x0, 0, x0 + 560, 0); gr.addColorStop(0, t.color); gr.addColorStop(1, t.colorDark || t.color); g.fillStyle = gr; g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 2; g.beginPath(); g.moveTo(x0 + 290, barY); g.lineTo(x0 + 270, barY + 40); g.stroke();
+    g.fillStyle = '#fff'; g.font = '700 22px Formula1, sans-serif'; g.textAlign = 'center';
+    drivers.forEach((d, j) => { const n = d.lastName.toUpperCase(); g.font = `700 ${n.length > 11 ? 17 : 22}px Formula1, sans-serif`; g.fillText(n, x0 + (j ? 410 : 145), barY + 28); });
+    g.textAlign = 'left'; g.restore();
+  }
+  g.fillStyle = '#888'; g.font = '600 16px "Titillium Web", sans-serif'; g.fillText(`${c.meta.careerName} · ${ASSET_MANIFEST.brand.siteName}`, 40, H - 16);
+  return cv;
+}
+async function openLineupCard(seasonId) {
+  const modal = document.createElement('div');
+  modal.className = 'modal'; modal.innerHTML = `<div class="modal-box"><button class="menu-close" type="button" data-close aria-label="Close">×</button><p class="muted">Rendering line-up…</p></div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal || e.target.closest('[data-close]')) modal.remove(); });
+  let cv, note = '';
+  try { cv = await renderLineupCard(seasonId, false); cv.toDataURL(); }
+  catch (e) { cv = await renderLineupCard(seasonId, true); note = 'Opened from a file, the browser blocks photos from being copied into an image. Open the site with the launcher for full photos.'; }
+  const s = seasonOf(D(), seasonId), url = cv.toDataURL('image/png');
+  modal.querySelector('.modal-box').innerHTML = `<button class="menu-close" type="button" data-close aria-label="Close">×</button>
+    <h2 class="h-card">${esc(s.year)} line-up</h2>${note ? `<p class="alert">${esc(note)}</p>` : ''}
+    <img class="card-preview" src="${url}" alt="${esc(s.year)} line-up">
+    <div class="form-actions"><a class="btn btn-red" href="${url}" download="${slugify(s.name)}-line-up.png">Download PNG</a><button class="btn btn-outline" type="button" data-close>Close</button></div>`;
+}
+
 async function openTeamCard(teamId, seasonId) {
   const modal = document.createElement('div');
   modal.className = 'modal'; modal.innerHTML = `<div class="modal-box"><button class="menu-close" type="button" data-close aria-label="Close">×</button><p class="muted">Rendering team card…</p></div>`;
@@ -233,6 +288,7 @@ document.addEventListener('click', ev => {
   if (strip) { const el = document.querySelector('[data-showroom]'); const ids = [...el.querySelectorAll('.sr-strip a')]; const cur = ids.findIndex(a => a.classList.contains('is-active')); srDirection = ids.indexOf(strip) < cur ? -1 : 1; }
   const mc = ev.target.closest('[data-motion-cycle]');
   if (mc) { const order = ['auto', 'reduced', 'full']; Motion.set(order[(order.indexOf(Motion.get()) + 1) % 3]); render(); return; }
+  const lc = ev.target.closest('[data-lineup-card]'); if (lc) { openLineupCard(lc.dataset.lineupCard); return; }
   const tc = ev.target.closest('[data-team-card]'); if (tc) { const [t, s] = tc.dataset.teamCard.split('|'); openTeamCard(t, s); return; }
   const rp = ev.target.closest('[data-replay]');
   if (rp) { const g = document.querySelector('[data-grid-reveal]'); g.classList.remove('replay'); void g.offsetWidth; g.classList.add('replay'); }

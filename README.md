@@ -90,6 +90,16 @@ These images are © Formula 1 / FOM and the photographers. Keep them local: don'
 - Automatic news covers F2 rounds too ("the Baku Feature Race"). When an academy driver wins, reaches the podium or leads F2, an academy story appears with a photo of the parent F1 team. Every auto story gets a photo: the lead driver's photos first, then the season's photo pool.
 - F2 faces have the same neck analysis as F1 faces, so a promoted junior gets an automatic draft in the F1 team's suit.
 
+## Line-ups, transfers and free agents
+- **Edit Career → Line-ups & transfers** opens a line-up board: every team of the season with 2 race seats and a reserve seat. Drag a driver onto a seat, or tap the driver and then the seat. Dropping on a taken seat swaps the two drivers. Dropping on **Free agents** releases the driver. Pick the round the change starts from; results already raced keep the old team.
+- Drivers racing in the other series that year are listed under the board, so an F2 junior can be promoted with one drag.
+- Released drivers appear as grey **Free agents** cards on the Drivers page.
+- **Line-up** in the main menu (`#/lineup`, `#/f2/lineup`) shows a poster of the grid in team colours. "Save as image" downloads it as a 1600×900 PNG.
+
+## F2 scoring and calendar
+- Points follow the 2026 FIA F2 regulations: Feature race 25-18-15-12-10-8-6-4-2-1, Sprint race 10-8-6-5-4-3-2-1, 2 points for pole, 1 point for the fastest lap in each race (top 10 only).
+- Baku has a second Feature race, as in 2026. The F2 calendar page is a Wikipedia-style table with sprint and feature dates and winners, and the F2 standings split each round into SPR and FEA columns.
+
 ## Portraits: faces × suits (Edit Career → Portrait studio / Images)
 **A driver's face and a team's suit are separate sources.** For every driver-and-team pair, the site picks the portrait in this order:
 1. **Approved composite** for that driver and team: your saved, versioned settings.

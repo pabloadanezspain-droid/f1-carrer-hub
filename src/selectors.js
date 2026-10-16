@@ -33,6 +33,30 @@ function lastRound(c, seasonId) { const done = completedRounds(c, seasonId); ret
 function resultFor(c, roundId, session) { return c.results.find(r => r.roundId === roundId && r.session === session) || null; }
 function sessionsWithResults(c, roundId) { return SESSION_TYPES.filter(s => resultFor(c, roundId, s)); }
 
+/* --- session names --------------------------------------------------------- */
+// Timetable label -> result session key ("Feature Race 2" -> race2, "Sprint Race" -> sprint, "Race" / "Feature Race" -> race).
+function sessionKeyOf(label) {
+  const l = String(label || '').trim();
+  if (/feature race 2$|race 2$/i.test(l)) return 'race2';
+  if (/sprint( race)?$/i.test(l)) return 'sprint';
+  if (/^(feature )?race( 1)?$/i.test(l)) return 'race';
+  if (/^qualifying$/i.test(l)) return 'qualifying';
+  return null;
+}
+const isF2Round = (c, round) => !!round && seriesOf(seasonOf(c, round.seasonId)) === 'f2';
+const hasRace2 = (c, round) => !!round && ((round.sessions || []).some(x => sessionKeyOf(x.label) === 'race2') || !!resultFor(c, round.id, 'race2'));
+// Result sessions a round can hold, in running order.
+function roundSessionKeys(c, round) {
+  return ['qualifying', ...(round.sprint || resultFor(c, round.id, 'sprint') ? ['sprint'] : []), 'race', ...(hasRace2(c, round) ? ['race2'] : [])];
+}
+function sessionName(c, round, key) {
+  const f2 = isF2Round(c, round);
+  if (key === 'race') return f2 ? (hasRace2(c, round) ? 'Feature Race 1' : 'Feature Race') : 'Race';
+  if (key === 'race2') return 'Feature Race 2';
+  if (key === 'sprint') return f2 ? 'Sprint Race' : 'Sprint';
+  return 'Qualifying';
+}
+
 /* --- classification & points --------------------------------------------- */
 const isClassified = e => e.status === 'FIN';
 
@@ -41,7 +65,10 @@ function classify(c, result) {
   if (!result) return [];
   const round = byId(c.rounds, result.roundId);
   const rule = ruleFor(c, round && round.seasonId);
-  const table = result.session === 'sprint' ? (rule.sprint || []) : result.session === 'race' ? (rule.race || []) : [];
+  const feature = result.session === 'race' || result.session === 'race2';
+  const table = result.session === 'sprint' ? (rule.sprint || []) : feature ? (rule.race || []) : [];
+  // pole-position points (F2) go with the first feature race
+  const poleId = rule.pole && result.session === 'race' ? (q => { const e = q && q.entries.find(isClassified); return e ? e.driverId : null; })(resultFor(c, result.roundId, 'qualifying')) : null;
   let pos = 0;
   return result.entries.map(e => {
     const classified = isClassified(e);
@@ -50,7 +77,9 @@ function classify(c, result) {
     let pts = 0;
     if (classified && position <= table.length) pts = Number(table[position - 1]) || 0;
     const fl = rule.fastestLap || {};
-    if (result.session === 'race' && e.fastestLap && classified && fl.points && position <= (fl.maxPosition || 10)) pts += Number(fl.points);
+    const flCounts = feature || (result.session === 'sprint' && rule.fastestLapSprint);
+    if (flCounts && e.fastestLap && classified && fl.points && position <= (fl.maxPosition || 10)) pts += Number(fl.points);
+    if (poleId === e.driverId && e.status !== 'DSQ') pts += Number(rule.pole) || 0;
     if (e.status === 'DSQ') pts = 0;
     if (e.points !== null && e.points !== undefined && e.points !== '') pts = Number(e.points); // manual override
     const label = classified ? String(position) : e.status === 'DSQ' ? 'DQ' : 'NC';
@@ -92,6 +121,35 @@ function lineupAt(c, seasonId, roundNo) {
   });
   return map;
 }
+/* Seats at a round: { teamId: { race: [driverId…], reserve: [driverId…] } } */
+function seatsAt(c, seasonId, roundNo) {
+  const map = {};
+  assignmentsOf(c, seasonId).filter(a => assignmentActive(a, roundNo)).forEach(a => {
+    const t = map[a.teamId] = map[a.teamId] || { race: [], reserve: [] };
+    (a.role === 'reserve' ? t.reserve : t.race).push(a.driverId);
+  });
+  return map;
+}
+const seatedIn = (c, seasonId, roundNo) => new Set(assignmentsOf(c, seasonId).filter(a => assignmentActive(a, roundNo)).map(a => a.driverId));
+/* Drivers in this season's series without a seat at that round. Drivers racing in another series the same year are listed separately. */
+function freeAgents(c, seasonId, roundNo) {
+  const s = seasonOf(c, seasonId); if (!s) return { free: [], other: [] };
+  const here = seatedIn(c, seasonId, roundNo);
+  const others = c.seasons.filter(x => x.id !== seasonId && x.year === s.year && seriesOf(x) !== seriesOf(s));
+  const elsewhere = new Set(others.flatMap(x => [...seatedIn(c, x.id, 1), ...seatedIn(c, x.id, roundNo)]));
+  const pool = c.drivers.filter(d => !here.has(d.id)).sort((a, b) => a.lastName.localeCompare(b.lastName));
+  return { free: pool.filter(d => !elsewhere.has(d.id)), other: pool.filter(d => elsewhere.has(d.id)) };
+}
+/* Move a driver to a team seat from a round on (role 'race' | 'reserve'), or to free agency (teamId null).
+   Results already raced keep the old team: running seats end the round before, later seats are dropped. */
+function transferDriver(c, seasonId, driverId, teamId, fromRound, role) {
+  const from = Math.max(1, Number(fromRound) || 1);
+  const mine = a => a.seasonId === seasonId && a.driverId === driverId;
+  c.assignments = c.assignments.filter(a => !(mine(a) && a.fromRound >= from));
+  c.assignments.filter(a => mine(a) && assignmentActive(a, from)).forEach(a => { a.toRound = from - 1; });
+  if (teamId) c.assignments.push({ id: newId('assignments'), seasonId, driverId, teamId, fromRound: from, toRound: null, role: role || 'race' });
+}
+
 function teamsInSeason(c, seasonId) {
   const ids = new Set(assignmentsOf(c, seasonId).map(a => a.teamId));
   c.results.forEach(r => { const rd = byId(c.rounds, r.roundId); if (rd && rd.seasonId === seasonId) r.entries.forEach(e => ids.add(e.teamId)); });
@@ -121,13 +179,13 @@ function standings(c, seasonId, kind, uptoRound) {
   if (kind === 'teams') teamsInSeason(c, seasonId).forEach(t => seed(t.id));
   else assignmentsOf(c, seasonId).filter(a => a.role === 'race').forEach(a => seed(a.driverId));
   rounds.forEach(rd => {
-    ['race', 'sprint'].forEach(sess => {
+    ['race', 'race2', 'sprint'].forEach(sess => {
       const res = resultFor(c, rd.id, sess);
       classify(c, res).forEach(e => {
         const row = seed(e[key]);
         row.points += e.pts;
         if (kind === 'drivers' && !row.teamsUsed.includes(e.teamId)) row.teamsUsed.push(e.teamId);
-        if (sess === 'race') {
+        if (sess !== 'sprint') {
           if (kind === 'drivers') row.starts += e.status === 'DNS' ? 0 : 1;
           if (e.position === 1) row.wins++;
           if (e.position && e.position <= 3) row.podiums++;
@@ -155,7 +213,8 @@ function driverSeasonResults(c, driverId, seasonId) {
     const sprint = resultFor(c, rd.id, 'sprint');
     const e = classify(c, res).find(x => x.driverId === driverId) || null;
     const s = classify(c, sprint).find(x => x.driverId === driverId) || null;
-    return { round: rd, entry: e, sprint: s, points: (e ? e.pts : 0) + (s ? s.pts : 0) };
+    const e2 = classify(c, resultFor(c, rd.id, 'race2')).find(x => x.driverId === driverId) || null;
+    return { round: rd, entry: e, sprint: s, entry2: e2, points: (e ? e.pts : 0) + (s ? s.pts : 0) + (e2 ? e2.pts : 0) };
   }).filter(x => x.entry || x.sprint);
 }
 

@@ -80,6 +80,7 @@ const NAV = [
   { key: 'standings', label: 'Standings', href: '#/standings/drivers' },
   { key: 'drivers', label: 'Drivers', href: '#/drivers' },
   { key: 'teams', label: 'Teams', href: '#/teams' },
+  { key: 'lineup', label: 'Line-up', href: '#/lineup' },
   { key: 'showroom', label: 'Showroom', href: '#/showroom' },
   { key: 'news', label: 'News', href: '#/news' },
 ];
