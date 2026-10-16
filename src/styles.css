@@ -728,3 +728,23 @@ thead .mx-pos, thead .mx-name { background: #eaecf0; z-index: 3; box-shadow: 1px
 .lu-free .lu-empty { color: var(--text-muted); grid-column: 1 / -1; }
 .lu-other { margin-top: 8px; }
 .lu-other summary { cursor: pointer; color: var(--text-2); font-size: var(--fs-sm); }
+
+/* line-up poster (#/lineup) */
+.lp-poster { position: relative; display: grid; grid-template-columns: 1fr minmax(220px, .8fr) 1fr; gap: 24px; padding: 64px 32px 32px; border-radius: var(--radius); background: #f4f4f4; color: #15151e; overflow: hidden; }
+.lp-poster::before { content: ''; position: absolute; inset: 16px 0 auto; height: 24px; background: linear-gradient(var(--red) 0 8px, transparent 8px 16px, var(--red) 16px 24px); }
+.lp-col { display: flex; flex-direction: column; gap: 18px; }
+.lp-team { position: relative; }
+.lp-heads { display: flex; align-items: flex-end; justify-content: space-between; padding: 0 8%; }
+.lp-head { width: 30%; aspect-ratio: 1 / 1; background: transparent; margin-bottom: -2px; }
+.lp-head > .head-crop-img { width: 240%; top: -2%; }
+.lp-logo { width: 56px; height: 56px; flex: none; display: flex; align-items: center; justify-content: center; align-self: center; border-radius: 50%; background: var(--td); box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
+.lp-logo img { max-height: 30px; max-width: 40px; object-fit: contain; }
+.lp-bar { display: grid; grid-template-columns: 1fr 1fr; background: linear-gradient(90deg, var(--tc), var(--td)); clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%); color: #fff; font-family: var(--f-display); font-weight: 700; font-size: clamp(11px, 1.3vw, 18px); text-align: center; padding: 8px 0; }
+.lp-bar span { text-shadow: 0 1px 2px rgba(0, 0, 0, .45); white-space: nowrap; overflow: hidden; }
+.lp-bar .lp-long { font-size: .78em; }
+.lp-bar span + span { border-left: 2px solid rgba(255, 255, 255, .6); }
+.lp-title { align-self: center; display: flex; flex-direction: column; align-items: center; text-align: center; font-family: var(--f-display); line-height: .95; }
+.lp-title b { font-weight: 900; font-size: clamp(36px, 5vw, 76px); }
+.lp-series { font-weight: 700; letter-spacing: .08em; margin-bottom: 8px; }
+.lp-title small { font-family: var(--f-body); font-size: var(--fs-sm); color: #555; margin-top: 12px; }
+@media (max-width: 900px) { .lp-poster { grid-template-columns: 1fr; padding: 56px 16px 16px; } .lp-title { order: -1; } }

@@ -100,6 +100,35 @@ function standingsWidget(s) {
 }
 
 /* ======================= SCHEDULE ======================================== */
+/* ======================= LINE-UP POSTER ================================== */
+// Teams in championship order with the race drivers for the next round (or the last round once the season is over).
+function lineupData(c, s) {
+  const rounds = roundsOf(c, s.id); const rd = nextRound(c, s.id) || rounds[rounds.length - 1] || { round: 1 };
+  const lu = lineupAt(c, s.id, rd.round);
+  const order = teamStandings(c, s.id).map(r => r.id);
+  const teams = c.teams.filter(t => seriesOf(t) === seriesOf(s) && (lu[t.id] || []).length).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  return { round: rd, teams: teams.map(t => ({ t, drivers: (lu[t.id] || []).map(driverOf).filter(Boolean).slice(0, 2) })) };
+}
+function pageLineup(q) {
+  const c = D(); const s = pickSeason(q); if (!s) return noSeason();
+  const { round, teams } = lineupData(c, s);
+  const f2 = seriesOf(s) === 'f2';
+  const half = Math.ceil(teams.length / 2);
+  const box = ({ t, drivers }) => `<div class="lp-team" style="--tc:${t.color};--td:${t.colorDark || t.color}">
+      <div class="lp-heads">${drivers.map(d => `<a class="lp-head head-crop" href="#/drivers/${d.id}" title="${esc(nameOf(d))}">${portraitImg(d, t, 'head-crop-img')}</a>`).join(`<a class="lp-logo" href="#/teams/${t.id}">${logoImg(t, '')}</a>`)}</div>
+      <div class="lp-bar">${drivers.map(d => `<span${d.lastName.length > 11 ? ' class="lp-long"' : ''}>${esc(d.lastName.toUpperCase())}</span>`).join('')}</div></div>`;
+  return { title: `${s.year} Line-up`, nav: 'lineup', html: `
+    <div class="wrap page">
+      <div class="page-tools">${seasonSelect(s.id, id => `#/lineup?season=${id}`)}<span class="spacer"></span><button class="btn btn-red" type="button" data-lineup-card="${s.id}">Save as image</button></div>
+      <section class="lp-poster">
+        <div class="lp-col">${teams.slice(0, half).map(box).join('')}</div>
+        <div class="lp-title"><span class="lp-series">${f2 ? 'FIA FORMULA 2' : 'FORMULA 1'}</span><b>${esc(s.year)}</b><b>DRIVER</b><b>LINE-UP</b><small>Round ${round.round} · ${esc(round.name || '')}</small></div>
+        <div class="lp-col">${teams.slice(half).map(box).join('')}</div>
+      </section>
+      <p class="footnote">Race drivers for round ${round.round}. Change seats in <a href="#/edit/assignments?season=${s.id}">Edit Career → Line-ups &amp; transfers</a>.</p>
+    </div>` };
+}
+
 /* F2 has rounds and feature races, not Grands Prix. */
 const gpCol = () => CUR_SERIES === 'f2' ? 'Round' : 'Grand Prix';
 const gpWord = () => CUR_SERIES === 'f2' ? 'Feature' : 'Grand Prix';

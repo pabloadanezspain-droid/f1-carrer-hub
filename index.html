@@ -814,6 +814,26 @@ thead .mx-pos, thead .mx-name { background: #eaecf0; z-index: 3; box-shadow: 1px
 .lu-other { margin-top: 8px; }
 .lu-other summary { cursor: pointer; color: var(--text-2); font-size: var(--fs-sm); }
 
+/* line-up poster (#/lineup) */
+.lp-poster { position: relative; display: grid; grid-template-columns: 1fr minmax(220px, .8fr) 1fr; gap: 24px; padding: 64px 32px 32px; border-radius: var(--radius); background: #f4f4f4; color: #15151e; overflow: hidden; }
+.lp-poster::before { content: ''; position: absolute; inset: 16px 0 auto; height: 24px; background: linear-gradient(var(--red) 0 8px, transparent 8px 16px, var(--red) 16px 24px); }
+.lp-col { display: flex; flex-direction: column; gap: 18px; }
+.lp-team { position: relative; }
+.lp-heads { display: flex; align-items: flex-end; justify-content: space-between; padding: 0 8%; }
+.lp-head { width: 30%; aspect-ratio: 1 / 1; background: transparent; margin-bottom: -2px; }
+.lp-head > .head-crop-img { width: 240%; top: -2%; }
+.lp-logo { width: 56px; height: 56px; flex: none; display: flex; align-items: center; justify-content: center; align-self: center; border-radius: 50%; background: var(--td); box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
+.lp-logo img { max-height: 30px; max-width: 40px; object-fit: contain; }
+.lp-bar { display: grid; grid-template-columns: 1fr 1fr; background: linear-gradient(90deg, var(--tc), var(--td)); clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%); color: #fff; font-family: var(--f-display); font-weight: 700; font-size: clamp(11px, 1.3vw, 18px); text-align: center; padding: 8px 0; }
+.lp-bar span { text-shadow: 0 1px 2px rgba(0, 0, 0, .45); white-space: nowrap; overflow: hidden; }
+.lp-bar .lp-long { font-size: .78em; }
+.lp-bar span + span { border-left: 2px solid rgba(255, 255, 255, .6); }
+.lp-title { align-self: center; display: flex; flex-direction: column; align-items: center; text-align: center; font-family: var(--f-display); line-height: .95; }
+.lp-title b { font-weight: 900; font-size: clamp(36px, 5vw, 76px); }
+.lp-series { font-weight: 700; letter-spacing: .08em; margin-bottom: 8px; }
+.lp-title small { font-family: var(--f-body); font-size: var(--fs-sm); color: #555; margin-top: 12px; }
+@media (max-width: 900px) { .lp-poster { grid-template-columns: 1fr; padding: 56px 16px 16px; } .lp-title { order: -1; } }
+
 /* ==========================================================================
    showroom.css — layered composites, Grid Showroom, grid reveal, studio, modal.
    Animations use transform / opacity / clip-path only (cheap on phones).
@@ -2496,6 +2516,7 @@ const NAV = [
   { key: 'standings', label: 'Standings', href: '#/standings/drivers' },
   { key: 'drivers', label: 'Drivers', href: '#/drivers' },
   { key: 'teams', label: 'Teams', href: '#/teams' },
+  { key: 'lineup', label: 'Line-up', href: '#/lineup' },
   { key: 'showroom', label: 'Showroom', href: '#/showroom' },
   { key: 'news', label: 'News', href: '#/news' },
 ];
@@ -2659,6 +2680,35 @@ function standingsWidget(s) {
 }
 
 /* ======================= SCHEDULE ======================================== */
+/* ======================= LINE-UP POSTER ================================== */
+// Teams in championship order with the race drivers for the next round (or the last round once the season is over).
+function lineupData(c, s) {
+  const rounds = roundsOf(c, s.id); const rd = nextRound(c, s.id) || rounds[rounds.length - 1] || { round: 1 };
+  const lu = lineupAt(c, s.id, rd.round);
+  const order = teamStandings(c, s.id).map(r => r.id);
+  const teams = c.teams.filter(t => seriesOf(t) === seriesOf(s) && (lu[t.id] || []).length).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  return { round: rd, teams: teams.map(t => ({ t, drivers: (lu[t.id] || []).map(driverOf).filter(Boolean).slice(0, 2) })) };
+}
+function pageLineup(q) {
+  const c = D(); const s = pickSeason(q); if (!s) return noSeason();
+  const { round, teams } = lineupData(c, s);
+  const f2 = seriesOf(s) === 'f2';
+  const half = Math.ceil(teams.length / 2);
+  const box = ({ t, drivers }) => `<div class="lp-team" style="--tc:${t.color};--td:${t.colorDark || t.color}">
+      <div class="lp-heads">${drivers.map(d => `<a class="lp-head head-crop" href="#/drivers/${d.id}" title="${esc(nameOf(d))}">${portraitImg(d, t, 'head-crop-img')}</a>`).join(`<a class="lp-logo" href="#/teams/${t.id}">${logoImg(t, '')}</a>`)}</div>
+      <div class="lp-bar">${drivers.map(d => `<span${d.lastName.length > 11 ? ' class="lp-long"' : ''}>${esc(d.lastName.toUpperCase())}</span>`).join('')}</div></div>`;
+  return { title: `${s.year} Line-up`, nav: 'lineup', html: `
+    <div class="wrap page">
+      <div class="page-tools">${seasonSelect(s.id, id => `#/lineup?season=${id}`)}<span class="spacer"></span><button class="btn btn-red" type="button" data-lineup-card="${s.id}">Save as image</button></div>
+      <section class="lp-poster">
+        <div class="lp-col">${teams.slice(0, half).map(box).join('')}</div>
+        <div class="lp-title"><span class="lp-series">${f2 ? 'FIA FORMULA 2' : 'FORMULA 1'}</span><b>${esc(s.year)}</b><b>DRIVER</b><b>LINE-UP</b><small>Round ${round.round} · ${esc(round.name || '')}</small></div>
+        <div class="lp-col">${teams.slice(half).map(box).join('')}</div>
+      </section>
+      <p class="footnote">Race drivers for round ${round.round}. Change seats in <a href="#/edit/assignments?season=${s.id}">Edit Career → Line-ups &amp; transfers</a>.</p>
+    </div>` };
+}
+
 /* F2 has rounds and feature races, not Grands Prix. */
 const gpCol = () => CUR_SERIES === 'f2' ? 'Round' : 'Grand Prix';
 const gpWord = () => CUR_SERIES === 'f2' ? 'Feature' : 'Grand Prix';
@@ -3907,6 +3957,61 @@ async function renderTeamCard(teamId, seasonId, safe) {
   return cv;
 }
 
+/* Line-up poster as a 1600×900 image, laid out like the official line-up graphic. */
+async function renderLineupCard(seasonId, safe) {
+  const c = D(); const s = seasonOf(c, seasonId); const { round, teams } = lineupData(c, s);
+  await Promise.all(['900 80px Formula1', '700 30px Formula1', '700 20px "Titillium Web"'].map(f => document.fonts.load(f).catch(() => null)));
+  const usable = u => !safe || /^(data:|blob:)/.test(u || '');
+  const W = 1600, H = 900, cv = mkCanvas(W, H), g = cv.getContext('2d');
+  g.fillStyle = '#f4f4f4'; g.fillRect(0, 0, W, H);
+  g.fillStyle = s.series === 'f2' ? '#0090d0' : '#e10600';
+  [[0, 22], [0, 40]].forEach(([x, y]) => g.fillRect(x, y, W, 8));
+  g.fillStyle = '#15151e'; g.textAlign = 'center';
+  g.font = '700 26px Formula1, sans-serif'; g.fillText(s.series === 'f2' ? 'FIA FORMULA 2' : 'FORMULA 1', W / 2, 330);
+  g.font = '900 120px Formula1, sans-serif'; g.fillText(String(s.year), W / 2, 450);
+  g.font = '900 86px Formula1, sans-serif'; g.fillText('DRIVER', W / 2, 545); g.fillText('LINE-UP', W / 2, 635);
+  g.font = '700 20px "Titillium Web", sans-serif'; g.fillStyle = '#555'; g.fillText(`ROUND ${round.round} · ${(round.name || '').toUpperCase()}`, W / 2, 680);
+  g.textAlign = 'left';
+  const half = Math.ceil(teams.length / 2), rowH = Math.min(140, (H - 100) / half);
+  for (let i = 0; i < teams.length; i++) {
+    const { t, drivers } = teams[i]; const left = i < half, k = left ? i : i - half;
+    const x0 = left ? 40 : W - 40 - 560, y0 = 80 + k * rowH, barY = y0 + rowH - 50;
+    // heads: crop the top of each portrait (frame x 30–70 %, y 1.5–13 %)
+    for (let j = 0; j < drivers.length; j++) {
+      const headH = Math.min(110, rowH - 48), d = drivers[j], cx = x0 + (j ? 420 : 140), dw = headH * 2.55, sc = dw / 720;
+      g.save(); g.beginPath(); g.rect(cx - headH * .65, barY - headH, headH * 1.3, headH); g.clip();
+      try { const r = resolvePortrait(c, d, t); const urls = r.comp ? [refUrl(r.comp.face, t), refUrl(r.comp.suit, t)] : [r.url];
+        if (urls.every(usable)) await drawPortrait(g, d, t, cx - dw / 2, barY - headH - 10 * sc, dw); } catch (e) { console.warn(e); }
+      g.restore();
+    }
+    g.beginPath(); g.arc(x0 + 280, barY - 45, 30, 0, 7); g.fillStyle = t.colorDark || t.color; g.fill();
+    try { const lu = teamLogo(t); if (usable(lu)) { const im = await loadImage(lu); const h = 30, w = Math.min(42, h * im.naturalWidth / im.naturalHeight); g.drawImage(im, x0 + 280 - w / 2, barY - 45 - h / 2, w, h); } } catch (e) { /* logo optional */ }
+    // slanted bar in team colours with the surnames
+    g.save(); g.beginPath(); g.moveTo(x0 + 20, barY); g.lineTo(x0 + 560, barY); g.lineTo(x0 + 540, barY + 40); g.lineTo(x0, barY + 40); g.closePath();
+    const gr = g.createLinearGradient(x0, 0, x0 + 560, 0); gr.addColorStop(0, t.color); gr.addColorStop(1, t.colorDark || t.color); g.fillStyle = gr; g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 2; g.beginPath(); g.moveTo(x0 + 290, barY); g.lineTo(x0 + 270, barY + 40); g.stroke();
+    g.fillStyle = '#fff'; g.font = '700 22px Formula1, sans-serif'; g.textAlign = 'center';
+    drivers.forEach((d, j) => { const n = d.lastName.toUpperCase(); g.font = `700 ${n.length > 11 ? 17 : 22}px Formula1, sans-serif`; g.fillText(n, x0 + (j ? 410 : 145), barY + 28); });
+    g.textAlign = 'left'; g.restore();
+  }
+  g.fillStyle = '#888'; g.font = '600 16px "Titillium Web", sans-serif'; g.fillText(`${c.meta.careerName} · ${ASSET_MANIFEST.brand.siteName}`, 40, H - 16);
+  return cv;
+}
+async function openLineupCard(seasonId) {
+  const modal = document.createElement('div');
+  modal.className = 'modal'; modal.innerHTML = `<div class="modal-box"><button class="menu-close" type="button" data-close aria-label="Close">×</button><p class="muted">Rendering line-up…</p></div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal || e.target.closest('[data-close]')) modal.remove(); });
+  let cv, note = '';
+  try { cv = await renderLineupCard(seasonId, false); cv.toDataURL(); }
+  catch (e) { cv = await renderLineupCard(seasonId, true); note = 'Opened from a file, the browser blocks photos from being copied into an image. Open the site with the launcher for full photos.'; }
+  const s = seasonOf(D(), seasonId), url = cv.toDataURL('image/png');
+  modal.querySelector('.modal-box').innerHTML = `<button class="menu-close" type="button" data-close aria-label="Close">×</button>
+    <h2 class="h-card">${esc(s.year)} line-up</h2>${note ? `<p class="alert">${esc(note)}</p>` : ''}
+    <img class="card-preview" src="${url}" alt="${esc(s.year)} line-up">
+    <div class="form-actions"><a class="btn btn-red" href="${url}" download="${slugify(s.name)}-line-up.png">Download PNG</a><button class="btn btn-outline" type="button" data-close>Close</button></div>`;
+}
+
 async function openTeamCard(teamId, seasonId) {
   const modal = document.createElement('div');
   modal.className = 'modal'; modal.innerHTML = `<div class="modal-box"><button class="menu-close" type="button" data-close aria-label="Close">×</button><p class="muted">Rendering team card…</p></div>`;
@@ -3940,6 +4045,7 @@ document.addEventListener('click', ev => {
   if (strip) { const el = document.querySelector('[data-showroom]'); const ids = [...el.querySelectorAll('.sr-strip a')]; const cur = ids.findIndex(a => a.classList.contains('is-active')); srDirection = ids.indexOf(strip) < cur ? -1 : 1; }
   const mc = ev.target.closest('[data-motion-cycle]');
   if (mc) { const order = ['auto', 'reduced', 'full']; Motion.set(order[(order.indexOf(Motion.get()) + 1) % 3]); render(); return; }
+  const lc = ev.target.closest('[data-lineup-card]'); if (lc) { openLineupCard(lc.dataset.lineupCard); return; }
   const tc = ev.target.closest('[data-team-card]'); if (tc) { const [t, s] = tc.dataset.teamCard.split('|'); openTeamCard(t, s); return; }
   const rp = ev.target.closest('[data-replay]');
   if (rp) { const g = document.querySelector('[data-grid-reveal]'); g.classList.remove('replay'); void g.offsetWidth; g.classList.add('replay'); }
@@ -4893,6 +4999,7 @@ function route() {
     case 'standings': return pageStandings(b === 'teams' ? 'teams' : 'drivers', q);
     case 'drivers': return b ? pageDriver(b, q) : pageDrivers(q);
     case 'teams': return b ? pageTeam(b, q) : pageTeams(q);
+    case 'lineup': return pageLineup(q);
     case 'showroom': return b === 'grid' ? pageShowroomGrid(q) : pageShowroom(b, q);
     case 'news': return b ? pageArticle(b) : pageNews(q);
     case 'edit': return pageEdit(b, q);
@@ -4974,7 +5081,7 @@ render();
 // uploaded images live in IndexedDB; re-render once their object URLs are ready
 AssetStore.boot().then(() => { if (Object.keys(AssetStore.urls).length) render(); });
 // read-only hooks for the offline QA tools (tools/qa-matrix.mjs); not used by the site itself
-window.CareerHubDebug = { data: () => Store.data, draftComposite, resolvePortrait, drawComposite, drawPortrait, lineupAt, FRAME_ASPECT };
+window.CareerHubDebug = { data: () => Store.data, draftComposite, resolvePortrait, drawComposite, drawPortrait, lineupAt, FRAME_ASPECT, renderLineupCard, renderTeamCard };
 
 })();
 </script>
