@@ -21,6 +21,9 @@ function parseHash() {
 
 function route() {
   const { parts, q } = parseHash();
+  const mode = D().meta.mode || 'f1';
+  if (parts[0] === 'f2') { parts.shift(); CUR_SERIES = 'f2'; }
+  else CUR_SERIES = parts[0] === 'edit' ? 'all' : (mode === 'f2' ? 'f2' : 'f1');
   const [a, b, c] = parts;
   switch (a) {
     case undefined: return pageHome();
@@ -44,6 +47,10 @@ function render() {
   try { page = route(); }
   catch (e) { console.error(e); page = { title: 'Error', nav: '', html: `<div class="wrap page">${emptyState('Something went wrong', e.message, { href: '#/edit', label: 'Open Edit Career' })}</div>` }; }
   app.innerHTML = header(page.nav) + sampleBanner() + `<main id="main">${page.html}</main>` + footer();
+  document.body.classList.toggle('series-f2', CUR_SERIES === 'f2');
+  // In the F2 section every internal link stays in F2 (Edit Career is shared).
+  if (CUR_SERIES === 'f2' && (D().meta.mode || 'f1') === 'both')
+    app.querySelectorAll('a[href^="#/"]').forEach(el => { const h = el.getAttribute('href'); if (!/^#\/(edit|f2)(\/|$|\?)/.test(h) && !el.hasAttribute('data-series')) el.setAttribute('href', '#/f2' + h.slice(1)); });
   document.title = `${page.title} · ${ASSET_MANIFEST.brand.siteName}`;
   if (page.after) page.after(app);
 }

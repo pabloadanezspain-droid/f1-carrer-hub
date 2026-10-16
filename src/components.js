@@ -84,6 +84,13 @@ const NAV = [
   { key: 'news', label: 'News', href: '#/news' },
 ];
 
+/* F1 / F2 switch, shown when the career runs both series. */
+function seriesSwitch(c) {
+  if ((c.meta.mode || 'f1') !== 'both' || !c.seasons.some(s => s.series === 'f2')) return '';
+  const b = (k, href, label) => `<a class="series-btn ${CUR_SERIES === k ? 'is-active' : ''}" href="${href}" data-series="${k}">${label}</a>`;
+  return `<span class="series-switch" role="group" aria-label="Series">${b('f1', '#/', 'F1')}${b('f2', '#/f2', 'F2')}</span>`;
+}
+
 function header(activeKey) {
   const c = D();
   const s = activeSeason(c);
@@ -100,6 +107,7 @@ function header(activeKey) {
     </div></div>
     <div class="mainbar"><div class="wrap mainbar-inner">
       <a class="brand" href="#/" aria-label="Home">${brandMark()}</a>
+      ${seriesSwitch(c)}
       <nav class="mainnav" aria-label="Main">${nav}</nav>
       <span class="mainbar-right">
         <a class="edit-link" href="#/edit">Edit</a>

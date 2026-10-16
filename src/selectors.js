@@ -7,8 +7,20 @@
 const byId = (arr, id) => arr.find(r => r.id === id) || null;
 
 function seasonOf(c, seasonId) { return byId(c.seasons, seasonId); }
-function activeSeason(c) { return seasonOf(c, c.meta.activeSeasonId) || c.seasons[0] || null; }
-function seasonsDesc(c) { return [...c.seasons].sort((a, b) => b.year - a.year); }
+/* Series the public pages show: 'f1', 'f2', or 'all' (Edit Career). Set by the router from the #/f2 prefix. */
+let CUR_SERIES = 'f1';
+const seriesOf = s => (s && s.series) || 'f1';
+const inSeries = s => CUR_SERIES === 'all' || seriesOf(s) === CUR_SERIES;
+function activeSeason(c) {
+  const a = seasonOf(c, c.meta.activeSeasonId);
+  if (a && inSeries(a)) return a;
+  return seasonsDesc(c)[0] || (CUR_SERIES === 'all' ? c.seasons[0] : null) || null;
+}
+function seasonsDesc(c) { return c.seasons.filter(inSeries).sort((a, b) => b.year - a.year); }
+function allSeasonsDesc(c) { return [...c.seasons].sort((a, b) => b.year - a.year); }
+/* Academy (F1 junior programme) a driver belongs to, or null. */
+function academyOf(c, driverId) { return (c.academies || []).find(a => a.driverIds.includes(driverId)) || null; }
+function academyDrivers(c, f1TeamId) { const a = (c.academies || []).find(x => x.f1TeamId === f1TeamId); return a ? a.driverIds.map(id => byId(c.drivers, id)).filter(Boolean) : []; }
 function ruleFor(c, seasonId) {
   const s = seasonOf(c, seasonId);
   return (s && byId(c.pointsRules, s.pointsRuleId)) || c.pointsRules[0] || { race: [], sprint: [], fastestLap: { points: 0, maxPosition: 10 } };

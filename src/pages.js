@@ -291,7 +291,7 @@ function pageDriver(id, q) {
         <div class="ph-text">
           ${numberArt(d, 'ph-number')}
           <h1 class="ph-name"><span>${esc(d.firstName)}</span><b>${esc(d.lastName)}</b></h1>
-          <p class="ph-meta">${flag(d.nationality, 'flag-round')} ${esc(countryName(d.nationality))} ${t ? `· <a href="#/teams/${t.id}">${esc(t.name)}</a>` : ''}</p>
+          <p class="ph-meta">${flag(d.nationality, 'flag-round')} ${esc(countryName(d.nationality))} ${t ? `· <a href="#/teams/${t.id}">${esc(t.name)}</a>` : ''}${acdBadge(c, d)}</p>
         </div>
         ${portraitImg(d, t, 'ph-portrait')}
       </div>
@@ -372,6 +372,7 @@ function pageTeam(id, q) {
     <div class="wrap page">
       <h2 class="h-section" id="drivers">Drivers</h2>
       <div class="card-grid-2">${drivers.map(d => `<a class="driver-card" href="#/drivers/${d.id}" style="--tc:${t.color};--td:${t.colorDark}"><span class="dc-text"><span class="dc-first">${esc(d.firstName)}</span><span class="dc-last">${esc(d.lastName)}</span><span class="dc-team">${esc(t.name)}</span>${numberArt(d, 'dc-num')}${flag(d.nationality, 'flag-round')}</span>${portraitImg(d, t, 'dc-portrait')}</a>`).join('') || '<p class="muted">No race drivers assigned for the next round.</p>'}</div>
+      ${academySection(c, t)}
       ${everDrove.length ? `<p class="footnote">Also drove for ${esc(t.name)} this season: ${everDrove.map(d => `<a href="#/drivers/${d.id}">${esc(nameOf(d))}</a>`).join(', ')}.</p>` : ''}
       <h2 class="h-section spaced" id="stats">Statistics</h2>
       <div class="profile-cols">
@@ -388,6 +389,26 @@ function pageTeam(id, q) {
       ${t.bio ? `<div class="prose">${t.bio.split(/\n+/).map(p => `<p>${esc(p)}</p>`).join('')}</div>` : ''}
       ${arts.length ? `${sectionHead('Latest news', { href: '#/news', label: 'View all' })}<div class="row-cards">${arts.map(a => articleCard(a, 'row')).join('')}</div>` : ''}
     </div>` };
+}
+
+/* ======================= ACADEMIES ======================================= */
+/* "Ferrari Academy" badge on a driver's profile; links to the F1 team in the F1 section. */
+function acdBadge(c, d) {
+  const a = academyOf(c, d.id); const ft = a && teamOf(a.f1TeamId);
+  return ft ? ` · <a class="acd-badge" style="--tc:${ft.color}" data-series="f1" href="#/teams/${ft.id}">${logoImg(ft, 'acd-logo')}${esc(a.name || ft.name + ' Academy')}</a>` : '';
+}
+/* An F1 team's junior drivers, shown in their current F2 suits with their F2 standing. */
+function academySection(c, t) {
+  if (seriesOf(t) !== 'f1') return '';
+  const ds = academyDrivers(c, t.id); if (!ds.length) return '';
+  const f2 = allSeasonsDesc(c).find(x => seriesOf(x) === 'f2');
+  const stand = f2 ? driverStandings(c, f2.id) : [];
+  return `<h2 class="h-section spaced" id="academy">${esc(t.name)} Academy</h2>
+    <div class="card-grid-2">${ds.map(d => {
+      const ft = f2 ? teamOf(driverCurrentTeam(c, d.id, f2.id)) : null;
+      const row = stand.find(r => r.id === d.id); const done = f2 && completedRounds(c, f2.id).length;
+      return `<a class="driver-card" data-series="f2" href="#/f2/drivers/${d.id}" style="--tc:${ft ? ft.color : t.color};--td:${ft ? ft.colorDark : t.colorDark}"><span class="dc-text"><span class="dc-first">${esc(d.firstName)}</span><span class="dc-last">${esc(d.lastName)}</span><span class="dc-team">${ft ? 'F2 · ' + esc(ft.name) : 'Junior driver'}${row && done ? ` · ${row.position}${ordinal(row.position)} in F2` : ''}</span>${numberArt(d, 'dc-num')}${flag(d.nationality, 'flag-round')}</span>${portraitImg(d, ft, 'dc-portrait')}</a>`;
+    }).join('')}</div>`;
 }
 
 /* ======================= NEWS ============================================ */
