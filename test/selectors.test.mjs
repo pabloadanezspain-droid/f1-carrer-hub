@@ -49,7 +49,7 @@ test('starter career is internally consistent and holds the real 2026 F1 and F2 
   assert.deepEqual(sample.seasons.map(s => s.id), [SID, 'sea_f2_2026']);
   assert.equal(sample.teams.filter(t => t.series === 'f1').length, 11);
   assert.equal(sample.teams.filter(t => t.series === 'f2').length, 11);
-  assert.equal(sample.drivers.length, 44);
+  assert.equal(sample.drivers.length, 45);   // 22 F1 + 22 F2 + your own driver
   assert.equal(sample.results.length, 0);
 });
 

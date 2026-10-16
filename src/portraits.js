@@ -71,6 +71,7 @@ function autoFitFor(faceRef, suitRef) {
 function historicalPortraits(c, d) {
   const out = [];
   if (d.portraitUrl) out.push({ ref: { type: 'url', url: d.portraitUrl }, teamId: d.portraitTeamId || null, label: 'Portrait' });
+  out.forEach(p => { if (p.teamId === 'plain') p.teamId = 'plain:'; });
   (d.portraits || []).forEach(p => out.push({ ref: p.ref || (p.url ? { type: 'url', url: p.url } : null), teamId: p.teamId || null, seasonId: p.seasonId || null, label: 'Portrait' }));
   c.assets.filter(a => a.kind === 'portrait' && a.driverId === d.id).forEach(a => out.push({ ref: { type: 'asset', id: a.id }, teamId: a.teamId || null, label: 'Uploaded portrait · ' + a.name }));
   return out.filter(p => p.ref && refUrl(p.ref));
@@ -147,6 +148,7 @@ function resolvePortrait(c, d, team) {
   const ap = approvedComposite(c, d.id, team.id);
   if (ok(ap)) return { kind: 'approved', comp: ap };
   const hist = historicalPortraits(c, d);
+  // a portrait in a plain suit ('plain') never stands in for a team: the face goes onto the team's suit instead
   const own = hist.find(p => p.teamId === team.id) || hist.find(p => p.teamId == null);
   if (own) return { kind: 'photo', url: refUrl(own.ref) };
   if (man) return { kind: 'photo', url: man };

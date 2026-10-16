@@ -1398,6 +1398,25 @@
    "numberUrl": "assets/f2/drivers/john-bennett-number.webp",
    "photoUrls": [],
    "bio": ""
+  },
+  {
+   "id": "drv_pablo_adanez",
+   "firstName": "Pablo",
+   "lastName": "Adanez",
+   "code": "ADA",
+   "number": 45,
+   "nationality": "ESP",
+   "dob": "",
+   "birthplace": "",
+   "championships": 0,
+   "portraitUrl": "assets/custom/drivers/pablo-adanez.webp",
+   "portraitTeamId": "plain",
+   "portraits": [],
+   "numberUrl": "",
+   "photoUrls": [
+    "assets/custom/photos/pablo-adanez-1.webp"
+   ],
+   "bio": ""
   }
  ],
  "assignments": [

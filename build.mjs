@@ -16,7 +16,7 @@ const fonts = [
 
 // list of locally downloaded images (assets/f1com/**) for the Edit Career image pickers
 const walk = d => fs.existsSync(new URL(d, import.meta.url)) ? fs.readdirSync(new URL(d, import.meta.url), { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(d + e.name + '/') : [d + e.name]) : [];
-const library = [...walk('./assets/f1com/'), ...walk('./assets/f2/')].map(p => p.slice(2)).filter(p => /\.(webp|png|jpe?g|svg)$/i.test(p) && !p.includes('/masks/')).sort();
+const library = [...walk('./assets/f1com/'), ...walk('./assets/f2/'), ...walk('./assets/custom/')].map(p => p.slice(2)).filter(p => /\.(webp|png|jpe?g|svg)$/i.test(p) && !p.includes('/masks/')).sort();
 const sample = JSON.stringify(JSON.parse(r('./src/sample-data.json')));
 const html = r('./src/index.template.html')
   .replace('/*FONTS*/', () => fonts)

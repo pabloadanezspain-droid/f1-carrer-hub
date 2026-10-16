@@ -75,7 +75,7 @@ const SPECS = {
       { key: 'portraitUrl', label: 'Portrait', type: 'image', lib: 'drivers/' },
       { key: 'dob', label: 'Date of birth', type: 'date', more: true }, { key: 'birthplace', label: 'Place of birth', type: 'text', more: true },
       { key: 'championships', label: 'Titles won before this career', type: 'number', more: true },
-      { key: 'portraitTeamId', label: 'Team suit in the portrait', hint: 'Lets the Portrait studio swap the suit after a transfer', type: 'select', options: () => [['', 'Any / unknown'], ...teamOpts()], more: true },
+      { key: 'portraitTeamId', label: 'Team suit in the portrait', hint: 'Lets the Portrait studio swap the suit after a transfer', type: 'select', options: () => [['', 'Any / unknown'], ['plain', 'Plain suit (always shown in the team suit)'], ...teamOpts()], more: true },
       { key: 'numberUrl', label: 'Race-number artwork', type: 'image', lib: 'drivers/', more: true },
       { key: 'photoUrls', label: 'Track photos for news', hint: 'One picture per line', type: 'urls', lib: 'photos/', more: true },
       { key: 'bio', label: 'Biography', type: 'textarea', more: true },

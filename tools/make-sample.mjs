@@ -5,6 +5,13 @@ import fs from 'node:fs';
 import { realGrid, REAL_SEASON } from './real-grid-2026.mjs';
 import { realGridF2 } from './real-grid-2026-f2.mjs';
 
+// Your own drivers (no seat yet: they start as free agents). Pictures in assets/custom/.
+export const CUSTOM_DRIVERS = [
+  { id: 'drv_pablo_adanez', firstName: 'Pablo', lastName: 'Adanez', code: 'ADA', number: 45, nationality: 'ESP', dob: '', birthplace: '', championships: 0,
+    portraitUrl: 'assets/custom/drivers/pablo-adanez.webp', portraitTeamId: 'plain', portraits: [], numberUrl: '',
+    photoUrls: ['assets/custom/photos/pablo-adanez-1.webp'], bio: '' },
+];
+
 const REAL = realGrid(fs);
 const F2 = realGridF2(fs);
 REAL.teams.forEach(t => { t.series = 'f1'; });
@@ -24,7 +31,7 @@ const career = {
     { id: 'pts_f2', name: 'FIA Formula 2', race: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], sprint: [10, 8, 6, 5, 4, 3, 2, 1], fastestLap: { points: 1, maxPosition: 10 }, fastestLapSprint: true, pole: 2, f2v2: true },
   ],
   teams: [...REAL.teams, ...F2.teams],
-  drivers: [...REAL.drivers, ...F2.drivers],
+  drivers: [...REAL.drivers, ...F2.drivers, ...CUSTOM_DRIVERS],
   assignments: [...REAL.assignments, ...F2.assignments],
   rounds: [...REAL.rounds, ...F2.rounds],
   results: [],
