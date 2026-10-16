@@ -84,6 +84,12 @@ function addStarterF2(c, sample) {
     const src = sample.rounds || [];
     c.rounds.forEach(r => { const n = src.find(x => x.id === r.id); if (n && /^rnd_f2_/.test(r.id)) Object.assign(r, { city: n.city, dateStart: n.dateStart, dateEnd: n.dateEnd, sessions: clone(n.sessions) }); });
   }
+  // drivers added to the starter career later (e.g. your own driver) join existing saves once, as free agents
+  c.meta.addedDrivers = c.meta.addedDrivers || [];
+  (sample.drivers || []).filter(d => /^drv_pablo_/.test(d.id) && !c.meta.addedDrivers.includes(d.id)).forEach(d => {
+    c.meta.addedDrivers.push(d.id); fixed = true;
+    if (!c.drivers.some(x => x.id === d.id)) c.drivers.push(clone(d));
+  });
   if (c.meta.f2Added || c.seasons.some(s => s.series === 'f2')) return fixed;
   c.meta.f2Added = true;
   const src = normalizeCareer(clone(sample));
