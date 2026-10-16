@@ -83,6 +83,13 @@ These images are © Formula 1 / FOM and the photographers. Keep them local: don'
   - Opened via the .bat, the card includes the real photos.
   - Opened as a plain file, it uses placeholders, because the browser blocks copying file photos into an image. A note tells you when this happens.
 
+## Formula 2 and academies
+- The starter career holds the real 2026 F2 grid next to the F1 grid: 22 drivers, 11 teams and 14 rounds, from fiaformula2.com. Faces, team logos, cars and news photos are in `assets/f2/` (list in `tools/f2-images.tsv`, data in `tools/real-grid-2026-f2.mjs`).
+- **Edit Career → Career settings → Series in this career** picks Formula 1 only, Formula 2 only, or both. With both, the header shows an F1 / F2 switch and the F2 section lives under `#/f2/…` with a blue accent.
+- **Academies** (Edit Career → Grid → Academies) link F2 drivers to an F1 team. Driver profiles show the academy badge, and F1 team pages list their juniors in their F2 suits. The starter links come from the badges on each driver's 2026 suit.
+- Automatic news covers F2 rounds too ("the Baku Feature Race"). When an academy driver wins, reaches the podium or leads F2, an academy story appears with a photo of the parent F1 team. Every auto story gets a photo: the lead driver's photos first, then the season's photo pool.
+- F2 faces have the same neck analysis as F1 faces, so a promoted junior gets an automatic draft in the F1 team's suit.
+
 ## Portraits: faces × suits (Edit Career → Portrait studio / Images)
 **A driver's face and a team's suit are separate sources.** For every driver-and-team pair, the site picks the portrait in this order:
 1. **Approved composite** for that driver and team: your saved, versioned settings.
