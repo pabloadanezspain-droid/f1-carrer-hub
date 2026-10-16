@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 const src = p => fs.readFileSync(new URL('../src/' + p, import.meta.url), 'utf8');
 const ctx = { console, localStorage: { getItem: () => null, setItem: () => {} } };
 vm.createContext(ctx);
-vm.runInContext(src('store.js') + '\nthis.api = { normalizeCareer, validateCareer, clone, F2_POINTS_RULE };', ctx);
+vm.runInContext(src('store.js') + '\nthis.api = { normalizeCareer, validateCareer, clone, F2_POINTS_RULE, addStarterF2 };', ctx);
 const A = ctx.api;
 const sample = JSON.parse(src('sample-data.json'));
 let pass = 0;
@@ -54,6 +54,18 @@ test('starter career has the F2 grid, its academies and the F2 rule', () => {
   assert.equal(c.academies.find(a => a.f1TeamId === 'team_ferrari').driverIds.length, 2);
   assert.equal(c.pointsRules.filter(r => r.id === 'pts_f2').length, 1);
   assert.equal(c.rounds.filter(r => r.seasonId === 'sea_f2_2026').length, 14);
+});
+
+test('an old save gets the starter F2 grid once, keeping its own data', () => {
+  const c = A.normalizeCareer(oldSave()); c.meta.careerName = 'Mine';
+  assert.equal(A.addStarterF2(c, sample), true);
+  assert.equal(c.meta.mode, 'both');
+  assert.equal(c.meta.careerName, 'Mine');
+  assert.equal(c.seasons.filter(s => s.series === 'f2').length, 1);
+  assert.equal(c.teams.filter(t => t.series === 'f2').length, 11);
+  assert.equal(c.academies.length, 6);
+  assert.equal(A.validateCareer(c).length, 0);
+  assert.equal(A.addStarterF2(c, sample), false);
 });
 
 console.log(`\n${pass} passed`);

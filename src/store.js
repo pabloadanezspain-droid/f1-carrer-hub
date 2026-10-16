@@ -72,6 +72,28 @@ function normalizeCareer(raw) {
   return c;
 }
 
+/* Copies the starter F2 season (and everything it needs) into a career that has none. Runs once per career. */
+function addStarterF2(c, sample) {
+  if (c.meta.f2Added || c.seasons.some(s => s.series === 'f2')) return false;
+  c.meta.f2Added = true;
+  const src = normalizeCareer(clone(sample));
+  const f2 = new Set(src.seasons.filter(s => s.series === 'f2').map(s => s.id));
+  if (!f2.size) return true;
+  const add = (k, list) => { const have = new Set(c[k].map(r => r.id)); list.forEach(r => { if (!have.has(r.id)) c[k].push(clone(r)); }); };
+  const asg = src.assignments.filter(a => f2.has(a.seasonId));
+  const teamIds = new Set(asg.map(a => a.teamId)), drvIds = new Set(asg.map(a => a.driverId));
+  add('seasons', src.seasons.filter(s => f2.has(s.id)));
+  add('pointsRules', src.pointsRules.filter(r => src.seasons.some(s => f2.has(s.id) && s.pointsRuleId === r.id)));
+  add('teams', src.teams.filter(t => teamIds.has(t.id)));
+  add('drivers', src.drivers.filter(d => drvIds.has(d.id)));
+  add('assignments', asg);
+  add('rounds', src.rounds.filter(r => f2.has(r.seasonId)));
+  const teams = new Set(c.teams.map(t => t.id));
+  add('academies', src.academies.filter(a => teams.has(a.f1TeamId)));
+  if (c.meta.mode !== 'f2') c.meta.mode = 'both';
+  return true;
+}
+
 /* Returns a list of human-readable integrity problems (empty = OK). */
 function validateCareer(c) {
   const errs = [];
@@ -113,7 +135,7 @@ const Store = {
     let raw = null;
     try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { this.storageOk = false; }
     if (raw) {
-      try { this.data = normalizeCareer(JSON.parse(raw)); this.dropOldSampleNews(); this.syncNewsQuietly(); return; }
+      try { this.data = normalizeCareer(JSON.parse(raw)); this.dropOldSampleNews(); this.addStarterF2(sample); this.syncNewsQuietly(); return; }
       catch (e) { console.warn('Saved career unreadable, loading sample', e); }
     }
     this.data = normalizeCareer(clone(sample));
@@ -129,6 +151,11 @@ const Store = {
   onChange(fn) { this.listeners.push(fn); },
   syncNewsQuietly() {
     if (typeof syncAutoNews === 'function' && syncAutoNews(this.data)) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {} }
+  },
+  // one-time upgrade: saves made before F2 support get the starter F2 grid, academies and the F1 / F2 switch
+  addStarterF2(sample) {
+    if (!addStarterF2(this.data, sample)) return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {}
   },
   // one-time cleanup: news stories from the old fictional 2030 sample career
   dropOldSampleNews() {
