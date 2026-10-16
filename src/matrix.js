@@ -81,7 +81,7 @@ function mxSetFastestLap(c, roundId, driverId, on) {
 function mxCell(c, round, driverId) {
   const rule = ruleFor(c, round.seasonId);
   const pick = s => classify(c, resultFor(c, round.id, s)).find(e => e.driverId === driverId) || null;
-  const race = pick('race'), sprint = pick('sprint');
+  const race = pick('race'), sprint = pick('sprint'), race2 = pick('race2');
   let label = '', tone = '';
   if (race) {
     if (race.position) {
@@ -89,7 +89,7 @@ function mxCell(c, round, driverId) {
       tone = race.position === 1 ? 'gold' : race.position === 2 ? 'silver' : race.position === 3 ? 'bronze' : race.position <= (rule.race || []).length ? 'green' : 'blue';
     } else { label = MX_STATUS_LABEL[race.status] || race.status; tone = { DNF: 'purple', DNS: 'white', DSQ: 'black' }[race.status] || 'purple'; }
   }
-  return { race, sprint, label, tone, pole: mxPoleOf(c, round.id) === driverId, fastestLap: !!(race && race.fastestLap) };
+  return { race, sprint, race2, label, tone, pole: mxPoleOf(c, round.id) === driverId, fastestLap: !!(race && race.fastestLap) };
 }
 
 /* --- rendering ------------------------------------------------------------ */
@@ -100,8 +100,31 @@ function mxSup(cell, rule, edit) {
   if (cell.fastestLap) bits.push('F');
   return bits.length ? `<sup>${bits.join(' ')}</sup>` : '';
 }
+/* Columns per round: F1 shows one cell (sprint as a superscript); F2 shows Sprint and Feature cells, like Wikipedia. */
+function mxCols(c, round) { return isF2Round(c, round) ? ['sprint', 'race', ...(hasRace2(c, round) ? ['race2'] : [])] : ['race']; }
+const MX_COL_ABBR = { sprint: 'SPR', race: 'FEA', race2: 'FEA' };
+/* One F2 session cell: position + tone, pole on the feature race, fastest lap in that session. */
+function mxSessionCell(c, round, driverId, session) {
+  const rule = ruleFor(c, round.seasonId);
+  const e = classify(c, resultFor(c, round.id, session)).find(x => x.driverId === driverId) || null;
+  const table = session === 'sprint' ? rule.sprint || [] : rule.race || [];
+  let label = '', tone = '';
+  if (e) {
+    if (e.position) { label = String(e.position); tone = e.position === 1 ? 'gold' : e.position === 2 ? 'silver' : e.position === 3 ? 'bronze' : e.position <= table.length ? 'green' : 'blue'; }
+    else { label = MX_STATUS_LABEL[e.status] || e.status; tone = { DNF: 'purple', DNS: 'white', DSQ: 'black' }[e.status] || 'purple'; }
+  }
+  return { label, tone, sprint: null, pole: session === 'race' && mxPoleOf(c, round.id) === driverId, fastestLap: !!(e && e.fastestLap) };
+}
+function mxCellsFor(c, round, driverId, rule, edit) {
+  const cols = mxCols(c, round);
+  if (cols.length === 1) return mxTd(mxCell(c, round, driverId), rule, driverId, round, edit);
+  return cols.map(s => mxTd(mxSessionCell(c, round, driverId, s), rule, driverId, round, edit)).join('');
+}
+function mxHead2(c, rounds) {
+  return rounds.some(r => mxCols(c, r).length > 1) ? `<tr class="mx-sub"><th class="mx-pos"></th><th class="mx-name"></th>${rounds.map(r => mxCols(c, r).map(s => `<th class="mx-sess">${MX_COL_ABBR[s]}</th>`).join('')).join('')}<th class="mx-pts"></th></tr>` : '';
+}
 function mxHead(rounds) {
-  return rounds.map(r => `<th class="mx-gp${resultFor(D(), r.id, 'race') ? '' : ' is-future'}" scope="col"><a href="#/schedule/${r.id}" title="R${r.round} ${esc(r.name)}">${flag(r.countryCode, 'mx-flag')}<span>${esc((r.countryCode || r.name.slice(0, 3)).toUpperCase())}</span></a></th>`).join('');
+  return rounds.map(r => `<th class="mx-gp${resultFor(D(), r.id, 'race') ? '' : ' is-future'}" scope="col" colspan="${mxCols(D(), r).length}"><a href="#/schedule/${r.id}" title="R${r.round} ${esc(r.name)}">${flag(r.countryCode, 'mx-flag')}<span>${esc((r.countryCode || r.name.slice(0, 3)).toUpperCase())}</span></a></th>`).join('');
 }
 function mxTd(cell, rule, driverId, round, edit) {
   const attrs = edit ? ` tabindex="0" role="button" data-mx-cell="${driverId}|${round.id}" aria-label="Edit result"` : '';
@@ -114,10 +137,10 @@ function mxDriversTable(c, s, edit) {
     const d = driverOf(r.id), t = teamOf(r.teamId);
     return `<tr data-mx-driver="${r.id}"><th class="mx-pos" scope="row">${r.position}</th>
       <th class="mx-name" style="--tc:${t ? t.color : '#606066'}">${d ? flag(d.nationality, 'mx-flag') : ''}<a href="#/drivers/${r.id}">${esc(d ? nameOf(d) : r.id)}</a></th>
-      ${rounds.map(rd => mxTd(mxCell(c, rd, r.id), rule, r.id, rd, edit)).join('')}
+      ${rounds.map(rd => mxCellsFor(c, rd, r.id, rule, edit)).join('')}
       <td class="mx-pts">${r.points}</td></tr>`;
   });
-  return `<div class="mx-scroll" data-mx-scroll><table class="mx-table"><thead><tr><th class="mx-pos" scope="col">Pos.</th><th class="mx-name" scope="col">Driver</th>${mxHead(rounds)}<th class="mx-pts" scope="col">Points</th></tr></thead>
+  return `<div class="mx-scroll" data-mx-scroll><table class="mx-table"><thead><tr><th class="mx-pos" scope="col">Pos.</th><th class="mx-name" scope="col">Driver</th>${mxHead(rounds)}<th class="mx-pts" scope="col">Points</th></tr>${mxHead2(c, rounds)}</thead>
     <tbody>${rows.join('')}</tbody></table></div>`;
 }
 
@@ -130,10 +153,10 @@ function mxTeamsTable(c, s) {
     const seats = Math.max(2, ...per.map(x => x.length), ...rounds.slice(0, 1).map(rd => (lineupAt(c, s.id, rd.round)[r.id] || []).length));
     return Array.from({ length: seats }, (_, i) => `<tr class="${i === 0 ? 'mx-group' : ''}">
       ${i === 0 ? `<th class="mx-pos" scope="row" rowspan="${seats}">${r.position}</th><th class="mx-name" rowspan="${seats}" style="--tc:${t ? t.color : '#606066'}"><a href="#/teams/${r.id}">${esc(t ? t.name : r.id)}</a></th>` : ''}
-      ${per.map((list, k) => { const x = list[i]; return x ? mxTd(mxCell(c, x[0], x[1]), rule, x[1], x[0], false).replace('<td ', `<td title="${esc(nameOf(driverOf(x[1])))}" `) : '<td class="mx-c"></td>'; }).join('')}
+      ${per.map((list, k) => { const x = list[i]; return x ? mxCellsFor(c, x[0], x[1], rule, false).replace(/<td /g, `<td title="${esc(nameOf(driverOf(x[1])))}" `) : mxCols(c, rounds[k]).map(() => '<td class="mx-c"></td>').join(''); }).join('')}
       ${i === 0 ? `<td class="mx-pts" rowspan="${seats}">${r.points}</td>` : ''}</tr>`).join('');
   });
-  return `<div class="mx-scroll" data-mx-scroll><table class="mx-table mx-teams"><thead><tr><th class="mx-pos" scope="col">Pos.</th><th class="mx-name" scope="col">Team</th>${mxHead(rounds)}<th class="mx-pts" scope="col">Points</th></tr></thead>
+  return `<div class="mx-scroll" data-mx-scroll><table class="mx-table mx-teams"><thead><tr><th class="mx-pos" scope="col">Pos.</th><th class="mx-name" scope="col">Team</th>${mxHead(rounds)}<th class="mx-pts" scope="col">Points</th></tr>${mxHead2(c, rounds)}</thead>
     <tbody>${rows.join('')}</tbody></table></div>`;
 }
 
@@ -156,8 +179,9 @@ function mxPopover(driverId, roundId) {
       <button type="button" class="mx-chip mx-chip-clear" data-mx-clear="${session}" ${e ? '' : 'disabled'} aria-label="Clear ${label.toLowerCase()}">✕</button></div></div>`;
   return `<div class="mx-pop" role="dialog" aria-label="Edit result" data-mx-pop="${driverId}|${roundId}">
     <div class="mx-pop-head"><div><b>${esc(nameOf(d))}</b><small>${flag(round.countryCode, 'mx-flag')} R${round.round} ${esc(round.name)}</small></div><button type="button" class="mx-x" data-mx-close aria-label="Close">✕</button></div>
-    ${line('race', 'Race', cell.race)}
-    ${round.sprint || cell.sprint ? line('sprint', 'Sprint', cell.sprint) : ''}
+    ${round.sprint || cell.sprint ? line('sprint', sessionName(c, round, 'sprint'), cell.sprint) : ''}
+    ${line('race', sessionName(c, round, 'race'), cell.race)}
+    ${hasRace2(c, round) ? line('race2', sessionName(c, round, 'race2'), cell.race2) : ''}
     <div class="mx-toggles">
       <label class="switch switch-sm"><input type="checkbox" data-mx-pole ${cell.pole ? 'checked' : ''}><span class="switch-ui" aria-hidden="true"></span><span>Pole position</span></label>
       <label class="switch switch-sm"><input type="checkbox" data-mx-fl ${cell.fastestLap ? 'checked' : ''} ${cell.race && cell.race.position ? '' : 'disabled'}><span class="switch-ui" aria-hidden="true"></span><span>Fastest lap</span></label>

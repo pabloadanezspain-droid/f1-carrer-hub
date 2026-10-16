@@ -46,20 +46,20 @@ const DR = [
   ['john-bennett', 'trident', 'John', 'Bennett', 'BEN', 25, 'GBR', '15/09/2003', ''],
 ];
 
-// F1 round image slug, name, country code, official name, circuit, city, first day, last day
+// F1 round image slug, name, country code, official name, circuit, city, first day, last day (dates checked against Wikipedia, Oct 2026)
 const CAL = [
   ['australia', 'Australia', 'AUS', 'Melbourne', 'Albert Park Circuit', 'Melbourne', '2026-03-06', '2026-03-08'],
-  ['miami', 'Miami', 'USA', 'Miami', 'Miami International Autodrome', 'Miami', '2026-05-01', '2026-05-03'],
+  ['miami', 'Miami', 'USA', 'Miami', 'Miami International Autodrome', 'Miami Gardens', '2026-05-01', '2026-05-03'],
   ['canada', 'Canada', 'CAN', 'Montréal', 'Circuit Gilles Villeneuve', 'Montréal', '2026-05-22', '2026-05-24'],
   ['monaco', 'Monaco', 'MON', 'Monte Carlo', 'Circuit de Monaco', 'Monte Carlo', '2026-06-04', '2026-06-07'],
-  ['barcelona-catalunya', 'Barcelona-Catalunya', 'ESP', 'Barcelona', 'Circuit de Barcelona-Catalunya', 'Barcelona', '2026-06-12', '2026-06-14'],
+  ['barcelona-catalunya', 'Barcelona-Catalunya', 'ESP', 'Barcelona', 'Circuit de Barcelona-Catalunya', 'Montmeló', '2026-06-12', '2026-06-14'],
   ['austria', 'Austria', 'AUT', 'Spielberg', 'Red Bull Ring', 'Spielberg', '2026-06-26', '2026-06-28'],
   ['great-britain', 'Great Britain', 'GBR', 'Silverstone', 'Silverstone Circuit', 'Silverstone', '2026-07-03', '2026-07-05'],
-  ['belgium', 'Belgium', 'BEL', 'Spa-Francorchamps', 'Circuit de Spa-Francorchamps', 'Spa', '2026-07-17', '2026-07-19'],
-  ['hungary', 'Hungary', 'HUN', 'Budapest', 'Hungaroring', 'Budapest', '2026-07-24', '2026-07-26'],
+  ['belgium', 'Belgium', 'BEL', 'Spa-Francorchamps', 'Circuit de Spa-Francorchamps', 'Stavelot', '2026-07-17', '2026-07-19'],
+  ['hungary', 'Hungary', 'HUN', 'Budapest', 'Hungaroring', 'Mogyoród', '2026-07-24', '2026-07-26'],
   ['italy', 'Italy', 'ITA', 'Monza', 'Autodromo Nazionale Monza', 'Monza', '2026-09-04', '2026-09-06'],
   ['spain', 'Spain', 'ESP', 'Madrid', 'Madring', 'Madrid', '2026-09-11', '2026-09-13'],
-  ['azerbaijan', 'Azerbaijan', 'AZE', 'Baku', 'Baku City Circuit', 'Baku', '2026-09-24', '2026-09-26'],
+  ['azerbaijan', 'Azerbaijan', 'AZE', 'Baku', 'Baku City Circuit', 'Baku', '2026-09-24', '2026-09-26', 'baku'],
   ['qatar', 'Qatar', 'QAT', 'Lusail', 'Lusail International Circuit', 'Lusail', '2026-11-27', '2026-11-29'],
   ['united-arab-emirates', 'Abu Dhabi', 'UAE', 'Yas Marina', 'Yas Marina Circuit', 'Abu Dhabi', '2026-12-04', '2026-12-06'],
 ];
@@ -83,9 +83,12 @@ export function realGridF2(fs) {
   const assignments = DR.map(([slug, team], i) => ({
     id: `asg_f2_2026_${String(i + 1).padStart(2, '0')}`, seasonId: F2_SEASON, driverId: drvId(slug), teamId: 'team_f2_' + team, fromRound: 1, toRound: null, role: 'race',
   }));
-  const rounds = CAL.map(([img, name, cc, short, circuit, city, start, end], i) => {
+  const rounds = CAL.map(([img, name, cc, short, circuit, city, start, end, special], i) => {
     const sat = addDays(end, -1);
-    const sessions = [['Practice', start, '10:00'], ['Qualifying', start, '15:00'], ['Sprint Race', sat, '14:15'], ['Feature Race', end, '10:00']];
+    // Baku 2026 was "supersized" and moved a day earlier: sprint and Feature Race 1 on Friday, Feature Race 2 on Saturday
+    const sessions = special === 'baku'
+      ? [['Practice', start, '10:00'], ['Qualifying', start, '15:00'], ['Sprint Race', sat, '10:15'], ['Feature Race 1', sat, '15:30'], ['Feature Race 2', end, '11:00']]
+      : [['Practice', start, '10:00'], ['Qualifying', start, '15:00'], ['Sprint Race', sat, '14:15'], ['Feature Race', end, '10:00']];
     return {
       id: `rnd_f2_2026_${String(i + 1).padStart(2, '0')}`, seasonId: F2_SEASON, round: i + 1, name, country: name, countryCode: cc,
       officialName: `FIA Formula 2 Round ${i + 1}, ${short} 2026`, circuit, city, laps: null, lengthKm: null, dateStart: start, dateEnd: end, sprint: true,

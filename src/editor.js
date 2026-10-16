@@ -354,7 +354,7 @@ function editResults(q) {
   const rounds = roundsOf(c, season.id);
   const round = (q.round && byId(c.rounds, q.round)) || nextRound(c, season.id) || rounds[0];
   if (!round) return emptyState('No races', 'Add races to the calendar first.', { href: '#/edit/rounds?id=new', label: 'Add race' });
-  const sessions = SESSION_TYPES.filter(s => s !== 'sprint' || round.sprint || resultFor(c, round.id, 'sprint'));
+  const sessions = roundSessionKeys(c, round);
   const session = sessions.includes(q.session) ? q.session : 'race';
   const res = resultFor(c, round.id, session);
   let entries = res ? res.entries : lineupEntries(season.id, round.round);
@@ -362,18 +362,19 @@ function editResults(q) {
   const dOpts = [...c.drivers].sort((a, b) => a.lastName.localeCompare(b.lastName)).map(d => `<option value="${d.id}">${esc(d.firstName)} ${esc(d.lastName)}</option>`).join('');
   const sel = (opts, v) => opts.replace(`value="${v}"`, `value="${v}" selected`);
   const quali = session === 'qualifying';
+  const flSession = session === 'race' || session === 'race2' || (session === 'sprint' && ruleFor(c, season.id).fastestLapSprint);
   const row = (e, i) => `<tr data-row style="--tc:${(teamOf(e.teamId) || {}).color || 'transparent'}">
       <td class="pos-cell">${i + 1}</td>
       <td class="drv-cell"><select name="driverId" data-driver aria-label="Driver">${sel(dOpts, e.driverId)}</select></td>
       <td class="x-col"><select name="teamId" data-team aria-label="Team">${sel(tOpts, e.teamId)}</select></td>
       <td><select name="status" aria-label="Status">${RESULT_STATUSES.map(s => `<option value="${s}" ${e.status === s ? 'selected' : ''}>${STATUS_LABELS[s] || s}</option>`).join('')}</select></td>
       <td><input name="time" type="text" value="${esc(e.time || '')}" class="in-sm" aria-label="${quali ? 'Best lap' : 'Time or gap'}" placeholder="${quali ? '1:29.123' : i ? '+5.123s' : '1:32:10.456'}"></td>
-      ${session === 'race' ? `<td class="fl-cell"><input type="radio" name="fastestLap" ${e.fastestLap ? 'checked' : ''} aria-label="Fastest lap"></td>` : ''}
+      ${flSession ? `<td class="fl-cell"><input type="radio" name="fastestLap" ${e.fastestLap ? 'checked' : ''} aria-label="Fastest lap"></td>` : ''}
       ${quali ? '' : `<td class="x-col"><input name="grid" type="number" min="1" value="${esc(e.grid ?? '')}" class="in-xs" aria-label="Grid"></td><td class="x-col"><input name="laps" type="number" min="0" value="${esc(e.laps ?? '')}" class="in-xs" aria-label="Laps"></td><td class="x-col"><input name="points" type="number" step="any" value="${esc(e.points ?? '')}" class="in-xs" placeholder="auto" aria-label="Points"></td>`}
       <td class="row-btns"><div class="actions"><button type="button" class="icon-btn" data-move="-1" aria-label="Move up">▲</button><button type="button" class="icon-btn" data-move="1" aria-label="Move down">▼</button><button type="button" class="icon-btn icon-btn-x" data-remove-row aria-label="Remove">✕</button></div></td>
     </tr>`;
   const roundSel = rounds.map(r => `<option value="${r.id}" ${r.id === round.id ? 'selected' : ''}>${resultFor(c, r.id, 'race') ? '✓ ' : ''}R${r.round} ${esc(r.name)}</option>`).join('');
-  const seg = sessions.map(s => `<a class="seg${s === session ? ' is-active' : ''}" href="#/edit/results?round=${round.id}&session=${s}">${cap(s)}${resultFor(c, round.id, s) ? ' ✓' : ''}</a>`).join('');
+  const seg = sessions.map(s => `<a class="seg${s === session ? ' is-active' : ''}" href="#/edit/results?round=${round.id}&session=${s}">${esc(sessionName(c, round, s))}${resultFor(c, round.id, s) ? ' ✓' : ''}</a>`).join('');
   return `<div class="page-tools">
       ${seasonSelect(season.id, id => `#/edit/results?season=${id}`)}
       <label class="pill-select"><select data-nav-select="#/edit/results?round=__ID__&session=${session}" aria-label="Race">${roundSel}</select></label>
@@ -383,7 +384,7 @@ function editResults(q) {
       <div class="res-head"><h3 class="h-card">${flag(round.countryCode)} ${esc(round.name)} · ${cap(session)}</h3>${res ? '<span class="tag tag-dark">Saved</span>' : '<span class="tag tag-red">Not entered yet</span>'}</div>
       <p class="muted">Put the drivers in ${quali ? 'qualifying order, pole first' : 'finishing order'}. Use ▲ ▼ to move them. Points are worked out for you.</p>
       <label class="switch switch-sm"><input type="checkbox" data-xcols><span class="switch-ui" aria-hidden="true"></span><span>Show team, grid, laps &amp; points columns</span></label>
-      <div class="table-scroll"><table class="f1-table edit-table res-table" data-res-table><thead><tr><th>Pos</th><th>Driver</th><th class="x-col">Team</th><th>Status</th><th>${quali ? 'Best lap' : 'Time / gap'}</th>${session === 'race' ? '<th title="Fastest lap">Fastest lap</th>' : ''}${quali ? '' : '<th class="x-col">Grid</th><th class="x-col">Laps</th><th class="x-col">Points</th>'}<th></th></tr></thead>
+      <div class="table-scroll"><table class="f1-table edit-table res-table" data-res-table><thead><tr><th>Pos</th><th>Driver</th><th class="x-col">Team</th><th>Status</th><th>${quali ? 'Best lap' : 'Time / gap'}</th>${flSession ? '<th title="Fastest lap">Fastest lap</th>' : ''}${quali ? '' : '<th class="x-col">Grid</th><th class="x-col">Laps</th><th class="x-col">Points</th>'}<th></th></tr></thead>
       <tbody data-rows>${entries.map(row).join('')}</tbody></table></div>
       <template data-row-template>${row({ driverId: '', teamId: '', status: 'FIN', time: '' }, 0)}</template>
       <div class="form-actions form-actions-sticky">

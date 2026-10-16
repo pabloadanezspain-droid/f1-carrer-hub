@@ -187,4 +187,7 @@ const COUNTRY_NAMES = {
   BHR: 'Bahrain', CAN: 'Canada', CZE: 'Czechia', GBR: 'United Kingdom', AUS: 'Australia', USA: 'United States', BRA: 'Brazil',
   MEX: 'Mexico', SUI: 'Switzerland', NZL: 'New Zealand', THA: 'Thailand', SWE: 'Sweden', NOR: 'Norway', QAT: 'Qatar', SGP: 'Singapore',
   HUN: 'Hungary', AZE: 'Azerbaijan', UAE: 'United Arab Emirates', POR: 'Portugal', COL: 'Colombia', CHI: 'Chile', IRL: 'Ireland', IDN: 'Indonesia',
+  PAR: 'Paraguay', PRY: 'Paraguay', BUL: 'Bulgaria', BGR: 'Bulgaria', CRC: 'Costa Rica', ECU: 'Ecuador', PER: 'Peru', ROU: 'Romania', RUS: 'Russia',
+  EST: 'Estonia', ISR: 'Israel', TUR: 'Turkey', CRO: 'Croatia', SRB: 'Serbia', PHI: 'Philippines', HKG: 'Hong Kong', VEN: 'Venezuela', URU: 'Uruguay',
+  RSA: 'South Africa', KOR: 'South Korea', MAS: 'Malaysia', LIE: 'Liechtenstein', SLO: 'Slovenia', SVK: 'Slovakia', UKR: 'Ukraine', GRE: 'Greece',
 };

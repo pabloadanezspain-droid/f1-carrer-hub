@@ -14,10 +14,11 @@ const ID_PREFIX = {
 };
 const SERIES = ['f1', 'f2'];
 const CAREER_MODES = ['f1', 'f2', 'both'];
-const F2_POINTS_RULE = { id: 'pts_f2', name: 'FIA Formula 2', race: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], sprint: [10, 8, 6, 5, 4, 3, 2, 1], fastestLap: { points: 1, maxPosition: 10 }, pole: 2 };
+const F2_POINTS_RULE = { id: 'pts_f2', name: 'FIA Formula 2', race: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], sprint: [10, 8, 6, 5, 4, 3, 2, 1], fastestLap: { points: 1, maxPosition: 10 }, fastestLapSprint: true, pole: 2, f2v2: true };
 const ASSET_KINDS = ['headshot', 'suit', 'portrait', 'derived'];
 const RESULT_STATUSES = ['FIN', 'DNF', 'DNS', 'DSQ'];
-const SESSION_TYPES = ['race', 'sprint', 'qualifying'];
+// race2 = a second feature race in the same round (F2 Baku 2026)
+const SESSION_TYPES = ['race', 'sprint', 'qualifying', 'race2'];
 const ARTICLE_CATEGORIES = ['News', 'Race Report', 'Feature', 'Analysis', 'Interview', 'Transfer'];
 
 function newId(collection) {
@@ -59,6 +60,8 @@ function normalizeCareer(raw) {
   c.teams.forEach(t => { if (!SERIES.includes(t.series)) t.series = 'f1'; });
   c.academies.forEach(a => { a.driverIds = a.driverIds || []; a.fromSeasonId = a.fromSeasonId || null; a.toSeasonId = a.toSeasonId || null; });
   if (c.seasons.some(s => s.series === 'f2') && !c.pointsRules.some(r => r.id === F2_POINTS_RULE.id)) c.pointsRules.push(clone(F2_POINTS_RULE));
+  // the first F2 release missed pole points and the sprint fastest-lap point
+  c.pointsRules.forEach(r => { if (r.id === F2_POINTS_RULE.id && !r.f2v2) { r.pole = 2; r.fastestLapSprint = true; r.f2v2 = true; } });
   c.composites.forEach(x => { x.status = x.status || 'approved'; x.params = x.params || {}; x.version = x.version || 1; });
   // Library portraits are photos in a specific team's suit: infer that team for saves made before portraitTeamId existed.
   c.drivers.forEach(d => {
@@ -74,7 +77,14 @@ function normalizeCareer(raw) {
 
 /* Copies the starter F2 season (and everything it needs) into a career that has none. Runs once per career. */
 function addStarterF2(c, sample) {
-  if (c.meta.f2Added || c.seasons.some(s => s.series === 'f2')) return false;
+  // the first F2 release had the wrong session days and cities: refresh starter F2 rounds once (dates, sessions, cities only)
+  let fixed = false;
+  if (!c.meta.f2CalV2) {
+    c.meta.f2CalV2 = true; fixed = true;
+    const src = sample.rounds || [];
+    c.rounds.forEach(r => { const n = src.find(x => x.id === r.id); if (n && /^rnd_f2_/.test(r.id)) Object.assign(r, { city: n.city, dateStart: n.dateStart, dateEnd: n.dateEnd, sessions: clone(n.sessions) }); });
+  }
+  if (c.meta.f2Added || c.seasons.some(s => s.series === 'f2')) return fixed;
   c.meta.f2Added = true;
   const src = normalizeCareer(clone(sample));
   const f2 = new Set(src.seasons.filter(s => s.series === 'f2').map(s => s.id));

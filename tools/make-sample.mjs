@@ -21,7 +21,7 @@ const career = {
   pointsRules: [
     { id: 'pts_standard', name: 'Standard (25-18-15…)', race: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], sprint: [8, 7, 6, 5, 4, 3, 2, 1], fastestLap: { points: 1, maxPosition: 10 } },
     { id: 'pts_classic', name: 'Classic (10-8-6…)', race: [10, 8, 6, 5, 4, 3, 2, 1], sprint: [], fastestLap: { points: 0, maxPosition: 10 } },
-    { id: 'pts_f2', name: 'FIA Formula 2', race: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], sprint: [10, 8, 6, 5, 4, 3, 2, 1], fastestLap: { points: 1, maxPosition: 10 }, pole: 2 },
+    { id: 'pts_f2', name: 'FIA Formula 2', race: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], sprint: [10, 8, 6, 5, 4, 3, 2, 1], fastestLap: { points: 1, maxPosition: 10 }, fastestLapSprint: true, pole: 2, f2v2: true },
   ],
   teams: [...REAL.teams, ...F2.teams],
   drivers: [...REAL.drivers, ...F2.drivers],
