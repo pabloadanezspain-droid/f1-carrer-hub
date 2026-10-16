@@ -141,12 +141,31 @@ function analyzeFit(img, opts) {
   // 5. masks
   const head = mk(), body = mk(), hd = head.getContext('2d').createImageData(W, H), bd = body.getContext('2d').createImageData(W, H);
   const trim = Math.round(2 * k);
-  const isHeadPx = (x, y) => x >= xa && x <= xb && y < chestY && y < sm[x] - (stopSkin[x] ? trim : 0);
+  const inHead = (x, y) => x >= xa && x <= xb && y < chestY && y < sm[x] - (stopSkin[x] ? trim : 0);
+  // keep only the region joined to the face: stray bits of shoulder or trim that pass the collar test stay with the suit
+  const conn = new Uint8Array(W * H);
+  { const sx = Math.round(fcx), sy = Math.max(0, Math.min(H - 1, Math.round(ct - nw * .6)));
+    const st = [sy * W + sx]; if (A[st[0]] && inHead(sx, sy)) conn[st[0]] = 1; else st.length = 0;
+    while (st.length) { const i = st.pop(), x = i % W, y = (i - x) / W;
+      [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => { const nx = x + dx, ny = y + dy, j = ny * W + nx;
+        if (nx >= 0 && nx < W && ny >= 0 && ny < H && !conn[j] && A[j] > 20 && inHead(nx, ny)) { conn[j] = 1; st.push(j); } }); } }
+  const anyConn = conn.some(v => v);
+  const isHeadPx = (x, y) => inHead(x, y) && (!anyConn || conn[y * W + x] === 1 || !A[y * W + x]);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const i = y * W + x, a = A[i]; if (!a) continue;
-    const t = isHeadPx(x, y) ? hd : bd; const j = i * 4;
+    const isH = isHeadPx(x, y);
+    // beard or neck shadow beside the neck, above the collar, is never suit: leave it out of the body layer
+    if (!isH && y < ct && Math.abs(x - ncx) < nw * .9) continue;
+    const t = isH ? hd : bd; const j = i * 4;
     t.data[j] = t.data[j + 1] = t.data[j + 2] = 255; t.data[j + 3] = a;
   }
+  // the suit layer is one piece: drop loose bits (stray hair, specks) not joined to the chest
+  { const keep = new Uint8Array(W * H), sx = Math.round(ncx), sy = Math.min(H - 1, Math.round(cd + nw));
+    const st = bd.data[(sy * W + sx) * 4 + 3] > 20 ? [sy * W + sx] : []; if (st.length) keep[st[0]] = 1;
+    while (st.length) { const i = st.pop(), x = i % W, y = (i - x) / W;
+      [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => { const nx = x + dx, ny = y + dy, j = ny * W + nx;
+        if (nx >= 0 && nx < W && ny >= 0 && ny < H && !keep[j] && bd.data[j * 4 + 3] > 20) { keep[j] = 1; st.push(j); } }); }
+    if (keep.some(v => v)) for (let i = 0; i < W * H; i++) if (!keep[i]) bd.data[i * 4 + 3] = 0; }
   head.getContext('2d').putImageData(hd, 0, 0); body.getContext('2d').putImageData(bd, 0, 0);
   const soften = (c, r) => { const o = mk(), x = o.getContext('2d'); x.filter = `blur(${r}px)`; x.drawImage(c, 0, 0); return o; };
 

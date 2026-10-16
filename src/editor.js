@@ -54,6 +54,7 @@ const SPECS = {
       { key: 'color', label: 'Team colour', type: 'color', required: true },
       { key: 'logoUrl', label: 'Logo', type: 'image', lib: 'teams/' },
       { key: 'carUrl', label: 'Car picture', type: 'image', lib: 'teams/' },
+      { key: 'suitDriverId', label: 'Suit taken from', hint: 'Whose portrait shows this team\'s suit for transferred drivers', type: 'select', options: () => [['', 'Automatic'], ...driverOpts()], more: true },
       { key: 'fullName', label: 'Full official name', type: 'text', more: true },
       { key: 'colorDark', label: 'Second colour (darker)', type: 'color', more: true },
       { key: 'base', label: 'Base', type: 'text', more: true }, { key: 'principal', label: 'Team chief', type: 'text', more: true },

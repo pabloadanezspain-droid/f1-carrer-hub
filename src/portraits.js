@@ -93,7 +93,9 @@ function suitCandidates(c, team, exceptDriverId) {
     .sort((a, b) => String(b.uploadedAt).localeCompare(String(a.uploadedAt)))
     .map(a => ({ ref: { type: 'asset', id: a.id }, label: 'Suit template · ' + a.name }));
   // any portrait shot in this team's suit can donate the body below the neck
-  c.drivers.filter(d => d.id !== exceptDriverId).forEach(d => historicalPortraits(c, d)
+  // a team can name the driver whose portrait shows its suit best (team.suitDriverId); that one goes first
+  const donors = c.drivers.filter(d => d.id !== exceptDriverId).sort((a, b) => (b.id === team.suitDriverId) - (a.id === team.suitDriverId));
+  donors.forEach(d => historicalPortraits(c, d)
     .filter(p => p.teamId === team.id)
     .forEach(p => out.push({ ref: p.ref, label: `${d.firstName} ${d.lastName}'s portrait (body)` })));
   out.push({ ref: { type: 'placeholder' }, label: 'Generated placeholder suit' });

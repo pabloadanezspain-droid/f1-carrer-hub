@@ -74,6 +74,8 @@ export function realGridF2(fs) {
     id: 'team_f2_' + slug, series: 'f2', name, fullName, color, colorDark, base, principal: '', technicalChief: '',
     chassis: 'Dallara F2 2024', powerUnit: 'Mecachrome', firstEntry: null, championships: 0,
     logoUrl: `${IMG}teams/${img}-logo.webp`, carUrl: `${IMG}teams/${img}-car.webp`, bio: '',
+    // ART: Maini races in personal Alpine-sponsor colours, Inthraphuvasak in the team suit
+    ...(slug === 'art' ? { suitDriverId: 'drv_tasanapol_inthraphuvasak' } : {}),
   }));
   const drivers = DR.map(([slug, team, firstName, lastName, code, number, nationality, dob]) => ({
     id: drvId(slug), firstName, lastName, code, number, nationality, dob: isoDob(dob), birthplace: '', championships: 0,

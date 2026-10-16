@@ -467,7 +467,8 @@
    "championships": 0,
    "logoUrl": "assets/f2/teams/artgrandprix-logo.webp",
    "carUrl": "assets/f2/teams/artgrandprix-car.webp",
-   "bio": ""
+   "bio": "",
+   "suitDriverId": "drv_tasanapol_inthraphuvasak"
   },
   {
    "id": "team_f2_aix",
