@@ -121,6 +121,35 @@ function lineupAt(c, seasonId, roundNo) {
   });
   return map;
 }
+/* Seats at a round: { teamId: { race: [driverId…], reserve: [driverId…] } } */
+function seatsAt(c, seasonId, roundNo) {
+  const map = {};
+  assignmentsOf(c, seasonId).filter(a => assignmentActive(a, roundNo)).forEach(a => {
+    const t = map[a.teamId] = map[a.teamId] || { race: [], reserve: [] };
+    (a.role === 'reserve' ? t.reserve : t.race).push(a.driverId);
+  });
+  return map;
+}
+const seatedIn = (c, seasonId, roundNo) => new Set(assignmentsOf(c, seasonId).filter(a => assignmentActive(a, roundNo)).map(a => a.driverId));
+/* Drivers in this season's series without a seat at that round. Drivers racing in another series the same year are listed separately. */
+function freeAgents(c, seasonId, roundNo) {
+  const s = seasonOf(c, seasonId); if (!s) return { free: [], other: [] };
+  const here = seatedIn(c, seasonId, roundNo);
+  const others = c.seasons.filter(x => x.id !== seasonId && x.year === s.year && seriesOf(x) !== seriesOf(s));
+  const elsewhere = new Set(others.flatMap(x => [...seatedIn(c, x.id, 1), ...seatedIn(c, x.id, roundNo)]));
+  const pool = c.drivers.filter(d => !here.has(d.id)).sort((a, b) => a.lastName.localeCompare(b.lastName));
+  return { free: pool.filter(d => !elsewhere.has(d.id)), other: pool.filter(d => elsewhere.has(d.id)) };
+}
+/* Move a driver to a team seat from a round on (role 'race' | 'reserve'), or to free agency (teamId null).
+   Results already raced keep the old team: running seats end the round before, later seats are dropped. */
+function transferDriver(c, seasonId, driverId, teamId, fromRound, role) {
+  const from = Math.max(1, Number(fromRound) || 1);
+  const mine = a => a.seasonId === seasonId && a.driverId === driverId;
+  c.assignments = c.assignments.filter(a => !(mine(a) && a.fromRound >= from));
+  c.assignments.filter(a => mine(a) && assignmentActive(a, from)).forEach(a => { a.toRound = from - 1; });
+  if (teamId) c.assignments.push({ id: newId('assignments'), seasonId, driverId, teamId, fromRound: from, toRound: null, role: role || 'race' });
+}
+
 function teamsInSeason(c, seasonId) {
   const ids = new Set(assignmentsOf(c, seasonId).map(a => a.teamId));
   c.results.forEach(r => { const rd = byId(c.rounds, r.roundId); if (rd && rd.seasonId === seasonId) r.entries.forEach(e => ids.add(e.teamId)); });

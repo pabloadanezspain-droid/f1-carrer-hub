@@ -695,3 +695,36 @@ thead .mx-pos, thead .mx-name { background: #eaecf0; z-index: 3; box-shadow: 1px
 /* Wikipedia-style F2 calendar */
 .mx-cal { width: 100%; margin-top: var(--gap); }
 .mx-table .mx-left { text-align: left; }
+
+/* line-up board (Edit Career → Line-ups & transfers) */
+.lu-board { margin-bottom: var(--gap); }
+.lu-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.lu-from { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-sm); }
+.lu-teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 12px; margin-top: 12px; }
+.lu-team { border-radius: var(--radius); overflow: hidden; background: linear-gradient(135deg, var(--tc), var(--td)); }
+.lu-team-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(0, 0, 0, .25); color: #fff; font-family: var(--f-display); }
+.lu-logo { height: 22px; width: auto; max-width: 60px; object-fit: contain; }
+.lu-seats { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; padding: 8px; }
+.lu-slot { min-width: 0; min-height: 64px; border-radius: 6px; border: 1px dashed rgba(255, 255, 255, .35); display: flex; align-items: stretch; transition: background .15s; }
+.lu-slot.lu-reserve { grid-column: 1 / -1; min-height: 52px; }
+.lu-slot.is-over, .lu-free.is-over { background: rgba(255, 255, 255, .25); border-style: solid; }
+.lu-empty { margin: auto; font-size: var(--fs-xs); color: rgba(255, 255, 255, .7); }
+.lu-card { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border-radius: 6px; background: rgba(0, 0, 0, .35); color: #fff; cursor: grab; user-select: none; overflow: hidden; }
+.lu-card:hover, .lu-card:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.lu-card.is-dragging { opacity: .4; }
+.lu-card.is-picked { outline: 3px solid var(--red); }
+.lu-face { width: 44px; height: 56px; flex: none; border-radius: 4px; }
+/* head-and-shoulders crop of a full-length portrait (720×2070 frame): scale up 3× and centre on the head */
+.head-crop { position: relative; display: block; overflow: hidden; background: var(--tc); }
+.head-crop > .head-crop-img { position: absolute; left: 50%; top: -4%; width: 300%; height: auto; max-width: none; transform: translateX(-50%); }
+.head-crop > span.head-crop-img { display: block; aspect-ratio: 720 / 2070; }
+.lu-name { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.lu-name small { font-size: 11px; opacity: .8; }
+.lu-name b { font-family: var(--f-display); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lu-num { margin-left: auto; flex: none; font-size: var(--fs-sm); font-family: var(--f-display); font-weight: 900; opacity: .7; }
+.lu-pool { margin-top: 16px; }
+.lu-free { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; padding: 8px; min-height: 72px; border-radius: var(--radius); border: 1px dashed var(--line); background: var(--n-2, rgba(255, 255, 255, .03)); }
+.lu-free .lu-card { --tc: #48484f; }
+.lu-free .lu-empty { color: var(--text-muted); grid-column: 1 / -1; }
+.lu-other { margin-top: 8px; }
+.lu-other summary { cursor: pointer; color: var(--text-2); font-size: var(--fs-sm); }

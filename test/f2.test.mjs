@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 const src = p => fs.readFileSync(new URL('../src/' + p, import.meta.url), 'utf8');
 const ctx = { console, localStorage: { getItem: () => null, setItem: () => {} } };
 vm.createContext(ctx);
-vm.runInContext(src('store.js') + '\n' + src('selectors.js') + '\n' + src('matrix.js') + '\nthis.api = { normalizeCareer, validateCareer, clone, F2_POINTS_RULE, addStarterF2, mxSetResult, mxSetPole, mxSetFastestLap, driverStandings, roundsOf, sessionKeyOf, sessionName, roundSessionKeys, Store };', ctx);
+vm.runInContext(src('store.js') + '\n' + src('selectors.js') + '\n' + src('matrix.js') + '\nthis.api = { normalizeCareer, validateCareer, clone, F2_POINTS_RULE, addStarterF2, mxSetResult, mxSetPole, mxSetFastestLap, driverStandings, roundsOf, sessionKeyOf, sessionName, roundSessionKeys, Store, transferDriver, freeAgents, seatsAt };', ctx);
 const A = ctx.api;
 const sample = JSON.parse(src('sample-data.json'));
 let pass = 0;
@@ -93,6 +93,20 @@ test('Baku has a second feature race that scores like the first', () => {
   const d = c.assignments.find(a => a.seasonId === 'sea_f2_2026').driverId;
   A.mxSetResult(c, baku.id, 'race2', d, 1);
   assert.equal(A.driverStandings(c, 'sea_f2_2026').find(r => r.id === d).points, 25);
+  assert.equal(A.validateCareer(c).length, 0);
+});
+
+test('line-up board moves: transfer, release to free agency, F2 junior listed for promotion', () => {
+  const c = A.normalizeCareer(A.clone(sample)); const F1 = 'sea_2026_grid';
+  A.transferDriver(c, F1, 'drv_lewis_hamilton', null, 5);              // released from round 5
+  assert.equal(A.seatsAt(c, F1, 4).team_ferrari.race.includes('drv_lewis_hamilton'), true);
+  assert.equal(A.seatsAt(c, F1, 5).team_ferrari.race.includes('drv_lewis_hamilton'), false);
+  assert.ok(A.freeAgents(c, F1, 5).free.some(d => d.id === 'drv_lewis_hamilton'));
+  assert.ok(A.freeAgents(c, F1, 5).other.some(d => d.id === 'drv_rafael_camara'), 'F2 drivers offered for promotion');
+  A.transferDriver(c, F1, 'drv_rafael_camara', 'team_ferrari', 5, 'race');  // promote the junior
+  assert.deepEqual([...A.seatsAt(c, F1, 5).team_ferrari.race].sort(), ['drv_charles_leclerc', 'drv_rafael_camara']);
+  A.transferDriver(c, F1, 'drv_lewis_hamilton', 'team_ferrari', 8, 'reserve');
+  assert.deepEqual([...A.seatsAt(c, F1, 8).team_ferrari.reserve], ['drv_lewis_hamilton']);
   assert.equal(A.validateCareer(c).length, 0);
 });
 
