@@ -324,6 +324,7 @@ function pageDrivers(q) {
       <p class="page-intro">The race line-up for Round ${nx.round}${nx.name ? ' · ' + esc(nx.name) : ''}.</p>
       <div class="card-grid-2">${current.map(([did, tid]) => { const d = driverOf(did); return d ? card(d, teamOf(tid)) : ''; }).join('') || emptyState('No drivers', 'Assign drivers to teams in Edit Career.', { href: '#/edit/assignments', label: 'Assign drivers' })}</div>
       ${former.length ? `<h2 class="h-section spaced">Also raced or contracted this season</h2><div class="card-grid-2">${former.map(d => card(d, teamOf(driverCurrentTeam(c, d.id, s.id)))).join('')}</div>` : ''}
+      ${(fa => fa.length ? `<h2 class="h-section spaced">Free agents</h2><p class="page-intro">Drivers without a seat. Sign one on the <a href="#/edit/assignments?season=${s.id}">line-up board</a>.</p><div class="card-grid-2 is-free">${fa.map(d => card(d, null)).join('')}</div>` : '')(freeAgents(c, s.id, nx.round).free.filter(d => !former.some(x => x.id === d.id)))}
     </div>` };
 }
 
