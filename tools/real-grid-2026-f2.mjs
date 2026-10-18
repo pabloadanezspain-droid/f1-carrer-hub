@@ -80,7 +80,7 @@ export function realGridF2(fs) {
   const drivers = DR.map(([slug, team, firstName, lastName, code, number, nationality, dob]) => ({
     id: drvId(slug), firstName, lastName, code, number, nationality, dob: isoDob(dob), birthplace: '', championships: 0,
     portraitUrl: `${IMG}drivers/${slug}.webp`, portraitTeamId: 'team_f2_' + team, portraits: [], numberUrl: `${IMG}drivers/${slug}-number.webp`,
-    photoUrls: [1, 2, 3, 4, 5].map(i => `${IMG}photos/${slug}-${i}.webp`).filter(p => exists(fs, p)), bio: '',
+    photoUrls: Array.from({ length: 15 }, (_, k) => k + 1).map(i => `${IMG}photos/${slug}-${i}.webp`).filter(p => exists(fs, p)), bio: '',
   }));
   const assignments = DR.map(([slug, team], i) => ({
     id: `asg_f2_2026_${String(i + 1).padStart(2, '0')}`, seasonId: F2_SEASON, driverId: drvId(slug), teamId: 'team_f2_' + team, fromRound: 1, toRound: null, role: 'race',

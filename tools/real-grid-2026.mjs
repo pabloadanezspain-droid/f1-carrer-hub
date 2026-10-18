@@ -92,7 +92,7 @@ export function realGrid(fs) {
       id: 'drv_' + slug.replace(/-/g, '_'), firstName: first, lastName: rest.join(' ').replace('Hulkenberg', 'Hülkenberg').replace('Perez', 'Pérez'),
       code, number, nationality, dob: isoDob(dob), birthplace, championships,
       portraitUrl: `${IMG}drivers/${slug}.webp`, portraitTeamId: 'team_' + team, portraits: [], numberUrl: `${IMG}drivers/${slug}-number.webp`,
-      photoUrls: [1, 2, 3].map(i => `${IMG}photos/${slug}-${i}.webp`).filter(p => exists(fs, p)), bio: '',
+      photoUrls: Array.from({ length: 15 }, (_, k) => k + 1).map(i => `${IMG}photos/${slug}-${i}.webp`).filter(p => exists(fs, p)), bio: '',
     };
   });
   const assignments = DR.map(([slug, team], i) => ({

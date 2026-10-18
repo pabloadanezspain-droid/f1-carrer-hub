@@ -86,6 +86,13 @@ function addStarterF2(c, sample) {
   }
   // drivers added to the starter career later (e.g. your own driver) join existing saves once, as free agents
   { const art = c.teams.find(t => t.id === 'team_f2_art'); if (art && art.suitDriverId === undefined) { art.suitDriverId = 'drv_tasanapol_inthraphuvasak'; fixed = true; } }
+  // more photos per driver: starter drivers whose photo list is still the default get the new, larger set
+  if (!c.meta.photosV2) {
+    c.meta.photosV2 = true; fixed = true;
+    const lib = /^assets\/(f1com|f2)\/photos\//;
+    c.drivers.forEach(d => { const n = (sample.drivers || []).find(x => x.id === d.id);
+      if (n && (d.photoUrls || []).every(u => lib.test(u))) d.photoUrls = clone(n.photoUrls); });
+  }
   c.meta.addedDrivers = c.meta.addedDrivers || [];
   (sample.drivers || []).filter(d => /^drv_pablo_/.test(d.id) && !c.meta.addedDrivers.includes(d.id)).forEach(d => {
     c.meta.addedDrivers.push(d.id); fixed = true;
