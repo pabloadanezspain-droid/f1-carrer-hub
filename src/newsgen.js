@@ -251,7 +251,7 @@ function ngLongReport(f, w, v) {
       `{W} has now ${row.wins === 1 ? 'won once' : `won ${row.wins} times`} this season, and ${row.podiums} of his finishes have been on the podium.`])));
   }
   // voices
-  out.push(ngFill(g.expand('#quoteP2#'), v));
+  out.push(P[1] && w.rnd() < .6 ? `"${ngSays(f.d(P[1].driverId), 'p2', w.rnd)}" ${name(P[1])} ${g.expand('#quoteVerb#')}.` : ngFill(g.expand('#quoteP2#'), v));
   const boss = (f.t(f.W.teamId) || {}).principal;
   out.push(ngFill(g.expand('#quoteBoss#'), Object.assign({}, v, { boss: boss ? `${f.t(f.W.teamId).name} team principal ${boss}` : `A ${f.t(f.W.teamId).name} spokesperson` })));
   // teams' championship
@@ -288,7 +288,7 @@ function ngRaceReport(f, w, v) {
   if (f.sprintWinner) three.push(ngFill(w.pick(NG.sprint), v));
   if (three.length) p.push(three.join(' '));
   ngLongReport(f, w, v).forEach(x => p.push(x));
-  p.push(ngFill(w.pick(NG.quoteWin), (q => Object.assign({}, v, { q, qc: q.replace(/[.!]$/, ',') }))(ngFill(w.pick(NG.qWin), v))));
+  p.push(ngFill(w.pick(NG.quoteWin), (q => Object.assign({}, v, { q, qc: q.replace(/[.!]$/, ',') }))(w.chance(.6) ? ngSays(f.d(f.W.driverId), 'win', w.rnd) : ngFill(w.pick(NG.qWin), v))));
   const leadKind = f.gap === 0 ? 'tied' : f.L && f.leaderBefore && f.L.id !== f.leaderBefore ? 'take' : 'keep';
   p.push([f.L2 ? ngFill(w.pick(NG.lead[leadKind]), v) : '', f.last ? w.pick(NG.end) : f.next ? ngFill(w.pick(NG.next), v) : ''].filter(Boolean).join(' '));
   p.push(ngFill(ngGrammar(ngVocab(f.round), ngRng(f.round.id + 'close')).expand('#closer#'), v));
@@ -574,6 +574,91 @@ function ngRumourStory(c, f, w, v, x, i) {
     drivers: [x.who], teams: [x.team, x.from].filter(Boolean), hours: 40 + i * 14, rumour: true };
 }
 
+/* --- personalities ---------------------------------------------------------------
+   How each driver tends to talk, based on how they come across in real interviews (kept respectful and light).
+   calm · fiery · joker · diplomat · blunt · emotional. Set or change it in Edit Career → Drivers (field "Personality"). */
+const NG_PERSONA_DEFAULT = {
+  drv_max_verstappen: 'blunt', drv_lewis_hamilton: 'diplomat', drv_fernando_alonso: 'joker', drv_charles_leclerc: 'emotional', drv_lando_norris: 'emotional',
+  drv_george_russell: 'diplomat', drv_oscar_piastri: 'calm', drv_kimi_antonelli: 'calm', drv_esteban_ocon: 'fiery', drv_pierre_gasly: 'emotional',
+  drv_carlos_sainz: 'diplomat', drv_alexander_albon: 'joker', drv_lance_stroll: 'blunt', drv_nico_hulkenberg: 'calm', drv_valtteri_bottas: 'joker',
+  drv_sergio_perez: 'diplomat', drv_isack_hadjar: 'emotional', drv_liam_lawson: 'fiery', drv_oliver_bearman: 'calm', drv_gabriel_bortoleto: 'calm',
+  drv_franco_colapinto: 'emotional', drv_arvid_lindblad: 'blunt', drv_rafael_camara: 'calm', drv_nikola_tsolov: 'fiery', drv_alexander_dunne: 'blunt',
+  drv_colton_herta: 'joker', drv_dino_beganovic: 'calm', drv_gabriele_mini: 'diplomat', drv_joshua_durksen: 'emotional', drv_pablo_adanez: 'fiery',
+};
+const NG_PERSONAS = ['calm', 'fiery', 'joker', 'diplomat', 'blunt', 'emotional'];
+function ngPersona(d) {
+  if (!d) return 'calm';
+  if (NG_PERSONAS.includes(d.personality)) return d.personality;
+  return NG_PERSONA_DEFAULT[d.id] || NG_PERSONAS[ngHash(d.id) % NG_PERSONAS.length];
+}
+// what each personality says in a given situation
+const NG_VOICE = {
+  win: { calm: ['It was a clean race and we executed well.', 'Good points, good day. We stay focused.'], fiery: ['That is how you answer the critics!', 'I wanted this one badly, and nobody was going to stop me.'],
+    joker: ['I might buy the mechanics dinner tonight. Maybe.', 'Not bad for someone who forgot his lucky socks.'], diplomat: ['This win belongs to everyone at the factory.', 'Huge respect to my rivals, it was a fair fight.'],
+    blunt: ['We were the fastest. Simple as that.', 'The car was good, I did my job, we won.'], emotional: ['I am shaking a bit, honestly. This means so much.', 'I could not stop smiling on the in-lap.'] },
+  p2: { calm: ['Second is solid. We take it.', 'We maximised what we had.'], fiery: ['Second is the first loser. I am not happy.', 'I wanted the win and I did not get it. That hurts.'],
+    joker: ['I saw the gearbox of the winner for a long time. Nice gearbox.', 'Second is just first with extra motivation.'], diplomat: ['Congratulations to the winner, he deserved it.', 'A strong team result, and we keep building.'],
+    blunt: ['We were not quick enough. That is it.', 'Second. Not what we came for.'], emotional: ['So close. I gave everything in those last laps.', 'I am proud, but part of me is gutted.'] },
+  dnf: { calm: ['These things happen. We will look at it and move on.', 'Frustrating, but there is nothing to gain from getting angry.'], fiery: ['This is unacceptable. Someone needs to explain what happened.', 'I am furious. We threw away big points today.'],
+    joker: ['Well, at least I got an early shower.', 'I had a lovely view of the race from the wall.'], diplomat: ['We win together and we lose together. The team will find the answer.', 'Nobody in the team wanted this, and we will fix it.'],
+    blunt: ['A zero. Not good enough from anyone.', 'We failed today. That is the truth.'], emotional: ['I just want to go home and be alone for a bit.', 'It hurts so much, because the pace was there.'] },
+  blame: { calm: ['We need to talk about it in private, not in front of the cameras.', 'There was contact. We will review it calmly.'], fiery: ['He left me no space. Completely stupid move.', 'I have nothing to say to him right now. Nothing good, anyway.'],
+    joker: ['We both wanted the same piece of tarmac. It did not end well for the tarmac.', 'Next time I will send him a calendar invite before I overtake.'], diplomat: ['It was a racing incident. We will learn as a team.', 'Both of us want to win, and today that cost us.'],
+    blunt: ['His fault. Watch the replay.', 'He made a mistake and we both paid for it.'], emotional: ['I am so disappointed. For the team, for everyone.', 'It is a nightmare for all of us.'] },
+  surprise: {
+    calm: ['I do not read the news. I find it much better for my sleep.', 'Honestly, I think the title fight is far from over, whatever the table says.', 'I spend my free time fishing now. It keeps my head quiet.'],
+    fiery: ['Some drivers out there race like it is a video game. It has to stop.', 'If the team cannot give me a winning car, I will look elsewhere. That is all I will say.', 'I am tired of hearing that experience matters more than speed.'],
+    joker: ['If they put karaoke in the drivers’ parade, I would win the championship.', 'My engineer says I talk too much on the radio. I disagree, at length.', 'I have asked the team for a cup holder. Still waiting.'],
+    diplomat: ['We should race at more historic tracks. The sport needs its roots.', 'The young drivers coming through are the best generation I have seen.', 'Every team on this grid deserves respect, from first to last.'],
+    blunt: ['Too many races on the calendar. Everyone thinks it, I am just saying it.', 'Sprint races? Not my favourite. There, I said it.', 'Half the paddock talks too much. I prefer to drive.'],
+    emotional: ['I still watch my first win on YouTube sometimes. Is that strange?', 'Some days I wonder what I would do without racing. I do not like the answer.', 'My family is the reason I am here. Every lap is for them.'] },
+};
+const ngSays = (d, situation, rnd) => { const bank = (NG_VOICE[situation] || {})[ngPersona(d)] || NG_VOICE[situation].calm; return bank[Math.floor(rnd() * bank.length)]; };
+
+// both cars of one team out of the race: chaos at the team, with each driver reacting in character
+function ngTeamChaos(c, f) {
+  const by = {}; f.race.filter(e => e.status !== 'FIN').forEach(e => (by[e.teamId] = by[e.teamId] || []).push(e));
+  const t = Object.keys(by).find(k => by[k].length >= 2); return t ? { tid: t, a: by[t][0].driverId, b: by[t][1].driverId } : null;
+}
+function ngTeamChaosStory(c, f, w, v, x) {
+  const A = f.d(x.a), B = f.d(x.b), T = f.t(x.tid), rnd = w.rnd;
+  const hot = [A, B].filter(d => ['fiery', 'blunt'].includes(ngPersona(d)));
+  const vars = Object.assign({}, v, { A: A.lastName, B: B.lastName, T: T.name, boss: T.principal ? `team principal ${T.principal}` : 'the team boss' });
+  const title = hot.length === 2 ? w.pick(['War of words at {T} after double retirement', 'Tempers flare at {T} as both cars retire', '{A} and {B} clash after {T} disaster'])
+    : hot.length === 1 ? w.pick(['Double DNF leaves {T} in turmoil', '{T} nightmare: neither car finishes in {city}', 'Frustration at {T} after both cars retire'])
+    : w.pick(['{T} stay calm after double retirement', 'A day to forget for {T} in {city}', 'No points for {T} as both cars retire']);
+  const say = d => ngSays(d, hot.length ? 'blame' : 'dnf', rnd);
+  const body = [ngFill('Neither {T} finished {gp}. {A} and {B} both retired, leaving the team with nothing to show for the weekend.', vars),
+    `"${say(A)}" ${A.lastName} said.`, `${B.lastName} saw it differently: "${say(B)}"`,
+    ngFill(hot.length === 2 ? 'The atmosphere in the garage was tense, and the two drivers were seen leaving without a word to each other.' : hot.length ? 'One driver kept his cool, the other did not hide his anger. It was not a quiet debrief.' : 'There were no raised voices, just long faces in the garage.', vars),
+    ngFill(w.pick(['{boss} tried to calm things down: "We will talk about this inside the team. Both drivers know what is expected."', '{boss} was clear: "This cannot happen again, and it will not."', 'Asked about the mood, {boss} said only: "Not great. We regroup."']), Object.assign({}, vars, { boss: ngCap(vars.boss) })),
+    ngFill(w.pick(['The next race just became very important for {T}.', 'How {T} respond will say a lot about the team this season.']), vars)];
+  return { type: 'chaos', category: 'News', title: ngHeadline(ngFill(title, vars)), standfirst: ngFill(w.pick(['A weekend {T} would rather forget.', 'Zero points, plenty of words.']), vars), body, drivers: [x.a, x.b], teams: [x.tid], hours: 8 };
+}
+
+// now and then a driver says something unexpected; what he says depends on his personality and on the situation
+function ngSurprise(c, f) {
+  const r = ngRng(f.round.id + 'surprise'); if (r() > 0.45) return null;
+  const pool = f.race.map(e => e.driverId); const id = pool[Math.floor(r() * pool.length)];
+  return id ? { id, team: (f.race.find(e => e.driverId === id) || {}).teamId } : null;
+}
+function ngSurpriseStory(c, f, w, v, x) {
+  const X = f.d(x.id), T = f.t(x.team), p = ngPersona(X), rnd = w.rnd;
+  const quote = ngSays(X, 'surprise', rnd);
+  const vars = Object.assign({}, v, { X: X.lastName, Xfull: `${X.firstName} ${X.lastName}`, T: T.name });
+  const title = { fiery: ['{X} hits out in fiery interview', '{X} does not hold back', 'Explosive comments from {X}'], blunt: ['{X} says what others will not', 'Straight talk from {X}', '{X}: "I am just saying it"'],
+    joker: ['{X} lights up the press room', 'Only {X}: the quote of the weekend', '{X} in playful mood'], emotional: ['An open-hearted {X} opens up', '{X} gets personal in candid interview', '{X} shows his softer side'],
+    diplomat: ['{X} calls for respect in thoughtful interview', '{X} shares his vision for the sport', 'Statesman {X} speaks out'], calm: ['{X} surprises with rare insight', 'A different side of {X}', '{X} reveals his secret to staying calm'] }[p];
+  const reaction = { fiery: ['The comments are unlikely to calm things down in the paddock.', 'Several team bosses were asked about it and preferred not to comment.'], blunt: ['Not everyone will agree, but few will be surprised.', 'It is the kind of honesty fans have come to expect from him.'],
+    joker: ['The room was laughing, and so was {T}’s press officer, eventually.', 'Social media had a field day with the clip.'], emotional: ['It was a rare look behind the helmet.', 'Fans responded with messages of support within minutes.'],
+    diplomat: ['The comments were well received around the paddock.', 'Several drivers later agreed with him.'], calm: ['It was not what anyone expected to hear.', 'For a driver who usually says little, it was quite a statement.'] }[p];
+  return { type: 'surprise', category: 'Interview', title: ngHeadline(ngFill(w.pick(title), vars)),
+    standfirst: ngFill(w.pick(['An unexpected moment in the press room.', 'Nobody saw this one coming.', 'The quote everyone is talking about.']), vars),
+    body: [ngFill(w.pick(['Speaking to the media after {gpShort}, {Xfull} said something few expected.', 'In the {T} hospitality unit after {gpShort}, {Xfull} was in a talkative mood.']), vars), `"${quote}"`,
+      ngFill(w.pick(reaction), vars), ngFill(w.pick(['Asked to explain, he only smiled and walked off.', 'He did not add anything else.', 'His team later said he "just likes to speak his mind".']), vars)],
+    drivers: [x.id], teams: [x.team].filter(Boolean), hours: 46 };
+}
+
 /* --- richer non-report stories: background, an extra voice and the outlook --- */
 const NG_EXTRA = {
   ctx: ['#ctxA#', '#ctxB#', '#ctxC#'],
@@ -635,6 +720,8 @@ function ngStoriesFor(c, round, usedHeads, variant) {
   const dotd = ngDotd(c, f); if (dotd) cands.push([36, () => ngDotdStory(c, f, ngWriter(seed + 'o', usedHeads), v, dotd)]);
   const tm = ngTeammates(c, f); if (tm) cands.push([34, () => ngTeammateStory(c, f, ngWriter(seed + 'b', usedHeads), v, tm)]);
   if (f.raced >= 2 && round.round % 3 === 0) cands.push([30, () => ngTeamsStory(c, f, ngWriter(seed + 'c', usedHeads), v)]);
+  const ch = ngTeamChaos(c, f); if (ch) cands.push([58, () => ngTeamChaosStory(c, f, ngWriter(seed + 'x', usedHeads), v, ch)]);
+  const sp = ngSurprise(c, f); if (sp) cands.push([37, () => ngSurpriseStory(c, f, ngWriter(seed + 'y', usedHeads), v, sp)]);
   const pr = ngPressure(c, f); if (pr) cands.push([33, () => ngPressureStory(c, f, ngWriter(seed + 'u', usedHeads), v, pr)]);
   if (round.round % 4 === 0) cands.push([31, () => ngPowerRankings(c, f, ngWriter(seed + 'w', usedHeads), v)]);
   if (round.round === Math.ceil(f.rounds.length / 2)) cands.push([47, () => ngMidSeason(c, f, ngWriter(seed + 'h2', usedHeads), v)]);

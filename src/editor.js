@@ -79,6 +79,7 @@ const SPECS = {
       { key: 'portraitTeamId', label: 'Team suit in the portrait', hint: 'Lets the Portrait studio swap the suit after a transfer', type: 'select', options: () => [['', 'Any / unknown'], ['plain', 'Plain suit (always shown in the team suit)'], ...teamOpts()], more: true },
       { key: 'numberUrl', label: 'Race-number artwork', type: 'image', lib: 'drivers/', more: true },
       { key: 'photoUrls', label: 'Track photos for news', hint: 'One picture per line', type: 'urls', lib: 'photos/', more: true },
+      { key: 'personality', label: 'Personality', hint: 'How he talks in the news. Blank = his usual character', type: 'select', options: () => [['', 'Usual character'], ['calm', 'Calm'], ['fiery', 'Fiery / hothead'], ['joker', 'Joker'], ['diplomat', 'Diplomat'], ['blunt', 'Blunt'], ['emotional', 'Emotional']], more: true },
       { key: 'bio', label: 'Biography', type: 'textarea', more: true },
     ],
     defaults: () => ({ championships: 0 }),
