@@ -379,15 +379,15 @@ function bindSeasonAdvance(el) {
 
 /* --- original 2026 calendar ----------------------------------------------- */
 function calendarRestorePanel(season) {
-  if (season.id !== CAL_SEASON) return '';
-  const plan = originalCalendarPlan(D(), SAMPLE_CAREER); if (!plan || !plan.changed) return '';
+  if (!calendarSeasons(D()).some(s => s.id === season.id)) return '';
+  const plan = originalCalendarPlan(D(), SAMPLE_CAREER, season.id); if (!plan || !plan.changed) return '';
   const rows = plan.rows.map(({ target: t, round: r, results }) => `<tr><td>R${t.round}</td><td class="mx-left">${flag(t.countryCode, 'mx-flag')} ${esc(t.name)}</td><td>${esc(fmtRange(t.dateStart, t.dateEnd))}</td>
     <td class="mx-left">${!r ? '<b>New race</b>' : r.round !== t.round ? `was R${r.round}` : 'same'}</td><td>${results ? `✓ ${results} result${results > 1 ? 's' : ''} kept` : ''}</td></tr>`).join('');
   return `<section class="panel panel-accent cal-restore"><h3 class="h-card">Use the original 2026 calendar</h3>
     <p>The game uses the calendar planned before the war: <b>24 races</b>, with Bahrain and Saudi Arabia in April. Your career has the later, shortened calendar.</p>
     <ul class="muted"><li>Every result you entered stays with its race (Miami stays Miami, only its round number changes).</li><li>Line-up changes keep starting at the same race.</li><li>A backup of your career is saved first and downloaded to your computer.</li></ul>
     <details><summary>See every change (${plan.rows.filter(r => !r.round || r.moved).length} races)</summary><div class="mx-scroll"><table class="mx-table mx-cal"><thead><tr><th>Round</th><th>Race</th><th>Dates</th><th>Change</th><th>Your results</th></tr></thead><tbody>${rows}</tbody></table></div></details>
-    <div class="form-actions"><button class="btn btn-red" type="button" data-cal-restore>Use the original calendar</button></div></section>`;
+    <div class="form-actions"><button class="btn btn-red" type="button" data-cal-restore="${season.id}">Use the original calendar</button></div></section>`;
 }
 function downloadBackup(label) {
   const a = document.createElement('a');
@@ -589,7 +589,7 @@ function bindEditor(root) {
   if (cr) cr.addEventListener('click', () => {
     if (!confirm('Switch to the original 24-race calendar?\n\nYour results stay with their races. A backup is saved and downloaded first.')) return;
     Store.snapshot('before original calendar'); downloadBackup('calendar');
-    if (restoreOriginalCalendar(D(), SAMPLE_CAREER)) { Store.save(); toast('Original 2026 calendar restored. All your results are unchanged.'); }
+    if (restoreOriginalCalendar(D(), SAMPLE_CAREER, cr.dataset.calRestore)) { Store.save(); toast('Original 2026 calendar restored. All your results are unchanged.'); }
   });
   const sa = root.querySelector('[data-season-advance]');
   if (sa) bindSeasonAdvance(sa);

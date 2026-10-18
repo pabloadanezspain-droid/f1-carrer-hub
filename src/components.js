@@ -132,7 +132,7 @@ function sampleBanner() {
 function footer() {
   const c = D();
   return `<footer class="site-footer"><div class="wrap">
-    <div class="footer-top">${brandMark()}<p>${esc(ASSET_MANIFEST.brand.tagline)} — a personal career hub. Not affiliated with Formula 1, the FIA or any team.</p></div>
+    <div class="footer-top">${brandMark()}<p>${esc(ASSET_MANIFEST.brand.tagline)} — a personal career hub. Not affiliated with Formula 1, the FIA or any team. <small class="muted">Version: calendar fix 3</small></p></div>
     <div class="footer-cols">
       <div><h4>Season</h4><a href="#/schedule">Schedule</a><a href="#/results">Results</a><a href="#/standings/drivers">Drivers' Standings</a><a href="#/standings/teams">Teams' Standings</a></div>
       <div><h4>Paddock</h4><a href="#/drivers">Drivers</a><a href="#/teams">Teams</a><a href="#/news">Latest news</a></div>
