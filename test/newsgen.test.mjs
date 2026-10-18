@@ -36,7 +36,7 @@ test('every raced round gets a report plus up to two extra stories', () => {
   const c = fresh(); play(c, 24); A.syncAutoNews(c);
   for (const rd of A.roundsOf(c, SID)) {
     const n = c.articles.filter(a => a.auto && a.auto.round === rd.id && !a.auto.key.endsWith(':preview')).length;
-    assert.ok(n >= 1 && n <= 3, rd.id + ' has ' + n);
+    assert.ok(n >= 1 && n <= 8, rd.id + ' has ' + n);
     assert.ok(c.articles.some(a => a.auto && a.auto.key === rd.id + ':report'));
   }
   assert.deepEqual([...A.validateCareer(c)], []);
@@ -140,6 +140,23 @@ test('F2 rounds get Feature Race wording, academy stories and photos', () => {
   assert.ok(acd.teamIds.includes('team_ferrari'));
   assert.match(acd.imageUrl, /^assets\/f1com\/photos\/(charles-leclerc|lewis-hamilton)-/, 'academy story uses a Ferrari F1 photo');
   assert.match(report.imageUrl, /^assets\/f2\/photos\//, 'race report uses an F2 photo');
+});
+
+test('silly season: transfer rumours from round 12 to the end, never before', () => {
+  const c = fresh(); play(c, 24); A.syncAutoNews(c);
+  const rum = c.articles.filter(a => a.auto && a.category === 'Transfer');
+  const roundOf = a => c.rounds.find(r => r.id === a.roundId).round;
+  assert.ok(rum.length >= 13, 'rumours written: ' + rum.length);
+  assert.ok(rum.every(a => roundOf(a) >= 12));
+  for (let n = 12; n <= 24; n++) assert.ok(rum.some(a => roundOf(a) === n), 'rumour at round ' + n);
+  assert.ok(rum.every(a => a.driverIds.length && a.imageUrl !== undefined));
+});
+
+test('more stories per race: qualifying, driver of the day, team-mates and more', () => {
+  const c = fresh(); play(c, 12); A.syncAutoNews(c);
+  const types = new Set(c.articles.filter(a => a.auto).map(a => a.auto.key.split(':')[1]));
+  ['report', 'quali', 'dotd', 'power'].forEach(t => assert.ok(types.has(t), 'has ' + t + ' in ' + [...types]));
+  assert.deepEqual([...A.validateCareer(c)], []);
 });
 
 console.log(`\n${pass} tests passed`);
