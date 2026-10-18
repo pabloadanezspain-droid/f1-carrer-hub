@@ -1293,7 +1293,7 @@ const Store = {
     let raw = null;
     try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { this.storageOk = false; }
     if (raw) {
-      try { this.data = normalizeCareer(JSON.parse(raw)); this.dropOldSampleNews(); this.addStarterF2(sample); this.syncNewsQuietly(); return; }
+      try { this.data = normalizeCareer(JSON.parse(raw)); this.dropOldSampleNews(); this.addStarterF2(sample); this.autoOriginalCalendar(sample); this.syncNewsQuietly(); return; }
       catch (e) { console.warn('Saved career unreadable, loading sample', e); }
     }
     this.data = normalizeCareer(clone(sample));
@@ -1309,6 +1309,18 @@ const Store = {
   onChange(fn) { this.listeners.push(fn); },
   syncNewsQuietly() {
     if (typeof syncAutoNews === 'function' && syncAutoNews(this.data)) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {} }
+  },
+  // one-time upgrade: careers on the shortened post-war calendar move to the original 2026 calendar.
+  // Results stay attached to their races (see restoreOriginalCalendar); a full backup is kept in this browser first.
+  autoOriginalCalendar(sample) {
+    if (this.data.meta.calendarV2) return;
+    const plan = originalCalendarPlan(this.data, sample);
+    if (!plan || !plan.changed) { this.data.meta.calendarV2 = true; return; }
+    this.snapshot('before original calendar');
+    if (restoreOriginalCalendar(this.data, sample)) {
+      this.data.meta.calendarNotice = true;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {}
+    }
   },
   // one-time upgrade: saves made before F2 support get the starter F2 grid, academies and the F1 / F2 switch
   addStarterF2(sample) {
@@ -2750,8 +2762,10 @@ function pageHome() {
 
   const done = !nx && roundsOf(c, s.id).length && !nextSeasonOf(c, s);
   const banner = done ? `<div class="wrap"><div class="season-done-banner"><span><b>${esc(s.name)} is complete.</b> Ready for ${s.year + 1}? Your ${s.year} results stay saved.</span><a class="btn btn-white" href="#/edit/seasons">Continue to ${s.year + 1}</a></div></div>` : '';
+  const calNote = c.meta.calendarNotice ? `<div class="wrap"><div class="season-done-banner"><span><b>Your calendar now matches the game:</b> the original 24 races, with Bahrain and Saudi Arabia in April. All ${c.results.length} results you entered are kept, each with its own race. A backup from before the change is stored in this browser.</span><span><a class="btn btn-white" href="#/schedule">See calendar</a> <button class="btn btn-outline" type="button" data-dismiss-cal>OK</button></span></div></div>` : '';
   return { title: 'Home', nav: 'home', html: `
     ${chips}
+    ${calNote}
     ${banner}
     ${leadGrid}
     <section class="wrap home-duo">
@@ -5297,6 +5311,7 @@ function closeMenu() {
 /* Global delegated behaviour — survives re-renders. */
 document.addEventListener('click', ev => {
   const t = ev.target;
+  if (t.closest('[data-dismiss-cal]')) { Store.data.meta.calendarNotice = false; Store.save(); return; }
   if (t.closest('[data-menu-open]')) { const m = document.getElementById('mobile-menu'); m.hidden = false; document.body.classList.add('menu-open'); return; }
   if (t.closest('[data-menu-close]')) { closeMenu(); return; }
   const tab = t.closest('[data-tabs] [data-tab]');

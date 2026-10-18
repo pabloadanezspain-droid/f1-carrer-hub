@@ -219,7 +219,7 @@ const Store = {
     let raw = null;
     try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { this.storageOk = false; }
     if (raw) {
-      try { this.data = normalizeCareer(JSON.parse(raw)); this.dropOldSampleNews(); this.addStarterF2(sample); this.syncNewsQuietly(); return; }
+      try { this.data = normalizeCareer(JSON.parse(raw)); this.dropOldSampleNews(); this.addStarterF2(sample); this.autoOriginalCalendar(sample); this.syncNewsQuietly(); return; }
       catch (e) { console.warn('Saved career unreadable, loading sample', e); }
     }
     this.data = normalizeCareer(clone(sample));
@@ -235,6 +235,18 @@ const Store = {
   onChange(fn) { this.listeners.push(fn); },
   syncNewsQuietly() {
     if (typeof syncAutoNews === 'function' && syncAutoNews(this.data)) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {} }
+  },
+  // one-time upgrade: careers on the shortened post-war calendar move to the original 2026 calendar.
+  // Results stay attached to their races (see restoreOriginalCalendar); a full backup is kept in this browser first.
+  autoOriginalCalendar(sample) {
+    if (this.data.meta.calendarV2) return;
+    const plan = originalCalendarPlan(this.data, sample);
+    if (!plan || !plan.changed) { this.data.meta.calendarV2 = true; return; }
+    this.snapshot('before original calendar');
+    if (restoreOriginalCalendar(this.data, sample)) {
+      this.data.meta.calendarNotice = true;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {}
+    }
   },
   // one-time upgrade: saves made before F2 support get the starter F2 grid, academies and the F1 / F2 switch
   addStarterF2(sample) {

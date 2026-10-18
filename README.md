@@ -91,7 +91,7 @@ These images are © Formula 1 / FOM and the photographers. Keep them local: don'
 - F2 faces have the same neck analysis as F1 faces, so a promoted junior gets an automatic draft in the F1 team's suit.
 
 ## Original 2026 calendar
-The starter career uses the 24-race calendar planned before the war, as in the game (Bahrain and Saudi Arabia in April). Careers saved with the later 22-race calendar get a button in **Edit Career → Calendar**. It moves every race to its original date and round number and adds the missing ones. Results stay attached to their race, line-up changes keep starting at the same race, and a backup is saved and downloaded first.
+The starter career uses the 24-race calendar planned before the war, as in the game (Bahrain and Saudi Arabia in April). Careers saved with the later 22-race calendar are switched automatically the first time they open (a backup is kept in the browser first). The switch moves every race to its original date and round number and adds the missing ones. Results stay attached to their race, line-up changes keep starting at the same race, and a backup is saved and downloaded first.
 
 ## Next season and stats
 - **Edit Career → Seasons → Continue to the next season** (also offered on the home page when a season is complete) creates the next year for F1 and/or F2. It copies the calendar on next-year dates and the line-ups as at the last race. Nothing from the finished season changes, and a backup is saved and downloaded first.
