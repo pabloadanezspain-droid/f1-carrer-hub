@@ -3661,7 +3661,7 @@ function ngFacts(c, round) {
   const L = after[0], L2 = after[1];
   const player = c.meta.playerTeamId ? race.filter(e => e.teamId === c.meta.playerTeamId) : [];
   return {
-    round, rounds, race, fin, d, t,
+    c, round, rounds, race, fin, d, t,
     W: fin[0], P2: fin[1], P3: fin[2],
     pole: q ? q.driverId : null, sprintWinner: sprint ? sprint.driverId : null,
     fl: race.find(e => e.fastestLap), dnfs: race.filter(e => e.status !== 'FIN'),
@@ -3708,6 +3708,128 @@ function ngVars(f) {
 const ngHeadline = s => ngCap(s).replace(/\bthe the\b/gi, 'the');
 
 /* --- stories --------------------------------------------------------------- */
+/* --- Tracery-style grammar ------------------------------------------------------
+   Technique from galaxykate/tracery (Apache-2.0): rules hold options, options may contain #other# symbols,
+   so a few hundred phrases combine into many thousands of sentences. Our own small engine keeps it offline
+   and seeded (same race → same article on every load). Modifiers: #x.capitalize#, #x.a#, #x.s#, #x.possessive#.
+   Within one article an option is not reused until its rule runs out. {Vars} are filled afterwards by ngFill. */
+function ngGrammar(rules, rnd) {
+  const used = new Set();
+  const pick = k => { const o = rules[k]; if (!o) return '#' + k + '#'; const free = o.filter(x => !used.has(k + '|' + x)); const list = free.length ? free : o;
+    const x = list[Math.floor(rnd() * list.length)]; used.add(k + '|' + x); return x; };
+  const mods = { capitalize: x => x.charAt(0).toUpperCase() + x.slice(1), a: x => (/^[aeiou]/i.test(x) ? 'an ' : 'a ') + x, s: x => /s$/.test(x) ? x : x + 's', possessive: x => /s$/.test(x) ? x + '’' : x + '’s', lower: x => x.charAt(0).toLowerCase() + x.slice(1) };
+  const expand = (t, d = 0) => d > 12 ? String(t) : String(t).replace(/#([A-Za-z0-9_]+)((?:\.[a-z]+)*)#/g, (m, k, md) => {
+    let r = expand(pick(k), d + 1); md.split('.').filter(Boolean).forEach(x => { if (mods[x]) r = mods[x](r); }); return r; });
+  return { expand, pick: list => expand(list[Math.floor(rnd() * list.length)]) };
+}
+// shared vocabulary: synonyms and sentence shapes used by every story
+const NG_G = {
+  won: ['won', 'took', 'claimed', 'secured', 'sealed', 'collected', 'captured', 'converted his chances into'],
+  win: ['victory', 'win', 'triumph', 'success'],
+  race: ['race', 'Grand Prix', 'contest', 'afternoon', 'encounter'],
+  drove: ['drove', 'raced', 'fought', 'battled', 'worked'],
+  strong: ['strong', 'measured', 'composed', 'disciplined', 'mature', 'assured', 'controlled'],
+  great: ['superb', 'excellent', 'outstanding', 'impressive', 'fine', 'polished'],
+  hard: ['tough', 'difficult', 'frustrating', 'testing', 'bruising', 'long'],
+  team: ['team', 'squad', 'outfit', 'crew'],
+  then: ['Behind him', 'Further back', 'Elsewhere', 'In the pack', 'Down the order'],
+  meanwhile: ['Meanwhile', 'At the same time', 'Away from the lead', 'Elsewhere on the grid'],
+  quoteVerb: ['said', 'explained', 'told reporters', 'reflected', 'admitted', 'added', 'insisted'],
+  fans: ['the crowd', 'the grandstands', 'the fans', 'the spectators'],
+  pressure: ['pressure', 'heat', 'attention', 'scrutiny'],
+  momentum: ['momentum', 'confidence', 'rhythm', 'form'],
+  tyres: ['tyres', 'rubber', 'compounds', 'tyre life'],
+  strategy: ['strategy', 'pit-wall calls', 'race plan', 'timing of the stops'],
+  quoteWin: ['"What a day. #quoteBody#"', '"#quoteBody# I am really proud of everyone."', '"Honestly, #quoteBody.lower#"', '"#quoteBody# We take this and keep pushing."'],
+  quoteBody: ['The car was fantastic and the team did a perfect job.', 'We managed the #tyres# well and that made the difference at the end.', 'This one means a lot because we had to work for every lap.', 'The start was the key, and after that I could control the pace.', 'The #strategy# was spot on, so thank you to everyone in the garage.', 'It was hot out there and the #tyres# were on the limit, but we made it work.', 'We have been close a few times, so it feels good to finish the job.', 'I tried to stay calm in the traffic and wait for the right moment.'],
+  quoteP2: ['"Second is a good result, but I wanted more today," {P2} #quoteVerb#.', '"We were quick, just not quick enough," {P2} #quoteVerb#. "We will come back stronger."', '{P2} called second place "#p2word#" and said the gap was "#gapword#".', '"I gave it everything. Congratulations to {W}," {P2} #quoteVerb#.'],
+  p2word: ['the maximum today', 'a fair result', 'solid points', 'bittersweet'],
+  gapword: ['too big to close', 'smaller than it looked', 'all about the first stint', 'down to traffic'],
+  quoteBoss: ['{boss} #quoteVerb#: "#bossBody#"', '{boss} was full of praise afterwards: "#bossBody#"', 'The verdict from {boss}: "#bossBody#"'],
+  bossBody: ['That was a complete weekend from the whole team.', 'He drove like a champion today, and the team gave him the car to do it.', 'We have worked hard for days like this, and it is good to see it pay off.', 'The pit crew was perfect and the #strategy# worked exactly as planned.', 'We enjoy this tonight, and tomorrow we start working on the next one.'],
+  openLaps: ['The opening laps set the tone, with {W} quickly into a #strong# rhythm.', 'From the moment the lights went out, {W} looked comfortable at the front of the #race#.', 'The first stint was all about track position, and {W} judged it perfectly.', 'The early laps were #hard# for the chasing pack, who could not match the pace of {W}.', '{W} settled into the #race# early and let the others come to him.'],
+  midRace: ['The middle of the #race# was decided by the #strategy#, and {Wt} got it right.', 'As the #tyres# began to fade, the gaps started to grow.', 'Pit stops reshuffled the order for a few laps, but the leaders soon settled back into place.', 'Halfway through, the question was whether anyone could stay with {W} on the second set of #tyres#.', 'The pit wall kept a close eye on the #tyres#, and the call came at exactly the right time.'],
+  lateRace: ['In the closing laps, {W} managed the gap and brought the car home.', 'The final laps were a test of nerve, and {W} passed it.', 'There was no late drama at the front; {W} had done the hard work earlier.', 'With ten laps to go the result looked settled, and so it proved.', 'By the last lap, {W} could afford to back off and enjoy the moment.'],
+  circuitLine: ['{circuit} is never an easy place to get everything right, and this weekend was no exception.', 'The fast corners of {circuit} rewarded a well-balanced car.', '{city} delivered the kind of #race# the sport loves.', 'Track conditions at {circuit} changed through the weekend, and the teams had to adapt.', 'Under the eyes of #fans# in {city}, the drivers gave everything.'],
+  openerLine: ['It is the first #win# of the new season, and the first points on the board.', 'After a long winter, the first answers are in, and {W} has the early lead.', 'The opening round rarely tells the whole story, but it does set the mood.'],
+  closer: ['The #team.s# now have a short time to regroup.', 'Nobody in the paddock will forget this one soon.', 'It was #race.a# that will shape the rest of the season.', 'The story of the season has a new chapter.'],
+};
+
+// F2 has feature races, not Grands Prix
+const ngVocab = round => NG_F2.has(round.seasonId) ? Object.assign({}, NG_G, { race: ['race', 'feature race', 'contest', 'afternoon', 'encounter'] }) : NG_G;
+// Extra paragraphs for race reports: start, podium fight, midfield, the winner's season, more voices and the teams' fight.
+// Each paragraph appears only when the facts behind it exist; wording comes from the grammar, so reports rarely repeat.
+function ngLongReport(f, w, v) {
+  const c = f.c, g = ngGrammar(ngVocab(f.round), w.rnd), out = [], say = t => ngFill(g.expand(t), Object.assign({}, v, { Wt: f.t(f.W.teamId).name }));
+  const name = e => f.d(e.driverId).lastName, team = e => f.t(e.teamId).name;
+  const P = f.fin, ptsN = (ruleFor(c, f.round.seasonId).race || []).length || 10;
+  // the start
+  if (f.pole && f.pole !== f.W.driverId) {
+    const pe = f.race.find(e => e.driverId === f.pole);
+    out.push(ngFill(g.pick([`{Pole} started from pole position but finished ${pe && pe.position ? ngOrd(pe.position) : 'out of the points'}, and {W} made the most of it.`,
+      `Pole-sitter {Pole} could not hold on to the lead, and the #race# swung towards {W}.`, `It was {Pole} who led them away from pole, yet the day belonged to {W}.`]), v));
+  }
+  const gainers = P.filter(e => e.grid && e.grid - e.position >= 5).sort((a, b) => (b.grid - b.position) - (a.grid - a.position)).slice(0, 2);
+  if (gainers.length) out.push(gainers.map(e => g.pick([`${name(e)} climbed from ${ngOrd(e.grid)} to ${ngOrd(e.position)}.`, `${name(e)} made up ${e.grid - e.position} places to finish ${ngOrd(e.position)}.`])).join(' '));
+  // the story of the race (generic flow, three beats)
+  out.push(say('#circuitLine#'));
+  if (f.opener) out.push(say('#openerLine#'));
+  out.push(say('#openLaps# #midRace#'));
+  out.push(say('#lateRace#'));
+  // podium fight
+  if (P[1] && P[2]) out.push(ngFill(g.pick([`{P2} brought the ${team(P[1])} home in second place, with {P3} completing the podium for ${team(P[2])}.`,
+    `Second place went to {P2} of ${team(P[1])}, and ${team(P[2])}’s {P3} took the final podium spot.`,
+    `The rest of the podium was filled by {P2} (${team(P[1])}) and {P3} (${team(P[2])}).`]), v));
+  // midfield and points
+  const mid = P.slice(3, ptsN);
+  if (mid.length >= 3) {
+    const list = mid.slice(1).map(name), last = list.pop();
+    const rest = `${list.join(', ')}${list.length ? ' and ' : ''}${last}`;
+    out.push(say(g.pick([`#then#, ${name(mid[0])} finished fourth for ${team(mid[0])}, ahead of ${rest}, who all scored points.`,
+      `Fourth place went to ${name(mid[0])} (${team(mid[0])}). The remaining points went to ${rest}.`,
+      `${name(mid[0])} led the chasing group home in fourth, with ${rest} also in the points.`,
+      `Just off the podium, ${name(mid[0])} took fourth for ${team(mid[0])}; ${rest} completed the top ${ngWord(ptsN)}.`])));
+  }
+  const tenth = P[ptsN];
+  if (tenth) out.push(say(g.pick([`${name(tenth)} just missed out in ${ngOrd(tenth.position)}, the first driver without a point.`, `Agonisingly, ${name(tenth)} finished ${ngOrd(tenth.position)}, one place outside the points.`,
+    `${ngOrd(tenth.position)} place and no reward: ${name(tenth)} was the unlucky one today.`, `For ${team(tenth)}, ${ngOrd(tenth.position)} for ${name(tenth)} meant an empty-handed weekend.`])));
+  // the winner's team-mate and a strong day for a smaller team
+  const mate = f.race.find(e => e.teamId === f.W.teamId && e.driverId !== f.W.driverId);
+  if (mate && !(mate.position && mate.position <= 3) && mate !== P[ptsN]) out.push(say(mate.position ? g.pick([`Team-mate ${name(mate)} finished ${ngOrd(mate.position)}${mate.position <= 3 ? ', completing a big day for the team' : ''}.`, `In the other ${team(mate)}, ${name(mate)} came home ${ngOrd(mate.position)}.`]) : `It was a less happy afternoon for team-mate ${name(mate)}, who did not see the flag.`));
+  const top3 = teamStandings(c, f.round.seasonId, f.round.round).slice(0, 3).map(r => r.id);
+  const star = P.slice(4, ptsN).find(e => !top3.includes(e.teamId) && e.teamId !== f.W.teamId);
+  if (star) out.push(say(g.pick([`It was #great.a# day for ${team(star)}: ${name(star)} finished ${ngOrd(star.position)}.`, `${team(star)} will be pleased with ${ngOrd(star.position)} for ${name(star)}, a result that brings valuable points.`, `${name(star)} was the best of the rest for ${team(star)} in ${ngOrd(star.position)}.`])));
+  // points haul per team this race
+  const haul = {}; f.race.forEach(e => { haul[e.teamId] = (haul[e.teamId] || 0) + (e.pts || 0); });
+  const hs = Object.entries(haul).filter(([, p]) => p > 0).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  if (hs.length >= 2) out.push(say(g.pick([`On points, ${f.t(hs[0][0]).name} had the best day with ${hs[0][1]}, ahead of ${f.t(hs[1][0]).name} on ${hs[1][1]}${hs[2] ? ` and ${f.t(hs[2][0]).name} on ${hs[2][1]}` : ''}.`,
+    `${f.t(hs[0][0]).name} scored ${hs[0][1]} points this weekend, the most of any team. ${f.t(hs[1][0]).name} collected ${hs[1][1]}.`])));
+  // stat of the day: how many different winners so far
+  const winners = new Set(ngSeasonRaces(c, f.round).map(x => (x.rs.find(e => e.position === 1) || {}).driverId).filter(Boolean));
+  const n = f.raced + 1;
+  out.push(say(winners.size === n && n > 1 ? `That makes ${ngWord(winners.size)} different winners in ${ngWord(n)} races, and nobody has won twice yet.`
+    : n === 1 ? 'It is the first result of the year, and every number in the standings starts here.'
+    : g.pick([`There have now been ${ngWord(winners.size)} different winners in ${ngWord(n)} races this season.`, `${ngCap(ngWord(winners.size))} drivers have now won a race this year, after ${ngWord(n)} rounds.`,
+      `The list of winners this season is ${ngWord(winners.size)} names long after ${ngWord(n)} races.`, `After ${ngWord(n)} rounds, ${ngWord(winners.size)} different drivers have stood on the top step.`])));
+  // the winner's season so far
+  const row = f.after.find(r => r.id === f.W.driverId);
+  if (row && f.raced >= 1) {
+    out.push(say(g.pick([`The #win# is {W}’s ${ngOrd(row.wins)} of the season. He now has ${row.podiums} podium${row.podiums === 1 ? '' : 's'} and ${row.points} points.`,
+      `It takes {W} to ${row.wins} win${row.wins === 1 ? '' : 's'} this year and ${row.points} points in total, good for ${ngOrd(row.position)} in the standings.`,
+      `{W} has now ${row.wins === 1 ? 'won once' : `won ${row.wins} times`} this season, and ${row.podiums} of his finishes have been on the podium.`])));
+  }
+  // voices
+  out.push(ngFill(g.expand('#quoteP2#'), v));
+  const boss = (f.t(f.W.teamId) || {}).principal;
+  out.push(ngFill(g.expand('#quoteBoss#'), Object.assign({}, v, { boss: boss ? `${f.t(f.W.teamId).name} team principal ${boss}` : `A ${f.t(f.W.teamId).name} spokesperson` })));
+  // teams' championship
+  const ts = teamStandings(c, f.round.seasonId, f.round.round);
+  if (ts[1] && ts[0].points) { const A1 = f.t(ts[0].id).name, B1 = f.t(ts[1].id).name, gp = ts[0].points - ts[1].points;
+    out.push(say(g.pick([`In the teams’ championship, ${A1} lead ${B1} by ${gp} points.`, `${A1} stay top of the teams’ table, ${gp} points clear of ${B1}.`,
+      `The constructors’ standings still have ${A1} in front, with ${B1} ${gp} points behind.`, `${B1} remain ${gp} points adrift of ${A1} in the fight for the teams’ title.`]))); }
+  return out.filter(Boolean);
+}
+
 function ngRaceReport(f, w, v) {
   const shape = f.opener && w.chance(.75) ? 'opener' : f.firstWin ? 'first' : f.streak >= 3 ? 'streak' : f.grid && f.grid >= 6 ? 'comeback' : f.margin != null && f.margin < 1.5 ? 'close'
     : f.margin != null && f.margin > 12 ? 'dominant' : f.oneTwo && w.chance(.6) ? 'onetwo' : f.pole === f.W.driverId && w.chance(.4) ? 'pole' : 'win';
@@ -3720,7 +3842,7 @@ function ngRaceReport(f, w, v) {
   else if (f.streak >= 2) two.push(ngFill(w.pick(NG.streak), v));
   if (f.grid && f.grid >= 6) two.push(ngFill(w.pick(NG.comeback), v));
   else if (f.pole === f.W.driverId) two.push(ngFill(w.pick(NG.winPole), v));
-  else if (f.pole) two.push(ngFill(w.pick(NG.poleLine), v));
+  else if (f.pole && !f.c) two.push(ngFill(w.pick(NG.poleLine), v));
   if (f.oneTwo) two.push(ngFill(w.pick(NG.onetwo), v));
   if (two.length) p.push(two.join(' '));
   const three = [];
@@ -3733,9 +3855,11 @@ function ngRaceReport(f, w, v) {
   if (f.fl && w.chance(.7)) three.push(ngFill(w.pick(NG.fl), v));
   if (f.sprintWinner) three.push(ngFill(w.pick(NG.sprint), v));
   if (three.length) p.push(three.join(' '));
+  ngLongReport(f, w, v).forEach(x => p.push(x));
   p.push(ngFill(w.pick(NG.quoteWin), (q => Object.assign({}, v, { q, qc: q.replace(/[.!]$/, ',') }))(ngFill(w.pick(NG.qWin), v))));
   const leadKind = f.gap === 0 ? 'tied' : f.L && f.leaderBefore && f.L.id !== f.leaderBefore ? 'take' : 'keep';
   p.push([f.L2 ? ngFill(w.pick(NG.lead[leadKind]), v) : '', f.last ? w.pick(NG.end) : f.next ? ngFill(w.pick(NG.next), v) : ''].filter(Boolean).join(' '));
+  p.push(ngFill(ngGrammar(ngVocab(f.round), ngRng(f.round.id + 'close')).expand('#closer#'), v));
   const stand = f.P2 ? `${v.Wfull} beat ${v.P2}${f.P3 ? ` and ${v.P3}` : ''} in ${v.city}.` : `${v.Wfull} won in ${v.city}.`;
   return { type: 'report', category: 'Race Report', title: ngHeadline(title), standfirst: stand, body: p, drivers: [f.W, f.P2, f.P3].filter(Boolean).map(e => e.driverId), teams: [f.W.teamId], hours: 2 };
 }
@@ -3848,6 +3972,14 @@ function ngPreview(c, round, w) {
   if (!opener && vars.L) body.push(w.pick(['{L} arrives as championship leader, {gap} points ahead of {L2}.', 'The gap at the top is {gap} points, with {L} ahead of {L2}.']));
   if (vars.lastW && vars.lastW !== vars.L) body.push(w.pick(['{lastW} won the last race and will want to keep the momentum.', 'All eyes are also on {lastW}, the winner last time out.']));
   if (opener) body.push(w.pick(['After a winter of work, nobody knows the true order yet.', 'Every team starts on zero points. The first answers come this weekend.']));
+  // form guide: the last three winners this season
+  const recent = done.slice(-3).map(r => { const e = classify(c, resultFor(c, r.id, 'race')).find(x => x.position === 1); return e ? `${d(e.driverId).lastName} (${r.name})` : null; }).filter(Boolean);
+  if (recent.length >= 2) body.push(w.pick([`Form guide: the last ${ngWord(recent.length)} races were won by ${recent.join(', ')}.`, `Recent winners: ${recent.join(', ')}.`]));
+  // history at this venue in earlier seasons of this career
+  const past = c.rounds.filter(r => r.seasonId !== s && r.name === round.name && resultFor(c, r.id, 'race')).map(r => ({ r, e: classify(c, resultFor(c, r.id, 'race')).find(x => x.position === 1), y: (seasonOf(c, r.seasonId) || {}).year })).filter(x => x.e).sort((a, b) => b.y - a.y);
+  if (past.length) body.push(`Last time here, in ${past[0].y}, ${d(past[0].e.driverId).firstName} ${d(past[0].e.driverId).lastName} won.`);
+  const g = ngGrammar(Object.assign({}, ngVocab(round), { look: ['Qualifying will be crucial at {circuit}.', 'The weather and #tyres# could decide this one.', 'Expect the #strategy# to play a big part.', 'Overtaking is never easy here, so Saturday matters.', 'Teams bring upgrades all season, and this weekend is no different.'] }), w.rnd);
+  body.push(g.expand('#look#'));
   return { type: 'preview', category: 'Feature', title: ngHeadline(ngFill(title, vars)), standfirst: ngFill(w.pick(['The key storylines ahead of {gpShort}.', 'Our look ahead to {city}.']), vars),
     body: body.map(x => ngFill(x, vars)), drivers: st.slice(0, 2).filter(r => r.points).map(r => r.id), teams: [], hoursBefore: 72 };
 }
@@ -4010,6 +4142,47 @@ function ngRumourStory(c, f, w, v, x, i) {
     drivers: [x.who], teams: [x.team, x.from].filter(Boolean), hours: 40 + i * 14, rumour: true };
 }
 
+/* --- richer non-report stories: background, an extra voice and the outlook --- */
+const NG_EXTRA = {
+  ctx: ['#ctxA#', '#ctxB#', '#ctxC#'],
+  ctxA: ['{X} sits {XP} in the championship with {Xpts} points after {raced} races.'],
+  ctxB: ['So far this season {X} has {Xwins} and {Xpod}, which leaves him {XP} in the table.'],
+  ctxC: ['The numbers tell their own story: {Xpts} points, {Xwins} and {Xpod} from {raced} races.'],
+  voice: ['A senior figure at {XT} #quoteVerb#: "#voiceBody#"', '{XT} were quick to comment: "#voiceBody#"', 'Inside {XT}, the message is clear: "#voiceBody#"'],
+  voiceBody: ['We look at the long term, not one weekend.', 'There is a lot of noise, but we keep working.', 'Our job is to give him the best car possible.', 'We know what we can do, and we know where we need to improve.', 'Every point matters at this stage of the year.'],
+  extra_rumour: ['Any move would reshape the grid for {next}.', 'If the deal goes ahead, it would be one of the stories of the winter.', 'Several pieces of the {next} grid still depend on decisions like this one.', 'Contracts, sponsors and junior programmes all play a part in talks like these.'],
+  extra_pressure: ['The gap to his team-mate is growing every weekend.', 'With every race, the comparison inside the team gets harder to ignore.', 'Drivers in his position have often found the answer in a single strong result.'],
+  extra_teammates: ['Team-mate battles shape careers, and this one is no exception.', 'The first person every driver has to beat is the one in the other car.', 'Results like these often decide who leads the team next year.'],
+  extra_dotd: ['Drives like this are what fans remember at the end of the year.', 'It was a reminder of what he can do when everything comes together.'],
+  extra_quali: ['Starting at the front matters, but the race is long.', 'Track position will count for a lot on Sunday.', 'History says the pole-sitter has a real chance here, but nothing is guaranteed.'],
+  extra_sprint: ['The main race offers far more points, and everyone knows it.', 'The real prize comes on Sunday.'],
+  extra_power: ['Form can change quickly, and next weekend could look different.', 'Three races is a short window, but trends are forming.'],
+  extra_teams: ['Every point in the teams’ table is worth money at the end of the year.', 'The constructors’ fight is often decided by the second car.'],
+  mate: ['Team-mate {M} has {Mpts} points by comparison.', 'Inside the team, {M} has scored {Mpts} points so far.', 'The other car, driven by {M}, sits on {Mpts} points.'],
+  stake: ['There is a lot riding on the coming races.', 'With {left} races to go, every weekend now counts double.', 'The second half of the year will decide how this season is remembered.', 'Teams are already planning for {next}, and results like this shape those plans.', 'Nobody in the paddock is looking past the next race just yet.'],
+  outlook: ['Next up is {nextGp}, {nextDays}.', 'Attention now turns to {nextGp}, {nextDays}.', 'The next chance to respond comes at {nextGp}, {nextDays}.'],
+};
+function ngEnrich(f, st, w, v) {
+  if (!st || st.type === 'report') return st;
+  const id = (st.drivers || [])[0], row = id && f.after.find(r => r.id === id);
+  const g = ngGrammar(Object.assign({}, ngVocab(f.round), NG_EXTRA), ngRng(st.type + f.round.id + (st.title || '')));
+  const X = id ? f.d(id) : null, tid = id ? (f.race.find(e => e.driverId === id) || {}).teamId || (st.teams || [])[0] : (st.teams || [])[0];
+  const vars = Object.assign({}, v, { X: X ? X.lastName : '', XT: tid ? f.t(tid).name : 'the team', XP: row ? ngOrd(row.position) : '', Xpts: row ? row.points : 0,
+    Xwins: row && row.wins ? (row.wins === 1 ? 'one win' : `${row.wins} wins`) : 'no wins', Xpod: row && row.podiums ? (row.podiums === 1 ? 'one podium' : `${row.podiums} podiums`) : 'no podiums',
+    raced: f.raced + 1, next: (seasonOf(f.c, f.round.seasonId) || {}).year + 1, left: ngWord(f.rounds.length - f.round.round) });
+  const add = [];
+  if (row && row.points) add.push(g.expand('#ctx#'));
+  const kind = String(st.type).replace(/\d+$/, '');
+  if (NG_EXTRA['extra_' + kind]) add.push(g.expand('#extra_' + kind + '#'));
+  const mateRow = id && tid ? f.after.find(r => r.id !== id && (f.race.find(e => e.driverId === r.id) || {}).teamId === tid) : null;
+  if (mateRow && !/teammates|teams/.test(kind)) add.push(g.expand('#mate#').replace('{M}', f.d(mateRow.id).lastName).replace('{Mpts}', mateRow.points));
+  if (tid && kind !== 'teams') add.push(g.expand('#voice#'));
+  if (!/power|teams/.test(kind)) add.push(g.expand('#stake#'));
+  if (f.next && !/preview/.test(kind)) add.push(g.expand('#outlook#'));
+  st.body = st.body.concat(add.map(x => ngFill(x, vars)));
+  return st;
+}
+
 /* --- which stories, in what order ------------------------------------------ */
 function ngStoriesFor(c, round, usedHeads, variant) {
   ngSeries(c);
@@ -4033,11 +4206,11 @@ function ngStoriesFor(c, round, usedHeads, variant) {
   const pr = ngPressure(c, f); if (pr) cands.push([33, () => ngPressureStory(c, f, ngWriter(seed + 'u', usedHeads), v, pr)]);
   if (round.round % 4 === 0) cands.push([31, () => ngPowerRankings(c, f, ngWriter(seed + 'w', usedHeads), v)]);
   if (round.round === Math.ceil(f.rounds.length / 2)) cands.push([47, () => ngMidSeason(c, f, ngWriter(seed + 'h2', usedHeads), v)]);
-  cands.sort((a, b) => b[0] - a[0]).slice(0, 5).forEach(([, mk]) => { const st = mk(); if (st) out.push(st); });
+  cands.sort((a, b) => b[0] - a[0]).slice(0, 5).forEach(([, mk]) => { const st = mk(); if (st) out.push(ngEnrich(f, st, null, v)); });
   // silly season: up to two rumours per race from round 12, never the same driver twice in a row
   const rum = ngRumours(c, f); const rw = ngWriter(seed + 'z', usedHeads);
   const pickR = []; for (let k = 0; k < rum.length && pickR.length < 2; k++) { const x = rum[(ngHash(round.id) + k * 7) % rum.length]; if (!pickR.some(p => p.who === x.who)) pickR.push(x); }
-  pickR.forEach((x, i) => out.push(ngRumourStory(c, f, rw, v, x, i)));
+  pickR.forEach((x, i) => out.push(ngEnrich(f, ngRumourStory(c, f, rw, v, x, i), null, v)));
   return out;
 }
 
