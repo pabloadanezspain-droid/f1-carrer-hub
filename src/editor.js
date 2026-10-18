@@ -326,12 +326,73 @@ function editCrud(section, q) {
       ${list.length > 8 ? `<input class="ed-filter" type="search" placeholder="Search ${esc(spec.title.toLowerCase())}…" aria-label="Search" data-filter>` : ''}
       <a class="btn btn-red btn-add" href="#/edit/${section}?${sq}id=new">+ Add ${spec.one}</a></div>`;
   const items = list.map(r => crudCard(spec, r, `#/edit/${section}?${sq}id=${r.id}`)).join('');
-  const transfer = section === 'assignments' && season ? lineupBoard(season, q) : section === 'articles'
+  const transfer = section === 'assignments' && season ? lineupBoard(season, q) : section === 'rounds' && season ? calendarRestorePanel(season) : section === 'seasons' ? seasonAdvancePanel() : section === 'articles'
     ? `<p class="muted">${D().meta.autoNews === false ? 'Automatic news is off. Turn it on in <a href="#/edit/settings">Career settings</a>.' : 'Race reports, title-fight analysis, milestones and previews are written for you after each race. You can edit any of them or write your own.'}</p>` : '';
   return `${transfer}${tools}
     ${list.length ? `<div class="${spec.cards ? 'ed-cards' : 'ed-rows'}" data-filter-list>${items}</div><p class="muted ed-nomatch" hidden data-nomatch>Nothing matches.</p>`
       : emptyState(`No ${spec.title.toLowerCase()} yet`, '', { href: `#/edit/${section}?${sq}id=new`, label: `Add ${spec.one}` })}
     <p class="muted ed-tip">Click any ${spec.one} to change it.</p>`;
+}
+
+/* --- continue to the next season ----------------------------------------- */
+// The latest season of each series that has no following year yet.
+function seasonsToContinue(c) {
+  return ['f1', 'f2'].map(sr => c.seasons.filter(s => (s.series || 'f1') === sr).sort((a, b) => b.year - a.year)[0]).filter(s => s && !nextSeasonOf(c, s));
+}
+function seasonAdvancePanel() {
+  const c = D(); const list = seasonsToContinue(c); if (!list.length) return '';
+  const card = s => {
+    const rounds = roundsOf(c, s.id), done = completedRounds(c, s.id).length, left = rounds.length - done;
+    const top = done ? driverStandings(c, s.id)[0] : null, d = top && driverOf(top.id);
+    return `<label class="sa-card"><input type="checkbox" name="sa" value="${s.id}" checked>
+      <span><b>${esc(s.name)}</b><small>${done} of ${rounds.length} races entered${d ? ` · ${left ? 'Leader' : 'Champion'}: ${esc(nameOf(d))} (${top.points} pts)` : ''}</small>
+      ${left ? `<small class="sa-warn">${left} race${left > 1 ? 's have' : ' has'} no result yet. ${left > 1 ? 'They stay' : 'It stays'} in ${s.year}, empty, and you can still fill ${left > 1 ? 'them' : 'it'} in later.</small>` : ''}</span></label>`;
+  };
+  const Y = Math.max(...list.map(s => s.year)) + 1;
+  return `<section class="panel panel-accent season-advance" data-season-advance>
+    <h3 class="h-card">Continue to the next season</h3>
+    <p>When you have finished a season in the game, start the next one here.</p>
+    <div class="sa-cards">${list.map(card).join('')}</div>
+    <ol class="sa-steps">
+      <li><b>Nothing is lost.</b> Every result, standing and story of ${Y - 1} stays where it is. You can look back at it any time with the season picker.</li>
+      <li><b>A new ${Y} season</b> is created with the same calendar on ${Y} dates and the same points system.</li>
+      <li><b>Line-ups carry over</b> as they were at the last race. Change seats on the <a href="#/edit/assignments">line-up board</a> before round 1.</li>
+      <li><b>Everyone is a year older:</b> ages are shown for the season you are looking at.</li>
+      <li><b>All-time stats</b> keep counting across seasons in Standings → Stats.</li>
+    </ol>
+    <p class="muted">A backup of your career is saved and downloaded first.</p>
+    <div class="form-actions"><button class="btn btn-red" type="button" data-sa-go>Continue to ${Y}</button></div></section>`;
+}
+function bindSeasonAdvance(el) {
+  el.querySelector('[data-sa-go]').addEventListener('click', () => {
+    const ids = [...el.querySelectorAll('input[name=sa]:checked')].map(x => x.value);
+    if (!ids.length) return toast('Tick at least one season.', true);
+    const names = ids.map(id => seasonOf(D(), id).name).join(' and ');
+    if (!confirm(`Start the next season after ${names}?\n\nYour results stay as they are. A backup is saved and downloaded first.`)) return;
+    Store.snapshot('before next season'); downloadBackup('next-season');
+    const made = ids.map(id => startNextSeason(D(), id));
+    Store.save();
+    toast(`Welcome to ${made[0].year}! Line-ups and calendar are ready.`);
+    location.hash = '#/';
+  });
+}
+
+/* --- original 2026 calendar ----------------------------------------------- */
+function calendarRestorePanel(season) {
+  if (season.id !== CAL_SEASON) return '';
+  const plan = originalCalendarPlan(D(), SAMPLE_CAREER); if (!plan || !plan.changed) return '';
+  const rows = plan.rows.map(({ target: t, round: r, results }) => `<tr><td>R${t.round}</td><td class="mx-left">${flag(t.countryCode, 'mx-flag')} ${esc(t.name)}</td><td>${esc(fmtRange(t.dateStart, t.dateEnd))}</td>
+    <td class="mx-left">${!r ? '<b>New race</b>' : r.round !== t.round ? `was R${r.round}` : 'same'}</td><td>${results ? `✓ ${results} result${results > 1 ? 's' : ''} kept` : ''}</td></tr>`).join('');
+  return `<section class="panel panel-accent cal-restore"><h3 class="h-card">Use the original 2026 calendar</h3>
+    <p>The game uses the calendar planned before the war: <b>24 races</b>, with Bahrain and Saudi Arabia in April. Your career has the later, shortened calendar.</p>
+    <ul class="muted"><li>Every result you entered stays with its race (Miami stays Miami, only its round number changes).</li><li>Line-up changes keep starting at the same race.</li><li>A backup of your career is saved first and downloaded to your computer.</li></ul>
+    <details><summary>See every change (${plan.rows.filter(r => !r.round || r.moved).length} races)</summary><div class="mx-scroll"><table class="mx-table mx-cal"><thead><tr><th>Round</th><th>Race</th><th>Dates</th><th>Change</th><th>Your results</th></tr></thead><tbody>${rows}</tbody></table></div></details>
+    <div class="form-actions"><button class="btn btn-red" type="button" data-cal-restore>Use the original calendar</button></div></section>`;
+}
+function downloadBackup(label) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([Store.exportJSON()], { type: 'application/json' }));
+  a.download = `${slugify(D().meta.careerName)}-backup-before-${slugify(label)}-${new Date().toISOString().slice(0, 10)}.json`; a.click();
 }
 
 /* --- drag-and-drop line-up board ------------------------------------------ */
@@ -524,6 +585,14 @@ function bindEditor(root) {
     root.querySelector('[data-nomatch]').hidden = shown > 0;
   });
 
+  const cr = root.querySelector('[data-cal-restore]');
+  if (cr) cr.addEventListener('click', () => {
+    if (!confirm('Switch to the original 24-race calendar?\n\nYour results stay with their races. A backup is saved and downloaded first.')) return;
+    Store.snapshot('before original calendar'); downloadBackup('calendar');
+    if (restoreOriginalCalendar(D(), SAMPLE_CAREER)) { Store.save(); toast('Original 2026 calendar restored. All your results are unchanged.'); }
+  });
+  const sa = root.querySelector('[data-season-advance]');
+  if (sa) bindSeasonAdvance(sa);
   const lb = root.querySelector('[data-lu-board]');
   if (lb) bindLineupBoard(lb);
   const tf = root.querySelector('[data-transfer]');

@@ -14,7 +14,7 @@
    "year": 2026,
    "name": "2026 Real Grid (starter)",
    "pointsRuleId": "pts_standard",
-   "notes": "Real 2026 line-up and calendar from formula1.com, with no results. Enter your own career results here, or start a new career from it in Import / Export.",
+   "notes": "Real 2026 line-up and the original 24-round calendar, with no results. Enter your own career results here, or start a new career from it in Import / Export.",
    "series": "f1"
   },
   {
@@ -1958,6 +1958,96 @@
    "id": "rnd_2026_04",
    "seasonId": "sea_2026_grid",
    "round": 4,
+   "name": "Bahrain",
+   "country": "Bahrain",
+   "countryCode": "BHR",
+   "officialName": "Bahrain Grand Prix 2026",
+   "circuit": "Bahrain International Circuit",
+   "city": "Sakhir",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-04-10",
+   "dateEnd": "2026-04-12",
+   "sprint": false,
+   "sessions": [
+    {
+     "label": "Practice 1",
+     "date": "2026-04-10",
+     "time": "12:30"
+    },
+    {
+     "label": "Practice 2",
+     "date": "2026-04-10",
+     "time": "16:00"
+    },
+    {
+     "label": "Practice 3",
+     "date": "2026-04-11",
+     "time": "12:30"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-04-11",
+     "time": "16:00"
+    },
+    {
+     "label": "Race",
+     "date": "2026-04-12",
+     "time": "15:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/bahrain.webp"
+  },
+  {
+   "id": "rnd_2026_05",
+   "seasonId": "sea_2026_grid",
+   "round": 5,
+   "name": "Saudi Arabia",
+   "country": "Saudi Arabia",
+   "countryCode": "SAU",
+   "officialName": "Saudi Arabian Grand Prix 2026",
+   "circuit": "Jeddah Corniche Circuit",
+   "city": "Jeddah",
+   "laps": null,
+   "lengthKm": null,
+   "dateStart": "2026-04-17",
+   "dateEnd": "2026-04-19",
+   "sprint": false,
+   "sessions": [
+    {
+     "label": "Practice 1",
+     "date": "2026-04-17",
+     "time": "12:30"
+    },
+    {
+     "label": "Practice 2",
+     "date": "2026-04-17",
+     "time": "16:00"
+    },
+    {
+     "label": "Practice 3",
+     "date": "2026-04-18",
+     "time": "12:30"
+    },
+    {
+     "label": "Qualifying",
+     "date": "2026-04-18",
+     "time": "16:00"
+    },
+    {
+     "label": "Race",
+     "date": "2026-04-19",
+     "time": "15:00"
+    }
+   ],
+   "status": "scheduled",
+   "imageUrl": "assets/f1com/circuits/saudi-arabia.webp"
+  },
+  {
+   "id": "rnd_2026_06",
+   "seasonId": "sea_2026_grid",
+   "round": 6,
    "name": "Miami",
    "country": "Miami",
    "countryCode": "USA",
@@ -2000,9 +2090,9 @@
    "imageUrl": "assets/f1com/circuits/miami.webp"
   },
   {
-   "id": "rnd_2026_05",
+   "id": "rnd_2026_07",
    "seasonId": "sea_2026_grid",
-   "round": 5,
+   "round": 7,
    "name": "Canada",
    "country": "Canada",
    "countryCode": "CAN",
@@ -2045,9 +2135,9 @@
    "imageUrl": "assets/f1com/circuits/canada.webp"
   },
   {
-   "id": "rnd_2026_06",
+   "id": "rnd_2026_08",
    "seasonId": "sea_2026_grid",
-   "round": 6,
+   "round": 8,
    "name": "Monaco",
    "country": "Monaco",
    "countryCode": "MON",
@@ -2090,9 +2180,9 @@
    "imageUrl": "assets/f1com/circuits/monaco.webp"
   },
   {
-   "id": "rnd_2026_07",
+   "id": "rnd_2026_09",
    "seasonId": "sea_2026_grid",
-   "round": 7,
+   "round": 9,
    "name": "Barcelona-Catalunya",
    "country": "Barcelona-Catalunya",
    "countryCode": "ESP",
@@ -2135,9 +2225,9 @@
    "imageUrl": "assets/f1com/circuits/barcelona-catalunya.webp"
   },
   {
-   "id": "rnd_2026_08",
+   "id": "rnd_2026_10",
    "seasonId": "sea_2026_grid",
-   "round": 8,
+   "round": 10,
    "name": "Austria",
    "country": "Austria",
    "countryCode": "AUT",
@@ -2180,9 +2270,9 @@
    "imageUrl": "assets/f1com/circuits/austria.webp"
   },
   {
-   "id": "rnd_2026_09",
+   "id": "rnd_2026_11",
    "seasonId": "sea_2026_grid",
-   "round": 9,
+   "round": 11,
    "name": "Great Britain",
    "country": "Great Britain",
    "countryCode": "GBR",
@@ -2225,9 +2315,9 @@
    "imageUrl": "assets/f1com/circuits/great-britain.webp"
   },
   {
-   "id": "rnd_2026_10",
+   "id": "rnd_2026_12",
    "seasonId": "sea_2026_grid",
-   "round": 10,
+   "round": 12,
    "name": "Belgium",
    "country": "Belgium",
    "countryCode": "BEL",
@@ -2270,9 +2360,9 @@
    "imageUrl": "assets/f1com/circuits/belgium.webp"
   },
   {
-   "id": "rnd_2026_11",
+   "id": "rnd_2026_13",
    "seasonId": "sea_2026_grid",
-   "round": 11,
+   "round": 13,
    "name": "Hungary",
    "country": "Hungary",
    "countryCode": "HUN",
@@ -2315,9 +2405,9 @@
    "imageUrl": "assets/f1com/circuits/hungary.webp"
   },
   {
-   "id": "rnd_2026_12",
+   "id": "rnd_2026_14",
    "seasonId": "sea_2026_grid",
-   "round": 12,
+   "round": 14,
    "name": "Netherlands",
    "country": "Netherlands",
    "countryCode": "NED",
@@ -2360,9 +2450,9 @@
    "imageUrl": "assets/f1com/circuits/netherlands.webp"
   },
   {
-   "id": "rnd_2026_13",
+   "id": "rnd_2026_15",
    "seasonId": "sea_2026_grid",
-   "round": 13,
+   "round": 15,
    "name": "Italy",
    "country": "Italy",
    "countryCode": "ITA",
@@ -2405,9 +2495,9 @@
    "imageUrl": "assets/f1com/circuits/italy.webp"
   },
   {
-   "id": "rnd_2026_14",
+   "id": "rnd_2026_16",
    "seasonId": "sea_2026_grid",
-   "round": 14,
+   "round": 16,
    "name": "Spain",
    "country": "Spain",
    "countryCode": "ESP",
@@ -2450,9 +2540,9 @@
    "imageUrl": "assets/f1com/circuits/spain.webp"
   },
   {
-   "id": "rnd_2026_15",
+   "id": "rnd_2026_17",
    "seasonId": "sea_2026_grid",
-   "round": 15,
+   "round": 17,
    "name": "Azerbaijan",
    "country": "Azerbaijan",
    "countryCode": "AZE",
@@ -2495,54 +2585,9 @@
    "imageUrl": "assets/f1com/circuits/azerbaijan.webp"
   },
   {
-   "id": "rnd_2026_16",
+   "id": "rnd_2026_18",
    "seasonId": "sea_2026_grid",
-   "round": 16,
-   "name": "Bahrain",
-   "country": "Bahrain",
-   "countryCode": "BHR",
-   "officialName": "Bahrain Grand Prix 2026",
-   "circuit": "Bahrain International Circuit",
-   "city": "Sakhir",
-   "laps": null,
-   "lengthKm": null,
-   "dateStart": "2026-10-02",
-   "dateEnd": "2026-10-04",
-   "sprint": false,
-   "sessions": [
-    {
-     "label": "Practice 1",
-     "date": "2026-10-02",
-     "time": "12:30"
-    },
-    {
-     "label": "Practice 2",
-     "date": "2026-10-02",
-     "time": "16:00"
-    },
-    {
-     "label": "Practice 3",
-     "date": "2026-10-03",
-     "time": "12:30"
-    },
-    {
-     "label": "Qualifying",
-     "date": "2026-10-03",
-     "time": "16:00"
-    },
-    {
-     "label": "Race",
-     "date": "2026-10-04",
-     "time": "15:00"
-    }
-   ],
-   "status": "scheduled",
-   "imageUrl": "assets/f1com/circuits/bahrain.webp"
-  },
-  {
-   "id": "rnd_2026_17",
-   "seasonId": "sea_2026_grid",
-   "round": 17,
+   "round": 18,
    "name": "Singapore",
    "country": "Singapore",
    "countryCode": "SGP",
@@ -2585,9 +2630,9 @@
    "imageUrl": "assets/f1com/circuits/singapore.webp"
   },
   {
-   "id": "rnd_2026_18",
+   "id": "rnd_2026_19",
    "seasonId": "sea_2026_grid",
-   "round": 18,
+   "round": 19,
    "name": "United States",
    "country": "United States",
    "countryCode": "USA",
@@ -2630,9 +2675,9 @@
    "imageUrl": "assets/f1com/circuits/united-states.webp"
   },
   {
-   "id": "rnd_2026_19",
+   "id": "rnd_2026_20",
    "seasonId": "sea_2026_grid",
-   "round": 19,
+   "round": 20,
    "name": "Mexico",
    "country": "Mexico",
    "countryCode": "MEX",
@@ -2675,9 +2720,9 @@
    "imageUrl": "assets/f1com/circuits/mexico.webp"
   },
   {
-   "id": "rnd_2026_20",
+   "id": "rnd_2026_21",
    "seasonId": "sea_2026_grid",
-   "round": 20,
+   "round": 21,
    "name": "Brazil",
    "country": "Brazil",
    "countryCode": "BRA",
@@ -2720,9 +2765,9 @@
    "imageUrl": "assets/f1com/circuits/brazil.webp"
   },
   {
-   "id": "rnd_2026_21",
+   "id": "rnd_2026_22",
    "seasonId": "sea_2026_grid",
-   "round": 21,
+   "round": 22,
    "name": "Las Vegas",
    "country": "Las Vegas",
    "countryCode": "USA",
@@ -2765,9 +2810,9 @@
    "imageUrl": "assets/f1com/circuits/las-vegas.webp"
   },
   {
-   "id": "rnd_2026_22",
+   "id": "rnd_2026_23",
    "seasonId": "sea_2026_grid",
-   "round": 22,
+   "round": 23,
    "name": "Qatar",
    "country": "Qatar",
    "countryCode": "QAT",
@@ -2810,9 +2855,9 @@
    "imageUrl": "assets/f1com/circuits/qatar.webp"
   },
   {
-   "id": "rnd_2026_23",
+   "id": "rnd_2026_24",
    "seasonId": "sea_2026_grid",
-   "round": 23,
+   "round": 24,
    "name": "Abu Dhabi",
    "country": "Abu Dhabi",
    "countryCode": "UAE",

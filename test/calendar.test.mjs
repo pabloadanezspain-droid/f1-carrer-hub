@@ -1,0 +1,99 @@
+// node test/calendar.test.mjs — restoring the original 2026 calendar never changes a result.
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+
+const src = p => fs.readFileSync(new URL('../src/' + p, import.meta.url), 'utf8');
+const ctx = { console, localStorage: { getItem: () => null, setItem: () => {} } };
+vm.createContext(ctx);
+vm.runInContext(src('store.js') + '\n' + src('selectors.js') + '\n' + src('matrix.js') + '\nthis.api = { normalizeCareer, validateCareer, clone, restoreOriginalCalendar, originalCalendarPlan, startNextSeason, nextSeasonOf, allTimeStats, seatsAt, completedRounds, mxSetResult, mxSetPole, driverStandings, roundsOf, Store };', ctx);
+const A = ctx.api;
+const sample = JSON.parse(src('sample-data.json'));
+const SID = 'sea_2026_grid';
+let pass = 0;
+const test = (name, fn) => { fn(); pass++; console.log('ok -', name); };
+
+// A save from the post-war calendar: 22 rounds, Bahrain in October, no Saudi Arabia (ids rnd_2026_01..22 in that order).
+const POSTWAR = ['Australia', 'China', 'Japan', 'Miami', 'Canada', 'Monaco', 'Barcelona-Catalunya', 'Austria', 'Great Britain', 'Belgium', 'Hungary',
+  'Netherlands', 'Italy', 'Spain', 'Azerbaijan', 'Bahrain', 'Singapore', 'United States', 'Mexico', 'Brazil', 'Las Vegas', 'Abu Dhabi'];
+function oldSave() {
+  const c = A.normalizeCareer(A.clone(sample)); A.Store.data = c;
+  const keep = c.rounds.filter(r => r.seasonId !== SID);
+  const f1 = POSTWAR.map((name, i) => {
+    const t = c.rounds.find(r => r.seasonId === SID && r.name === name);
+    return Object.assign(A.clone(t), { id: `rnd_2026_${String(i + 1).padStart(2, '0')}`, round: i + 1, dateEnd: name === 'Bahrain' ? '2026-10-04' : t.dateEnd });
+  });
+  c.rounds = [...keep, ...f1];
+  c.results = []; c.articles = [];
+  // results for the first five races and a pole at Miami
+  const ds = c.assignments.filter(a => a.seasonId === SID).map(a => a.driverId);
+  for (let n = 1; n <= 5; n++) ds.forEach((d, i) => A.mxSetResult(c, `rnd_2026_0${n}`, 'race', d, ((i + n) % ds.length) + 1));
+  A.mxSetPole(c, 'rnd_2026_04', ds[3], true);
+  // a transfer from round 5 (Canada in the old numbering)
+  const a = c.assignments.find(x => x.seasonId === SID && x.driverId === 'drv_lewis_hamilton'); a.toRound = 4;
+  c.assignments.push(Object.assign(A.clone(a), { id: 'asg_x', teamId: 'team_mclaren', fromRound: 5, toRound: null }));
+  return c;
+}
+
+test('restoring changes no result, pole or standing', () => {
+  const c = oldSave();
+  const before = JSON.stringify(c.results), table = JSON.stringify(A.driverStandings(c, SID).map(r => [r.id, r.points]));
+  assert.equal(A.restoreOriginalCalendar(c, sample), true);
+  assert.equal(JSON.stringify(c.results), before);
+  assert.equal(JSON.stringify(A.driverStandings(c, SID).map(r => [r.id, r.points])), table);
+  assert.equal(A.validateCareer(c).length, 0);
+});
+
+test('races keep their results and move to their original round numbers', () => {
+  const c = oldSave(); A.restoreOriginalCalendar(c, sample);
+  const r = id => c.rounds.find(x => x.id === id);
+  assert.equal(r('rnd_2026_04').name, 'Miami'); assert.equal(r('rnd_2026_04').round, 6);    // Miami: R4 -> R6, results still on it
+  assert.equal(c.results.filter(x => x.roundId === 'rnd_2026_04').length, 2);
+  const bah = r('rnd_2026_16'); assert.equal(bah.name, 'Bahrain'); assert.equal(bah.round, 4); assert.equal(bah.dateEnd, '2026-04-12');
+  const sau = c.rounds.find(x => x.seasonId === SID && x.name === 'Saudi Arabia'); assert.equal(sau.round, 5);
+  assert.equal(A.roundsOf(c, SID).length, 24);
+  assert.deepEqual(A.roundsOf(c, SID).map(x => x.round), Array.from({ length: 24 }, (_, i) => i + 1));
+});
+
+test('a transfer still starts at the same race', () => {
+  const c = oldSave(); A.restoreOriginalCalendar(c, sample);
+  const t = c.assignments.find(x => x.id === 'asg_x'); assert.equal(t.fromRound, 7);   // Canada is R7 now
+  const old = c.assignments.find(x => x.seasonId === SID && x.driverId === 'drv_lewis_hamilton' && x.id !== 'asg_x'); assert.equal(old.toRound, 6);
+});
+
+test('running it twice does nothing the second time', () => {
+  const c = oldSave(); A.restoreOriginalCalendar(c, sample);
+  const snap = JSON.stringify(c);
+  assert.equal(A.restoreOriginalCalendar(c, sample), false);
+  assert.equal(JSON.stringify(c), snap);
+});
+
+test('continuing to 2027 keeps every 2026 result and copies line-ups and calendar', () => {
+  const c = oldSave(); A.restoreOriginalCalendar(c, sample);
+  const before = JSON.stringify(c.results), arts = c.articles.length;
+  const ns = A.startNextSeason(c, SID);
+  assert.equal(ns.year, 2027); assert.equal(ns.series, 'f1');
+  assert.equal(JSON.stringify(c.results), before);                       // nothing raced is touched
+  assert.equal(A.roundsOf(c, ns.id).length, 24);
+  const r1 = A.roundsOf(c, ns.id)[0]; assert.equal(r1.dateEnd, '2027-03-07'); assert.equal(r1.status, 'scheduled');   // a Sunday again
+  assert.equal(new Date(r1.dateEnd + 'T12:00:00Z').getUTCDay(), 0);
+  assert.ok(A.seatsAt(c, ns.id, 1).team_mclaren.race.includes('drv_lewis_hamilton'));   // seat as at the last race
+  assert.equal(c.meta.activeSeasonId, ns.id);
+  assert.equal(A.startNextSeason(c, SID).id, ns.id);                     // asking twice does not make a second 2027
+  assert.equal(A.validateCareer(c).length, 0);
+  assert.equal(c.articles.length, arts);
+});
+
+test('all-time stats add up seasons of one series', () => {
+  const c = oldSave();
+  const ns = A.startNextSeason(c, SID);
+  const ds = c.assignments.filter(a => a.seasonId === ns.id).map(a => a.driverId);
+  ds.forEach((d, i) => A.mxSetResult(c, A.roundsOf(c, ns.id)[0].id, 'race', d, i + 1));
+  const t = A.allTimeStats(c, 'f1', 'drivers');
+  const win = t.find(r => r.id === ds[0]);
+  assert.equal(win.seasons, 2);
+  assert.ok(win.wins >= 1);
+  assert.ok(!t.some(r => r.id === 'drv_rafael_camara'), 'F2 drivers are not in the F1 table');
+});
+
+console.log(`\n${pass} passed`);

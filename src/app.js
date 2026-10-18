@@ -29,7 +29,7 @@ function route() {
     case undefined: return pageHome();
     case 'schedule': return b ? pageRound(b) : pageSchedule(q);
     case 'results': return b ? pageRaceResult(b, c) : pageResultsIndex(q);
-    case 'standings': return pageStandings(b === 'teams' ? 'teams' : 'drivers', q);
+    case 'standings': return b === 'stats' ? pageStats(q) : pageStandings(b === 'teams' ? 'teams' : 'drivers', q);
     case 'drivers': return b ? pageDriver(b, q) : pageDrivers(q);
     case 'teams': return b ? pageTeam(b, q) : pageTeams(q);
     case 'lineup': return pageLineup(q);
