@@ -6,4 +6,4 @@ cd /d "%~dp0"
 where python >nul 2>nul || (echo Python was not found. Opening the page directly instead. & start "" "%~dp0index.html" & exit /b)
 start "Career Hub server (close to stop)" /min python -m http.server 5178 --bind 127.0.0.1
 timeout /t 1 /nobreak >nul
-start "" http://127.0.0.1:5178/
+start "" "http://127.0.0.1:5178/index.html?v=%RANDOM%%RANDOM%"

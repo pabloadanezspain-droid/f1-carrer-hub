@@ -117,40 +117,52 @@ function addStarterF2(c, sample) {
      • every existing round keeps its id, so its results, poles and news stay attached to the same race;
      • only dates, sessions and round numbers change; missing races (Saudi Arabia) are added with no results;
      • line-up changes ("from round 6") are renumbered so they still start at the same race. */
-const CAL_SEASON = 'sea_2026_grid';
-function originalCalendarPlan(c, sample) {
+const CAL_SEASON = 'sea_2026_grid';      // the starter's 2026 F1 season (source of the original calendar)
+// Every 2026 F1 season in a career, whatever its id (careers made in other ways have other ids).
+function calendarSeasons(c) { return c.seasons.filter(s => Number(s.year) === 2026 && (s.series || 'f1') === 'f1'); }
+function originalCalendarPlan(c, sample, seasonId) {
+  seasonId = seasonId || (calendarSeasons(c)[0] || {}).id;
   const target = (sample.rounds || []).filter(r => r.seasonId === CAL_SEASON).sort((a, b) => a.round - b.round);
-  const mine = c.rounds.filter(r => r.seasonId === CAL_SEASON);
-  if (!target.length || !mine.length) return null;
-  const key = r => String(r.name || '').toLowerCase();
+  const mine = c.rounds.filter(r => r.seasonId === seasonId);
+  if (!seasonId || !target.length || !mine.length) return null;
+  const norm = v => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const used = new Set();
+  // match each original race to one of yours: same name, else same country and city, else same circuit
+  const tests = [(r, t) => norm(r.name) === norm(t.name), (r, t) => r.countryCode === t.countryCode && norm(r.city) === norm(t.city) && !!r.city,
+    (r, t) => norm(r.circuit) === norm(t.circuit) && !!r.circuit];
+  const pick = new Map();
+  tests.forEach(test => target.forEach(t => { if (pick.has(t)) return; const m = mine.find(r => !used.has(r.id) && test(r, t)); if (m) { used.add(m.id); pick.set(t, m); } }));
   const rows = target.map(t => {
-    const m = mine.find(r => !used.has(r.id) && key(r) === key(t));
-    if (m) used.add(m.id);
+    const m = pick.get(t) || null;
     const nRes = m ? c.results.filter(x => x.roundId === m.id).length : 0;
-    return { target: t, round: m || null, results: nRes, moved: !!m && (m.round !== t.round || m.dateEnd !== t.dateEnd) };
+    return { target: t, round: m, results: nRes, moved: !!m && (m.round !== t.round || m.dateEnd !== t.dateEnd) };
   });
   const extra = mine.filter(r => !used.has(r.id)).map(r => ({ round: r, results: c.results.filter(x => x.roundId === r.id).length }));
   const changed = rows.some(r => !r.round || r.moved);
-  return { rows, extra, changed };
+  return { seasonId, rows, extra, changed };
 }
-function restoreOriginalCalendar(c, sample) {
-  const plan = originalCalendarPlan(c, sample); if (!plan || !plan.changed) return false;
-  const byOldNo = {}; c.rounds.filter(r => r.seasonId === CAL_SEASON).forEach(r => { byOldNo[r.round] = r.id; });
-  plan.rows.forEach(({ target: t, round: r }) => {
-    if (!r) { r = { id: t.id && !c.rounds.some(x => x.id === t.id) ? t.id : newId('rounds'), seasonId: CAL_SEASON, status: 'scheduled' }; c.rounds.push(r); }
-    Object.assign(r, { round: t.round, name: t.name, country: t.country, countryCode: t.countryCode, officialName: t.officialName, circuit: t.circuit, city: t.city,
-      dateStart: t.dateStart, dateEnd: t.dateEnd, sprint: t.sprint, sessions: clone(t.sessions), imageUrl: r.imageUrl || t.imageUrl });
+function restoreOriginalCalendar(c, sample, seasonId) {
+  const ids = seasonId ? [seasonId] : calendarSeasons(c).map(s => s.id);
+  let any = false;
+  ids.forEach(sid => {
+    const plan = originalCalendarPlan(c, sample, sid); if (!plan || !plan.changed) return;
+    const byOldNo = {}; c.rounds.filter(r => r.seasonId === sid).forEach(r => { byOldNo[r.round] = r.id; });
+    plan.rows.forEach(({ target: t, round: r }) => {
+      if (!r) { r = { id: sid === CAL_SEASON && t.id && !c.rounds.some(x => x.id === t.id) ? t.id : newId('rounds'), seasonId: sid, status: 'scheduled' }; c.rounds.push(r); }
+      Object.assign(r, { round: t.round, name: t.name, country: t.country, countryCode: t.countryCode, officialName: t.officialName, circuit: t.circuit, city: t.city,
+        dateStart: t.dateStart, dateEnd: t.dateEnd, sprint: t.sprint, sessions: clone(t.sessions), imageUrl: r.imageUrl || t.imageUrl });
+    });
+    // your own extra races (not in the original calendar) go after it, in their old order
+    plan.extra.sort((a, b) => a.round.round - b.round.round).forEach((x, i) => { x.round.round = plan.rows.length + 1 + i; });
+    const newNo = id => (c.rounds.find(r => r.id === id) || {}).round;
+    c.assignments.filter(a => a.seasonId === sid).forEach(a => {
+      if (byOldNo[a.fromRound]) a.fromRound = newNo(byOldNo[a.fromRound]);
+      if (a.toRound != null && byOldNo[a.toRound]) a.toRound = newNo(byOldNo[a.toRound]);
+    });
+    any = true;
   });
-  // your own extra races (not in the original calendar) go after it, in their old order
-  plan.extra.sort((a, b) => a.round.round - b.round.round).forEach((x, i) => { x.round.round = plan.rows.length + 1 + i; });
-  const newNo = id => (c.rounds.find(r => r.id === id) || {}).round;
-  c.assignments.filter(a => a.seasonId === CAL_SEASON).forEach(a => {
-    if (byOldNo[a.fromRound]) a.fromRound = newNo(byOldNo[a.fromRound]);
-    if (a.toRound != null && byOldNo[a.toRound]) a.toRound = newNo(byOldNo[a.toRound]);
-  });
-  c.meta.calendarV2 = true;
-  return true;
+  if (any) { c.meta.calendarV2 = true; c.meta.calendarV3 = true; }
+  return any;
 }
 
 /* --- next season ------------------------------------------------------------
@@ -239,9 +251,9 @@ const Store = {
   // one-time upgrade: careers on the shortened post-war calendar move to the original 2026 calendar.
   // Results stay attached to their races (see restoreOriginalCalendar); a full backup is kept in this browser first.
   autoOriginalCalendar(sample) {
-    if (this.data.meta.calendarV2) return;
-    const plan = originalCalendarPlan(this.data, sample);
-    if (!plan || !plan.changed) { this.data.meta.calendarV2 = true; return; }
+    if (this.data.meta.calendarV3) return;
+    const pending = calendarSeasons(this.data).some(s => { const p = originalCalendarPlan(this.data, sample, s.id); return p && p.changed; });
+    if (!pending) { this.data.meta.calendarV3 = true; return; }
     this.snapshot('before original calendar');
     if (restoreOriginalCalendar(this.data, sample)) {
       this.data.meta.calendarNotice = true;

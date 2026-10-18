@@ -114,4 +114,36 @@ test('an existing save is moved to the original calendar on load, results unchan
   assert.equal(A.roundsOf(A.Store.data, SID).length, 24);
 });
 
+// The same old save, but its 2026 season has another id and the first (skipped) upgrade already marked it done.
+function customIdSave() {
+  const c = oldSave(), NEW = 'sea_mine_2026';
+  c.seasons.find(x => x.id === SID).id = NEW;
+  [c.rounds, c.assignments, c.articles].forEach(list => list.forEach(r => { if (r.seasonId === SID) r.seasonId = NEW; }));
+  if (c.meta.activeSeasonId === SID) c.meta.activeSeasonId = NEW;
+  c.meta.calendarV2 = true;
+  return { c, NEW };
+}
+const content = r => JSON.stringify(r.map(x => [x.id, x.roundId, x.session, x.entries.map(e => [e.driverId, e.teamId, e.status, e.pos, e.grid, e.laps, e.time, e.fastestLap, e.points])]));
+
+test('a 2026 season with another id is fixed too, results unchanged', () => {
+  const { c, NEW } = customIdSave(); const before = content(c.results);
+  assert.equal(A.restoreOriginalCalendar(c, sample), true);
+  assert.equal(content(c.results), before);
+  const rs = A.roundsOf(c, NEW);
+  assert.deepEqual(rs.slice(0, 6).map(r => r.name), ['Australia', 'China', 'Japan', 'Bahrain', 'Saudi Arabia', 'Miami']);
+  assert.ok(rs.every(r => r.seasonId === NEW));
+  assert.equal(A.validateCareer(c).length, 0);
+});
+
+test('a career the first upgrade skipped is fixed on the next load', () => {
+  const { c, NEW } = customIdSave(); const before = content(c.results);
+  Object.keys(mem).forEach(k => delete mem[k]);
+  mem['f1ch.career.v1'] = JSON.stringify(c);
+  A.Store.load(sample);
+  assert.equal(content(A.Store.data.results), before);
+  assert.equal(A.roundsOf(A.Store.data, NEW)[3].name, 'Bahrain');
+  assert.equal(content(JSON.parse(mem['f1ch.career.v1']).results), before);
+  assert.ok(Object.keys(mem).some(k => k.startsWith('f1ch.backup.')));
+});
+
 console.log(`\n${pass} passed`);
