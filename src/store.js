@@ -111,6 +111,73 @@ function addStarterF2(c, sample) {
   return true;
 }
 
+/* --- original 2026 calendar ------------------------------------------------
+   Saves made before the calendar fix hold the post-war calendar (22 rounds, Bahrain in October, no Saudi Arabia).
+   This brings back the original 24 rounds WITHOUT touching results:
+     • every existing round keeps its id, so its results, poles and news stay attached to the same race;
+     • only dates, sessions and round numbers change; missing races (Saudi Arabia) are added with no results;
+     • line-up changes ("from round 6") are renumbered so they still start at the same race. */
+const CAL_SEASON = 'sea_2026_grid';
+function originalCalendarPlan(c, sample) {
+  const target = (sample.rounds || []).filter(r => r.seasonId === CAL_SEASON).sort((a, b) => a.round - b.round);
+  const mine = c.rounds.filter(r => r.seasonId === CAL_SEASON);
+  if (!target.length || !mine.length) return null;
+  const key = r => String(r.name || '').toLowerCase();
+  const used = new Set();
+  const rows = target.map(t => {
+    const m = mine.find(r => !used.has(r.id) && key(r) === key(t));
+    if (m) used.add(m.id);
+    const nRes = m ? c.results.filter(x => x.roundId === m.id).length : 0;
+    return { target: t, round: m || null, results: nRes, moved: !!m && (m.round !== t.round || m.dateEnd !== t.dateEnd) };
+  });
+  const extra = mine.filter(r => !used.has(r.id)).map(r => ({ round: r, results: c.results.filter(x => x.roundId === r.id).length }));
+  const changed = rows.some(r => !r.round || r.moved);
+  return { rows, extra, changed };
+}
+function restoreOriginalCalendar(c, sample) {
+  const plan = originalCalendarPlan(c, sample); if (!plan || !plan.changed) return false;
+  const byOldNo = {}; c.rounds.filter(r => r.seasonId === CAL_SEASON).forEach(r => { byOldNo[r.round] = r.id; });
+  plan.rows.forEach(({ target: t, round: r }) => {
+    if (!r) { r = { id: t.id && !c.rounds.some(x => x.id === t.id) ? t.id : newId('rounds'), seasonId: CAL_SEASON, status: 'scheduled' }; c.rounds.push(r); }
+    Object.assign(r, { round: t.round, name: t.name, country: t.country, countryCode: t.countryCode, officialName: t.officialName, circuit: t.circuit, city: t.city,
+      dateStart: t.dateStart, dateEnd: t.dateEnd, sprint: t.sprint, sessions: clone(t.sessions), imageUrl: r.imageUrl || t.imageUrl });
+  });
+  // your own extra races (not in the original calendar) go after it, in their old order
+  plan.extra.sort((a, b) => a.round.round - b.round.round).forEach((x, i) => { x.round.round = plan.rows.length + 1 + i; });
+  const newNo = id => (c.rounds.find(r => r.id === id) || {}).round;
+  c.assignments.filter(a => a.seasonId === CAL_SEASON).forEach(a => {
+    if (byOldNo[a.fromRound]) a.fromRound = newNo(byOldNo[a.fromRound]);
+    if (a.toRound != null && byOldNo[a.toRound]) a.toRound = newNo(byOldNo[a.toRound]);
+  });
+  c.meta.calendarV2 = true;
+  return true;
+}
+
+/* --- next season ------------------------------------------------------------
+   Creates the following year for a season: same series, points rule and calendar (dates moved one year, same weekday),
+   and the line-up as it stands after the last round. The finished season and all its results are left untouched. */
+const shiftDate = (iso, days) => { if (!iso) return iso; const t = new Date(iso + 'T12:00:00Z'); if (isNaN(t)) return iso; t.setUTCDate(t.getUTCDate() + days); return t.toISOString().slice(0, 10); };
+function nextSeasonOf(c, s) { return c.seasons.find(x => x.year === s.year + 1 && (x.series || 'f1') === (s.series || 'f1')) || null; }
+function startNextSeason(c, seasonId) {
+  const s = c.seasons.find(x => x.id === seasonId); if (!s) throw new Error('Unknown season');
+  if (nextSeasonOf(c, s)) return nextSeasonOf(c, s);
+  const Y = s.year + 1, f2 = (s.series || 'f1') === 'f2';
+  const ns = { id: newId('seasons'), series: s.series || 'f1', year: Y, name: f2 ? `${Y} FIA Formula 2` : `${Y} Season`, pointsRuleId: s.pointsRuleId, notes: `Continued from ${s.name}.`, photoUrls: s.photoUrls || [] };
+  c.seasons.push(ns);
+  const rounds = c.rounds.filter(r => r.seasonId === s.id).sort((a, b) => a.round - b.round);
+  const days = 364;   // 52 weeks: the same weekend of the year, on the same weekdays
+  rounds.forEach(r => c.rounds.push(Object.assign(clone(r), {
+    id: newId('rounds'), seasonId: ns.id, status: 'scheduled', dateStart: shiftDate(r.dateStart, days), dateEnd: shiftDate(r.dateEnd, days),
+    officialName: String(r.officialName || '').replace(String(s.year), String(Y)),
+    sessions: (r.sessions || []).map(x => Object.assign({}, x, { date: shiftDate(x.date, days) })),
+  })));
+  const last = rounds.length ? rounds[rounds.length - 1].round : 1;
+  c.assignments.filter(a => a.seasonId === s.id && a.fromRound <= last && (a.toRound == null || a.toRound >= last))
+    .forEach(a => c.assignments.push({ id: newId('assignments'), seasonId: ns.id, driverId: a.driverId, teamId: a.teamId, fromRound: 1, toRound: null, role: a.role || 'race' }));
+  if (c.meta.activeSeasonId === s.id) c.meta.activeSeasonId = ns.id;
+  return ns;
+}
+
 /* Returns a list of human-readable integrity problems (empty = OK). */
 function validateCareer(c) {
   const errs = [];
@@ -189,6 +256,16 @@ const Store = {
     this.data = c; this.save();
   },
   exportJSON() { return JSON.stringify(this.data, null, 2); },
+  /* Keeps a full copy of the career in this browser before a big change (last 5 kept). Returns the key. */
+  snapshot(label) {
+    const key = 'f1ch.backup.' + new Date().toISOString().replace(/[:.]/g, '-');
+    try {
+      localStorage.setItem(key, JSON.stringify({ label, at: new Date().toISOString(), data: this.data }));
+      const keys = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('f1ch.backup.')) keys.push(k); }
+      keys.sort().slice(0, -5).forEach(k => localStorage.removeItem(k));
+    } catch (e) { return null; }
+    return key;
+  },
 
   /* generic CRUD — keeps ids stable */
   get(coll, id) { return this.data[coll].find(r => r.id === id) || null; },

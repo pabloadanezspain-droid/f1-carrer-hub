@@ -23,8 +23,11 @@ function pageHome() {
 
   const chips = `<div class="wrap chip-row">${pill('Latest news', '#/news')}${pill('Schedule', '#/schedule')}${pill('Results', '#/results')}${pill("Drivers' standings", '#/standings/drivers')}${pill("Teams' standings", '#/standings/teams')}${pill('Edit Career', '#/edit')}</div>`;
 
+  const done = !nx && roundsOf(c, s.id).length && !nextSeasonOf(c, s);
+  const banner = done ? `<div class="wrap"><div class="season-done-banner"><span><b>${esc(s.name)} is complete.</b> Ready for ${s.year + 1}? Your ${s.year} results stay saved.</span><a class="btn btn-white" href="#/edit/seasons">Continue to ${s.year + 1}</a></div></div>` : '';
   return { title: 'Home', nav: 'home', html: `
     ${chips}
+    ${banner}
     ${leadGrid}
     <section class="wrap home-duo">
       ${nx ? nextRaceCard(nx) : `<div class="panel">${emptyState('Season complete', 'Every round has a result.', null)}</div>`}
@@ -232,6 +235,7 @@ function resultsSubnav(s, active) {
     { key: 'races', label: 'Races', href: `#/results${seasonQ(s)}` },
     { key: 'drivers', label: 'Drivers', href: `#/standings/drivers${seasonQ(s)}` },
     { key: 'teams', label: 'Teams', href: `#/standings/teams${seasonQ(s)}` },
+    { key: 'stats', label: 'Stats', href: `#/standings/stats${seasonQ(s)}` },
   ], active);
 }
 
@@ -279,6 +283,33 @@ function pageRaceResult(roundId, session) {
       <p class="page-sub"><b>${esc(fmtRange(r.dateStart, r.dateEnd)).toUpperCase()} ${esc(parseDate(r.dateEnd)?.getUTCFullYear() || '')}</b><br>${esc([r.circuit, r.city].filter(Boolean).join(', '))}</p>
       ${res ? dataTable(headers, trs) : emptyState('No result yet', 'This session has not been entered.', { href: `#/edit/results?round=${r.id}`, label: 'Enter result' })}
       ${res && !isQ ? '<p class="footnote">Team shown is the team the driver raced for at this round. FL = fastest lap.</p>' : ''}
+    </div>` };
+}
+
+/* ======================= STATS =========================================== */
+// Season stats for the chosen season, and all-time stats across every season of the same series.
+function pageStats(q) {
+  const c = D(); const s = pickSeason(q); if (!s) return noSeason();
+  const series = seriesOf(s), f2 = series === 'f2';
+  const n = v => `<td class="num">${v}</td>`;
+  const dName = id => { const d = driverOf(id); return d ? `${flag(d.nationality, 'mx-flag')} <a href="#/drivers/${d.id}">${esc(nameOf(d))}</a>` : esc(id); };
+  const tName = id => { const t = teamOf(id); return t ? `<span class="dot" style="--tc:${t.color}"></span> <a href="#/teams/${t.id}">${esc(t.name)}</a>` : esc(id); };
+  const seasonRows = driverStandings(c, s.id).map(r => { const st = statsFor(c, 'drivers', r.id, s.id); const t = teamOf(r.teamId);
+    return `<tr><td>${completedRounds(c, s.id).length ? r.position : '—'}</td><td class="mx-left">${dName(r.id)}</td><td class="mx-left">${t ? esc(t.name) : ''}</td>${n(st.races)}${n(st.wins)}${n(st.podiums)}${n(st.poles)}${n(st.fastestLaps)}${n(st.dnfs)}${n(st.best ? st.best + ordinal(st.best) : '—')}<td class="num"><b>${st.points}</b></td></tr>`; });
+  const allD = allTimeStats(c, series, 'drivers').map((r, i) => `<tr><td>${i + 1}</td><td class="mx-left">${dName(r.id)}</td>${n(r.seasons)}${n(r.titles ? '🏆 ' + r.titles : 0)}${n(r.races)}${n(r.wins)}${n(r.podiums)}${n(r.poles)}${n(r.fastestLaps)}${n(r.best ? `${r.best}${ordinal(r.best)} (${r.bestSeason})` : '—')}<td class="num"><b>${r.points}</b></td></tr>`);
+  const allT = allTimeStats(c, series, 'teams').map((r, i) => `<tr><td>${i + 1}</td><td class="mx-left">${tName(r.id)}</td>${n(r.seasons)}${n(r.titles ? '🏆 ' + r.titles : 0)}${n(r.wins)}${n(r.podiums)}${n(r.poles)}${n(r.best ? `${r.best}${ordinal(r.best)} (${r.bestSeason})` : '—')}<td class="num"><b>${r.points}</b></td></tr>`);
+  const races = f2 ? 'Feature races' : 'Races';
+  const nSeasons = c.seasons.filter(x => seriesOf(x) === series).length;
+  return { title: `${s.year} Stats`, nav: 'standings', html: `
+    ${resultsSubnav(s, 'stats')}
+    <div class="wrap page">
+      <h1 class="h-page">${esc(s.year)} Season Stats</h1>
+      <div class="mx-scroll"><table class="mx-table stats-table"><thead><tr><th>Pos.</th><th>Driver</th><th>Team</th><th>${races}</th><th>Wins</th><th>Podiums</th><th>Poles</th><th>Fastest laps</th><th>DNFs</th><th>Best</th><th>Points</th></tr></thead><tbody>${seasonRows.join('')}</tbody></table></div>
+      <h2 class="h-section spaced">All-time ${f2 ? 'Formula 2' : 'Formula 1'} drivers</h2>
+      <p class="page-intro">Every season of this career added up (${nSeasons} season${nSeasons > 1 ? 's' : ''}). A title counts once all races of that season have results.</p>
+      ${allD.length ? `<div class="mx-scroll"><table class="mx-table stats-table"><thead><tr><th>#</th><th>Driver</th><th>Seasons</th><th>Titles</th><th>${races}</th><th>Wins</th><th>Podiums</th><th>Poles</th><th>Fastest laps</th><th>Best finish</th><th>Points</th></tr></thead><tbody>${allD.join('')}</tbody></table></div>` : '<p class="muted">No results yet.</p>'}
+      <h2 class="h-section spaced">All-time teams</h2>
+      ${allT.length ? `<div class="mx-scroll"><table class="mx-table stats-table"><thead><tr><th>#</th><th>Team</th><th>Seasons</th><th>Titles</th><th>Wins</th><th>Podiums</th><th>Poles</th><th>Best finish</th><th>Points</th></tr></thead><tbody>${allT.join('')}</tbody></table></div>` : '<p class="muted">No results yet.</p>'}
     </div>` };
 }
 
@@ -338,7 +369,9 @@ function pageDriver(id, q) {
   const hist = s ? driverTeamHistory(c, d.id, s.id) : [];
   const seasonRes = s ? driverSeasonResults(c, d.id, s.id) : [];
   const arts = articlesFor(c, { driverId: d.id }).slice(0, 4);
-  const age = d.dob ? Math.floor((Date.now() - parseDate(d.dob)) / 31557600000) : null;
+  // age during the season being viewed (at its first race), so a new season makes everyone a year older
+  const ageRef = s ? (parseDate((roundsOf(c, s.id)[0] || {}).dateStart) || new Date(Date.UTC(s.year, 2, 1))) : new Date();
+  const age = d.dob ? Math.floor((ageRef - parseDate(d.dob)) / 31557600000) : null;
   const statDl = (pairs) => `<dl class="stat-grid">${pairs.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
   return { title: nameOf(d), nav: 'drivers', html: `
     ${subnav([{ key: 'back', label: '‹ All drivers', href: '#/drivers' }, { key: 'stats', label: 'Statistics', href: '#stats', anchor: 1 }, { key: 'results', label: 'Results', href: '#results' }, { key: 'bio', label: 'Profile', href: '#bio' }], '')}

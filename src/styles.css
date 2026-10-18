@@ -752,3 +752,18 @@ thead .mx-pos, thead .mx-name { background: #eaecf0; z-index: 3; box-shadow: 1px
 /* free agents on the Drivers page */
 .is-free .driver-card { filter: grayscale(.85); opacity: .85; }
 .is-free .driver-card:hover { filter: none; opacity: 1; }
+
+/* Edit Career: original calendar + next season */
+.cal-restore, .season-advance { margin-bottom: var(--gap); }
+.cal-restore ul, .sa-steps { margin: 8px 0 12px 20px; display: grid; gap: 6px; }
+.sa-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin: 12px 0; }
+.sa-card { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; }
+.sa-card span { display: flex; flex-direction: column; gap: 4px; }
+.sa-card small { color: var(--text-2); }
+.sa-card .sa-warn { color: #f5b041; }
+.season-done-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; margin-bottom: var(--gap); border-radius: var(--radius); background: linear-gradient(90deg, var(--red), var(--red-20)); color: #fff; }
+
+/* stats tab */
+.stats-table { width: 100%; }
+.stats-table td.num { text-align: right; }
+.stats-table .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--tc); vertical-align: middle; }

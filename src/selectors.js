@@ -255,6 +255,25 @@ function statsFor(c, kind, id, seasonFilter) {
   return st;
 }
 
+/* All-time table for one series: every driver (or team) that raced in any of its seasons, summed over those seasons. */
+function allTimeStats(c, series, kind) {
+  const seasons = c.seasons.filter(s => (s.series || 'f1') === series);
+  const rows = {};
+  seasons.forEach(s => {
+    const table = standings(c, s.id, kind);
+    const complete = roundsOf(c, s.id).length && completedRounds(c, s.id).length === roundsOf(c, s.id).length;
+    table.forEach(t => {
+      const st = statsFor(c, kind, t.id, s.id);
+      if (!st.races && !st.points) return;
+      const r = rows[t.id] = rows[t.id] || { id: t.id, seasons: 0, titles: 0, races: 0, wins: 0, podiums: 0, poles: 0, fastestLaps: 0, points: 0, best: null, bestSeason: null };
+      r.seasons++; r.races += st.races; r.wins += st.wins; r.podiums += st.podiums; r.poles += st.poles; r.fastestLaps += st.fastestLaps; r.points += st.points;
+      if (complete && t.position === 1) r.titles++;
+      if (t.position && (r.best == null || t.position < r.best)) { r.best = t.position; r.bestSeason = s.year; }
+    });
+  });
+  return Object.values(rows).sort((a, b) => b.titles - a.titles || b.wins - a.wins || b.points - a.points);
+}
+
 function articlesFor(c, opts) {
   opts = opts || {};
   return c.articles.filter(a =>

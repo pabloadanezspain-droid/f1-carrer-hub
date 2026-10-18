@@ -46,10 +46,14 @@ const DR = [
 ];
 
 // slug (image), short name, country code, official name, circuit, city, first day, race day, sprint
+// The ORIGINAL 2026 calendar (24 rounds, published June 2025), as used by the game.
+// The real season later lost Bahrain and Saudi Arabia in April to the Iran war (Bahrain moved to October).
 const CAL = [
   ['australia', 'Australia', 'AUS', 'Australian Grand Prix', 'Albert Park Circuit', 'Melbourne', '2026-03-06', '2026-03-08'],
   ['china', 'China', 'CHN', 'Chinese Grand Prix', 'Shanghai International Circuit', 'Shanghai', '2026-03-13', '2026-03-15', true],
   ['japan', 'Japan', 'JPN', 'Japanese Grand Prix', 'Suzuka International Racing Course', 'Suzuka', '2026-03-27', '2026-03-29'],
+  ['bahrain', 'Bahrain', 'BHR', 'Bahrain Grand Prix', 'Bahrain International Circuit', 'Sakhir', '2026-04-10', '2026-04-12'],
+  ['saudi-arabia', 'Saudi Arabia', 'SAU', 'Saudi Arabian Grand Prix', 'Jeddah Corniche Circuit', 'Jeddah', '2026-04-17', '2026-04-19'],
   ['miami', 'Miami', 'USA', 'Miami Grand Prix', 'Miami International Autodrome', 'Miami', '2026-05-01', '2026-05-03', true],
   ['canada', 'Canada', 'CAN', 'Grand Prix du Canada', 'Circuit Gilles Villeneuve', 'Montréal', '2026-05-22', '2026-05-24', true],
   ['monaco', 'Monaco', 'MON', 'Grand Prix de Monaco', 'Circuit de Monaco', 'Monte Carlo', '2026-06-05', '2026-06-07'],
@@ -62,7 +66,6 @@ const CAL = [
   ['italy', 'Italy', 'ITA', "Gran Premio d'Italia", 'Autodromo Nazionale Monza', 'Monza', '2026-09-04', '2026-09-06'],
   ['spain', 'Spain', 'ESP', 'Gran Premio de España', 'Madring', 'Madrid', '2026-09-11', '2026-09-13'],
   ['azerbaijan', 'Azerbaijan', 'AZE', 'Azerbaijan Grand Prix', 'Baku City Circuit', 'Baku', '2026-09-24', '2026-09-26'],
-  ['bahrain', 'Bahrain', 'BHR', 'Bahrain Grand Prix', 'Bahrain International Circuit', 'Sakhir', '2026-10-02', '2026-10-04'],
   ['singapore', 'Singapore', 'SGP', 'Singapore Grand Prix', 'Marina Bay Street Circuit', 'Singapore', '2026-10-09', '2026-10-11', true],
   ['united-states', 'United States', 'USA', 'United States Grand Prix', 'Circuit of the Americas', 'Austin', '2026-10-23', '2026-10-25'],
   ['mexico', 'Mexico', 'MEX', 'Gran Premio de la Ciudad de México', 'Autódromo Hermanos Rodríguez', 'Mexico City', '2026-10-30', '2026-11-01'],
@@ -108,6 +111,6 @@ export function realGrid(fs) {
     };
   });
   const season = { id: REAL_SEASON, year: 2026, name: '2026 Real Grid (starter)', pointsRuleId: 'pts_standard',
-    notes: 'Real 2026 line-up and calendar from formula1.com, with no results. Enter your own career results here, or start a new career from it in Import / Export.' };
+    notes: 'Real 2026 line-up and the original 24-round calendar, with no results. Enter your own career results here, or start a new career from it in Import / Export.' };
   return { season, teams, drivers, assignments, rounds };
 }

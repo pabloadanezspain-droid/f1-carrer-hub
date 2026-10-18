@@ -90,6 +90,14 @@ These images are © Formula 1 / FOM and the photographers. Keep them local: don'
 - Automatic news covers F2 rounds too ("the Baku Feature Race"). When an academy driver wins, reaches the podium or leads F2, an academy story appears with a photo of the parent F1 team. Every auto story gets a photo: the lead driver's photos first, then the season's photo pool.
 - F2 faces have the same neck analysis as F1 faces, so a promoted junior gets an automatic draft in the F1 team's suit.
 
+## Original 2026 calendar
+The starter career uses the 24-race calendar planned before the war, as in the game (Bahrain and Saudi Arabia in April). Careers saved with the later 22-race calendar get a button in **Edit Career → Calendar**. It moves every race to its original date and round number and adds the missing ones. Results stay attached to their race, line-up changes keep starting at the same race, and a backup is saved and downloaded first.
+
+## Next season and stats
+- **Edit Career → Seasons → Continue to the next season** (also offered on the home page when a season is complete) creates the next year for F1 and/or F2. It copies the calendar on next-year dates and the line-ups as at the last race. Nothing from the finished season changes, and a backup is saved and downloaded first.
+- Driver ages are shown for the season you are viewing.
+- **Standings → Stats** lists the season's stats and all-time stats across every season of the series (titles, wins, podiums, poles, points, best finish).
+
 ## Line-ups, transfers and free agents
 - **Edit Career → Line-ups & transfers** opens a line-up board: every team of the season with 2 race seats and a reserve seat. Drag a driver onto a seat, or tap the driver and then the seat. Dropping on a taken seat swaps the two drivers. Dropping on **Free agents** releases the driver. Pick the round the change starts from; results already raced keep the old team.
 - Drivers racing in the other series that year are listed under the board, so an F2 junior can be promoted with one drag.

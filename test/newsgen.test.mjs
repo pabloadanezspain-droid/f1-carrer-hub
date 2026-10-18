@@ -33,7 +33,7 @@ test('a fresh career gets a season-opening preview', () => {
 });
 
 test('every raced round gets a report plus up to two extra stories', () => {
-  const c = fresh(); play(c, 23); A.syncAutoNews(c);
+  const c = fresh(); play(c, 24); A.syncAutoNews(c);
   for (const rd of A.roundsOf(c, SID)) {
     const n = c.articles.filter(a => a.auto && a.auto.round === rd.id && !a.auto.key.endsWith(':preview')).length;
     assert.ok(n >= 1 && n <= 3, rd.id + ' has ' + n);
@@ -43,7 +43,7 @@ test('every raced round gets a report plus up to two extra stories', () => {
 });
 
 test('headlines stay varied across a season', () => {
-  const c = fresh(); play(c, 23); A.syncAutoNews(c);
+  const c = fresh(); play(c, 24); A.syncAutoNews(c);
   const reports = c.articles.filter(a => a.category === 'Race Report');
   const shapes = new Set(reports.map(a => a.title.replace(/[A-Z][a-zé]+/g, 'X')));
   assert.ok(shapes.size >= 14, 'only ' + shapes.size + ' headline shapes in ' + reports.length + ' reports');
