@@ -159,4 +159,20 @@ test('more stories per race: qualifying, driver of the day, team-mates and more'
   assert.deepEqual([...A.validateCareer(c)], []);
 });
 
+test('race reports are long, stable and varied', () => {
+  const c = fresh(); play(c, 10); A.syncAutoNews(c);
+  const reps = A.roundsOf(c, SID).slice(0, 10).map(rd => c.articles.find(a => a.auto && a.auto.key === rd.id + ':report'));
+  const words = a => (a.title + ' ' + a.body).split(/\s+/).length;
+  reps.forEach(a => assert.ok(words(a) >= 300, a.title + ': ' + words(a) + ' words'));
+  // same facts -> same article on every sync
+  const again = A.normalizeCareer(A.clone(c)); A.Store.data = again; A.syncAutoNews(again);
+  reps.forEach(a => assert.equal(again.articles.find(x => x.id === a.id).body, a.body));
+  // consecutive reports share few sentences
+  const sents = a => new Set(a.body.split(/(?<=[.!?"])\s+/).map(x => x.replace(/[A-Z][a-zà-ÿ]+/g, 'N').trim()).filter(x => x.length > 25));
+  for (let i = 1; i < reps.length; i++) {
+    const A1 = sents(reps[i - 1]), B1 = sents(reps[i]); const same = [...B1].filter(x => A1.has(x)).length;
+    assert.ok(same / B1.size < 0.2, `reports ${i} and ${i + 1} share ${same}/${B1.size} sentences`);
+  }
+});
+
 console.log(`\n${pass} tests passed`);
