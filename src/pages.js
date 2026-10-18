@@ -25,8 +25,10 @@ function pageHome() {
 
   const done = !nx && roundsOf(c, s.id).length && !nextSeasonOf(c, s);
   const banner = done ? `<div class="wrap"><div class="season-done-banner"><span><b>${esc(s.name)} is complete.</b> Ready for ${s.year + 1}? Your ${s.year} results stay saved.</span><a class="btn btn-white" href="#/edit/seasons">Continue to ${s.year + 1}</a></div></div>` : '';
+  const calNote = c.meta.calendarNotice ? `<div class="wrap"><div class="season-done-banner"><span><b>Your calendar now matches the game:</b> the original 24 races, with Bahrain and Saudi Arabia in April. All ${c.results.length} results you entered are kept, each with its own race. A backup from before the change is stored in this browser.</span><span><a class="btn btn-white" href="#/schedule">See calendar</a> <button class="btn btn-outline" type="button" data-dismiss-cal>OK</button></span></div></div>` : '';
   return { title: 'Home', nav: 'home', html: `
     ${chips}
+    ${calNote}
     ${banner}
     ${leadGrid}
     <section class="wrap home-duo">

@@ -81,6 +81,7 @@ function closeMenu() {
 /* Global delegated behaviour — survives re-renders. */
 document.addEventListener('click', ev => {
   const t = ev.target;
+  if (t.closest('[data-dismiss-cal]')) { Store.data.meta.calendarNotice = false; Store.save(); return; }
   if (t.closest('[data-menu-open]')) { const m = document.getElementById('mobile-menu'); m.hidden = false; document.body.classList.add('menu-open'); return; }
   if (t.closest('[data-menu-close]')) { closeMenu(); return; }
   const tab = t.closest('[data-tabs] [data-tab]');

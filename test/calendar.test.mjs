@@ -4,7 +4,8 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 
 const src = p => fs.readFileSync(new URL('../src/' + p, import.meta.url), 'utf8');
-const ctx = { console, localStorage: { getItem: () => null, setItem: () => {} } };
+const mem = {};
+const ctx = { console, localStorage: { getItem: k => mem[k] ?? null, setItem: (k, v) => { mem[k] = v; }, removeItem: k => { delete mem[k]; }, key: i => Object.keys(mem)[i], get length() { return Object.keys(mem).length; } } };
 vm.createContext(ctx);
 vm.runInContext(src('store.js') + '\n' + src('selectors.js') + '\n' + src('matrix.js') + '\nthis.api = { normalizeCareer, validateCareer, clone, restoreOriginalCalendar, originalCalendarPlan, startNextSeason, nextSeasonOf, allTimeStats, seatsAt, completedRounds, mxSetResult, mxSetPole, driverStandings, roundsOf, Store };', ctx);
 const A = ctx.api;
@@ -94,6 +95,23 @@ test('all-time stats add up seasons of one series', () => {
   assert.equal(win.seasons, 2);
   assert.ok(win.wins >= 1);
   assert.ok(!t.some(r => r.id === 'drv_rafael_camara'), 'F2 drivers are not in the F1 table');
+});
+
+test('an existing save is moved to the original calendar on load, results unchanged', () => {
+  const old = oldSave();
+  const content = r => JSON.stringify(r.map(x => [x.id, x.roundId, x.session, x.entries.map(e => [e.driverId, e.teamId, e.status, e.pos, e.grid, e.laps, e.time, e.fastestLap, e.points])]));
+  const before = content(old.results);
+  mem['f1ch.career.v1'] = JSON.stringify(old);
+  A.Store.load(sample);
+  const c = A.Store.data;
+  assert.equal(content(c.results), before);
+  assert.equal(A.roundsOf(c, SID).length, 24);
+  assert.equal(c.rounds.find(r => r.id === 'rnd_2026_04').name, 'Miami');
+  assert.equal(content(JSON.parse(mem['f1ch.career.v1']).results), before);       // saved, still identical
+  assert.ok(Object.keys(mem).some(k => k.startsWith('f1ch.backup.')), 'backup kept');
+  const snap = mem['f1ch.career.v1']; A.Store.load(sample);
+  assert.equal(content(A.Store.data.results), before);                                // second load: nothing more happens
+  assert.equal(A.roundsOf(A.Store.data, SID).length, 24);
 });
 
 console.log(`\n${pass} passed`);
