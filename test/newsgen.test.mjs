@@ -7,7 +7,7 @@ const src = p => fs.readFileSync(new URL('../src/' + p, import.meta.url), 'utf8'
 const ctx = { console, URL, localStorage: { getItem: () => null, setItem() {} } };
 vm.createContext(ctx);
 vm.runInContext(['store.js', 'selectors.js', 'assets.js', 'components.js', 'matrix.js', 'newsgen.js'].map(src).join('\n')
-  + '\nthis.api = { Store, normalizeCareer, validateCareer, clone, mxSetResult, mxSetPole, syncAutoNews, rewriteAutoNews, ngSig, roundsOf, driverStandings };', ctx);
+  + '\nthis.api = { Store, normalizeCareer, validateCareer, clone, mxSetResult, mxSetPole, syncAutoNews, rewriteAutoNews, ngSig, roundsOf, driverStandings, startNextSeason, transferDriver, lineupAt };', ctx);
 const A = ctx.api;
 const sample = JSON.parse(src('sample-data.json'));
 let pass = 0;
@@ -164,6 +164,44 @@ test('rumours vary: fresh drivers, many kinds, few repeated headlines, stable te
   const c2 = fresh(); play(c2, 24); A.syncAutoNews(c2);
   assert.deepEqual(c2.articles.filter(a => a.auto && a.category === 'Transfer').map(a => a.title), heads);
   if (process.argv.includes('--rumours')) rum.slice(0, 8).forEach(a => console.log(`\nR${roundOf(a)} # ${a.title}\n> ${a.standfirst}\n${a.body}`));
+});
+
+test('new season: every transfer gets a storyline, plus a round-up', () => {
+  const c = fresh(); play(c, 24);
+  const ns = A.startNextSeason(c, SID);
+  A.transferDriver(c, ns.id, 'drv_max_verstappen', 'team_ferrari', 1);      // Verstappen to Ferrari (bumps someone)
+  A.transferDriver(c, ns.id, 'drv_lewis_hamilton', null, 1);                // Hamilton out
+  A.transferDriver(c, ns.id, 'drv_pablo_adanez', 'team_williams', 1);       // Pablo in
+  const r5 = A.roundsOf(c, ns.id)[4];
+  A.transferDriver(c, ns.id, 'drv_oliver_bearman', 'team_alpine', r5.round); // mid-season move
+  A.syncAutoNews(c);
+  const mv = c.articles.filter(a => a.auto && /:move_/.test(a.auto.key));
+  ['max_verstappen', 'lewis_hamilton', 'pablo_adanez', 'oliver_bearman'].forEach(d => assert.ok(mv.some(a => a.auto.key.includes('move_' + d)), 'story for ' + d));
+  assert.ok(mv.some(a => a.auto.key.includes('move_oliver_bearman') && a.roundId === r5.id), 'mid-season move at its round');
+  const ru = c.articles.find(a => a.auto && a.auto.key.endsWith(':moves')); assert.ok(ru && /Verstappen/.test(ru.body), 'round-up lists the moves');
+  mv.forEach(a => { assert.ok(a.body.length > 250, 'long enough'); assert.doesNotMatch(a.title + a.body, /\{[A-Za-z]+\}|undefined/); });
+  assert.ok(new Date(ru.publishedAt) < new Date(A.roundsOf(c, ns.id)[0].dateStart), 'round-up before the first race');
+  if (process.argv.includes('--moves')) [ru, ...mv].forEach(a => console.log(`\n# ${a.title}\n> ${a.standfirst}\n${a.body}`));
+  assert.deepEqual([...A.validateCareer(c)], []);
+});
+
+test('transfer storylines vary', () => {
+  const c = fresh(); play(c, 24); const ns = A.startNextSeason(c, SID);
+  const teams = [...new Set(c.assignments.filter(a => a.seasonId === ns.id).map(a => a.teamId))];
+  const ds = c.assignments.filter(a => a.seasonId === ns.id && a.role === 'race').map(a => a.driverId);
+  ds.forEach((d, i) => A.transferDriver(c, ns.id, d, teams[(teams.indexOf(c.assignments.find(a => a.seasonId === SID && a.driverId === d).teamId) + 1 + (i % 3)) % teams.length], 1));
+  A.syncAutoNews(c);
+  const heads = c.articles.filter(a => a.auto && /:move_/.test(a.auto.key)).map(a => a.title);
+  assert.ok(heads.length >= 15, 'moves: ' + heads.length);
+  assert.ok(new Set(heads).size >= heads.length - 2, 'few repeated headlines');
+});
+
+test('team-mate battles rotate across teams, other-series rumours name a team', () => {
+  const c = fresh(); play(c, 24); A.syncAutoNews(c);
+  const tm = c.articles.filter(a => a.auto && a.auto.key.endsWith(':teammates'));
+  assert.ok(new Set(tm.map(a => a.teamIds[0])).size >= 5, 'teams covered: ' + new Set(tm.map(a => a.teamIds[0])).size);
+  const ser = c.articles.filter(a => a.category === 'Transfer' && /IndyCar|Endurance|Formula E|Super Formula|DTM|Dakar|television/.test(a.body));
+  ser.forEach(a => assert.match(a.title + a.body, /Penske|Andretti|Ganassi|Arrow McLaren|Rahal|Meyer Shank|AF Corse|Toyota|Porsche|Cadillac|BMW|Alpine Endurance|THOR|Jaguar|Nissan|Mahindra|Impul|Dandelion|Winward|Manthey|Dacia|Sky Sports|Netflix/));
 });
 
 test('more stories per race: qualifying, driver of the day, team-mates and more', () => {
