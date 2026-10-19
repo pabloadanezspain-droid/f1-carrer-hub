@@ -469,6 +469,9 @@ function editResults(q) {
     <form class="edit-form panel" data-results="${round.id}|${session}">
       <div class="res-head"><h3 class="h-card">${flag(round.countryCode)} ${esc(round.name)} · ${cap(session)}</h3>${res ? '<span class="tag tag-dark">Saved</span>' : '<span class="tag tag-red">Not entered yet</span>'}</div>
       <p class="muted">Put the drivers in ${quali ? 'qualifying order, pole first' : 'finishing order'}. Use ▲ ▼ to move them. Points are worked out for you.</p>
+      <div class="quick-order"><label for="qo-text"><b>Type the order</b> <span class="muted">car numbers, codes or last names, ${quali ? 'pole' : 'winner'} first. Example: <code>1 NOR lecl, 44 hulk</code></span></label>
+        <textarea id="qo-text" data-qo rows="2" placeholder="1 4 16 44 63 …"></textarea>
+        <div class="qo-bar"><button class="btn btn-outline" type="button" data-qo-apply>Apply order</button><span class="qo-hint muted" data-qo-hint>Drivers you leave out stay below in their current order.</span></div></div>
       <label class="switch switch-sm"><input type="checkbox" data-xcols><span class="switch-ui" aria-hidden="true"></span><span>Show team, grid, laps &amp; points columns</span></label>
       <div class="table-scroll"><table class="f1-table edit-table res-table" data-res-table><thead><tr><th>Pos</th><th>Driver</th><th class="x-col">Team</th><th>Status</th><th>${quali ? 'Best lap' : 'Time / gap'}</th>${flSession ? '<th title="Fastest lap">Fastest lap</th>' : ''}${quali ? '' : '<th class="x-col">Grid</th><th class="x-col">Laps</th><th class="x-col">Points</th>'}<th></th></tr></thead>
       <tbody data-rows>${entries.map(row).join('')}</tbody></table></div>
@@ -614,6 +617,24 @@ function bindEditor(root) {
     xc.addEventListener('change', () => { table.classList.toggle('show-x', xc.checked); try { localStorage.setItem('f1hub.xcols', xc.checked ? '1' : '0'); } catch (e) {} });
     const paint = tr => { const t = teamOf(tr.querySelector('[name=teamId]').value); tr.style.setProperty('--tc', t ? t.color : 'transparent'); };
     const renumber = () => tbody.querySelectorAll('[data-row]').forEach((tr, i) => { tr.querySelector('.pos-cell').textContent = i + 1; });
+    // quick order: type the order, the table sorts itself
+    const qo = rf.querySelector('[data-qo]'), qoHint = rf.querySelector('[data-qo-hint]');
+    const rowDrivers = () => [...tbody.querySelectorAll('[data-row]')].map(tr => driverOf(tr.querySelector('[name=driverId]').value)).filter(Boolean);
+    const qoCheck = () => {
+      const { ids, notes } = matchOrder(qo.value, rowDrivers());
+      qoHint.innerHTML = notes.length ? notes.map(n => n.kind === 'ok' ? `${n.pos} ${esc(n.names[0])}` : n.kind === 'none' ? `<b class="qo-bad">"${esc(n.word)}" not found</b>` : n.kind === 'many' ? `<b class="qo-bad">"${esc(n.word)}" matches ${esc(n.names.join(' and '))}, type more</b>` : `<b class="qo-bad">${esc(n.names[0])} twice</b>`).join(' · ') : 'Drivers you leave out stay below in their current order.';
+      return ids;
+    };
+    const qoApply = () => {
+      const ids = qoCheck(); if (!ids.length) return;
+      const rows = [...tbody.querySelectorAll('[data-row]')], byDrv = id => rows.find(tr => tr.querySelector('[name=driverId]').value === id);
+      const first = ids.map(byDrv).filter(Boolean), rest = rows.filter(tr => !first.includes(tr));
+      tbody.replaceChildren(...first, ...rest); renumber();
+      toast(`Order applied: ${first.length} drivers placed. Press Save result to keep it.`);
+    };
+    qo.addEventListener('input', qoCheck);
+    qo.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); qoApply(); } });
+    rf.querySelector('[data-qo-apply]').addEventListener('click', qoApply);
     rf.addEventListener('click', ev => {
       const b = ev.target.closest('button'); if (!b) return;
       const tr = b.closest('[data-row]');

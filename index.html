@@ -856,6 +856,13 @@ thead .mx-pos, thead .mx-name { background: #eaecf0; z-index: 3; box-shadow: 1px
 .stats-table td.num { text-align: right; }
 .stats-table .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--tc); vertical-align: middle; }
 
+/* quick order box on the results editor */
+.quick-order { display: grid; gap: 6px; margin: 4px 0 12px; }
+.quick-order textarea { width: 100%; font: inherit; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line, #ccc); background: var(--surface, #fff); color: inherit; resize: vertical; }
+.qo-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.qo-hint { font-size: .85em; }
+.qo-bad { color: #e10600; font-weight: 600; }
+
 /* ==========================================================================
    showroom.css — layered composites, Grid Showroom, grid reveal, studio, modal.
    Animations use transform / opacity / clip-path only (cheap on phones).
@@ -1703,6 +1710,31 @@ function articlesFor(c, opts) {
     (!opts.roundId || a.roundId === opts.roundId) &&
     (!opts.category || a.category === opts.category)
   ).sort((a, b) => String(b.publishedAt).localeCompare(String(a.publishedAt)));
+}
+
+/* --- quick order: turn typed text ("1 NOR lecl, hulk") into an ordered list of driver ids ------------------
+   Each word matches a car number, a 3-letter code or the start of a last name (accents and capitals ignored).
+   Returns { ids, notes }. Unknown, unclear or repeated words are skipped and explained in notes. */
+function matchOrder(text, drivers) {
+  const fold = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const words = String(text || '').split(/[\s,;]+/).map(w => w.trim()).filter(Boolean);
+  const ids = [], notes = [];
+  for (const raw of words) {
+    const w = fold(raw); if (!w) continue;
+    let hits;
+    if (/^\d+$/.test(w)) hits = drivers.filter(d => String(d.number) === String(Number(w)));
+    else {
+      hits = drivers.filter(d => fold(d.lastName) === w || fold(d.code) === w);
+      if (!hits.length) hits = drivers.filter(d => fold(d.lastName).startsWith(w) || fold(String(d.lastName).split(/\s+/).pop()).startsWith(w));
+      if (!hits.length) hits = drivers.filter(d => fold(d.firstName + d.lastName).startsWith(w));
+    }
+    hits = [...new Set(hits)];
+    if (!hits.length) { notes.push({ word: raw, kind: 'none' }); continue; }
+    if (hits.length > 1) { notes.push({ word: raw, kind: 'many', names: hits.map(d => d.lastName) }); continue; }
+    if (ids.includes(hits[0].id)) { notes.push({ word: raw, kind: 'twice', names: [hits[0].lastName] }); continue; }
+    ids.push(hits[0].id); notes.push({ word: raw, kind: 'ok', pos: ids.length, names: [hits[0].lastName] });
+  }
+  return { ids, notes };
 }
 
 /* ==========================================================================
@@ -5190,6 +5222,9 @@ function editResults(q) {
     <form class="edit-form panel" data-results="${round.id}|${session}">
       <div class="res-head"><h3 class="h-card">${flag(round.countryCode)} ${esc(round.name)} · ${cap(session)}</h3>${res ? '<span class="tag tag-dark">Saved</span>' : '<span class="tag tag-red">Not entered yet</span>'}</div>
       <p class="muted">Put the drivers in ${quali ? 'qualifying order, pole first' : 'finishing order'}. Use ▲ ▼ to move them. Points are worked out for you.</p>
+      <div class="quick-order"><label for="qo-text"><b>Type the order</b> <span class="muted">car numbers, codes or last names, ${quali ? 'pole' : 'winner'} first. Example: <code>1 NOR lecl, 44 hulk</code></span></label>
+        <textarea id="qo-text" data-qo rows="2" placeholder="1 4 16 44 63 …"></textarea>
+        <div class="qo-bar"><button class="btn btn-outline" type="button" data-qo-apply>Apply order</button><span class="qo-hint muted" data-qo-hint>Drivers you leave out stay below in their current order.</span></div></div>
       <label class="switch switch-sm"><input type="checkbox" data-xcols><span class="switch-ui" aria-hidden="true"></span><span>Show team, grid, laps &amp; points columns</span></label>
       <div class="table-scroll"><table class="f1-table edit-table res-table" data-res-table><thead><tr><th>Pos</th><th>Driver</th><th class="x-col">Team</th><th>Status</th><th>${quali ? 'Best lap' : 'Time / gap'}</th>${flSession ? '<th title="Fastest lap">Fastest lap</th>' : ''}${quali ? '' : '<th class="x-col">Grid</th><th class="x-col">Laps</th><th class="x-col">Points</th>'}<th></th></tr></thead>
       <tbody data-rows>${entries.map(row).join('')}</tbody></table></div>
@@ -5335,6 +5370,24 @@ function bindEditor(root) {
     xc.addEventListener('change', () => { table.classList.toggle('show-x', xc.checked); try { localStorage.setItem('f1hub.xcols', xc.checked ? '1' : '0'); } catch (e) {} });
     const paint = tr => { const t = teamOf(tr.querySelector('[name=teamId]').value); tr.style.setProperty('--tc', t ? t.color : 'transparent'); };
     const renumber = () => tbody.querySelectorAll('[data-row]').forEach((tr, i) => { tr.querySelector('.pos-cell').textContent = i + 1; });
+    // quick order: type the order, the table sorts itself
+    const qo = rf.querySelector('[data-qo]'), qoHint = rf.querySelector('[data-qo-hint]');
+    const rowDrivers = () => [...tbody.querySelectorAll('[data-row]')].map(tr => driverOf(tr.querySelector('[name=driverId]').value)).filter(Boolean);
+    const qoCheck = () => {
+      const { ids, notes } = matchOrder(qo.value, rowDrivers());
+      qoHint.innerHTML = notes.length ? notes.map(n => n.kind === 'ok' ? `${n.pos} ${esc(n.names[0])}` : n.kind === 'none' ? `<b class="qo-bad">"${esc(n.word)}" not found</b>` : n.kind === 'many' ? `<b class="qo-bad">"${esc(n.word)}" matches ${esc(n.names.join(' and '))}, type more</b>` : `<b class="qo-bad">${esc(n.names[0])} twice</b>`).join(' · ') : 'Drivers you leave out stay below in their current order.';
+      return ids;
+    };
+    const qoApply = () => {
+      const ids = qoCheck(); if (!ids.length) return;
+      const rows = [...tbody.querySelectorAll('[data-row]')], byDrv = id => rows.find(tr => tr.querySelector('[name=driverId]').value === id);
+      const first = ids.map(byDrv).filter(Boolean), rest = rows.filter(tr => !first.includes(tr));
+      tbody.replaceChildren(...first, ...rest); renumber();
+      toast(`Order applied: ${first.length} drivers placed. Press Save result to keep it.`);
+    };
+    qo.addEventListener('input', qoCheck);
+    qo.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); qoApply(); } });
+    rf.querySelector('[data-qo-apply]').addEventListener('click', qoApply);
     rf.addEventListener('click', ev => {
       const b = ev.target.closest('button'); if (!b) return;
       const tr = b.closest('[data-row]');
