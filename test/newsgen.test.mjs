@@ -36,7 +36,7 @@ test('every raced round gets a report plus up to two extra stories', () => {
   const c = fresh(); play(c, 24); A.syncAutoNews(c);
   for (const rd of A.roundsOf(c, SID)) {
     const n = c.articles.filter(a => a.auto && a.auto.round === rd.id && !a.auto.key.endsWith(':preview')).length;
-    assert.ok(n >= 1 && n <= 8, rd.id + ' has ' + n);
+    assert.ok(n >= 1 && n <= 9, rd.id + ' has ' + n);
     assert.ok(c.articles.some(a => a.auto && a.auto.key === rd.id + ':report'));
   }
   assert.deepEqual([...A.validateCareer(c)], []);
@@ -150,6 +150,20 @@ test('silly season: transfer rumours from round 12 to the end, never before', ()
   assert.ok(rum.every(a => roundOf(a) >= 12));
   for (let n = 12; n <= 24; n++) assert.ok(rum.some(a => roundOf(a) === n), 'rumour at round ' + n);
   assert.ok(rum.every(a => a.driverIds.length && a.imageUrl !== undefined));
+});
+
+test('rumours vary: fresh drivers, many kinds, few repeated headlines, stable text', () => {
+  const c = fresh(); play(c, 24); A.syncAutoNews(c);
+  const rum = c.articles.filter(a => a.auto && a.category === 'Transfer');
+  const roundOf = a => c.rounds.find(r => r.id === a.roundId).round;
+  const byRound = {}; rum.forEach(a => (byRound[roundOf(a)] = byRound[roundOf(a)] || []).push(a));
+  for (let n = 13; n <= 24; n++) { const now = (byRound[n] || []).filter(a => !/denies|dismiss|shut down|heats up|More signs|will not go away|twist|Nothing to it/.test(a.title)).map(a => a.driverIds[0]);
+    const before = (byRound[n - 1] || []).map(a => a.driverIds[0]); now.forEach(d => assert.ok(!before.includes(d), `round ${n}: ${d} again`)); }
+  const heads = rum.map(a => a.title); const dup = heads.length - new Set(heads).size;
+  assert.ok(dup / heads.length < 0.15, `repeated headlines ${dup}/${heads.length}`);
+  const c2 = fresh(); play(c2, 24); A.syncAutoNews(c2);
+  assert.deepEqual(c2.articles.filter(a => a.auto && a.category === 'Transfer').map(a => a.title), heads);
+  if (process.argv.includes('--rumours')) rum.slice(0, 8).forEach(a => console.log(`\nR${roundOf(a)} # ${a.title}\n> ${a.standfirst}\n${a.body}`));
 });
 
 test('more stories per race: qualifying, driver of the day, team-mates and more', () => {

@@ -537,41 +537,110 @@ function ngMidSeason(c, f, w, v) {
 // Built from the career itself: F2 stars and academy juniors, struggling drivers, free agents and race winners in midfield cars.
 function ngRumours(c, f) {
   if (NG_F2.has(f.round.seasonId) || f.round.round < 12) return [];
-  const sid = f.round.seasonId, out = [];
-  const st = driverStandings(c, sid, f.round.round), ts = teamStandings(c, sid, f.round.round).map(r => r.id);
-  const seats = lineupAt(c, sid, f.round.round);
+  const sid = f.round.seasonId, rn = f.round.round, out = [];
+  const st = driverStandings(c, sid, rn), ts = teamStandings(c, sid, rn).map(r => r.id);
+  const seats = lineupAt(c, sid, rn);
   const teamOfD = id => Object.keys(seats).find(t => seats[t].includes(id));
-  // 1) the F2 leader (or best academy junior) linked with an F1 seat
+  const pts = id => (st.find(r => r.id === id) || { points: 0 }).points;
+  // 1) F2 front-runners (or academy juniors) linked with an F1 seat
   const f2 = c.seasons.find(s => (s.series || 'f1') === 'f2' && s.year === (seasonOf(c, sid) || {}).year);
-  if (f2) {
-    const f2s = driverStandings(c, f2.id).filter(r => r.points > 0).slice(0, 3);
-    f2s.forEach((r, i) => { const a = academyOf(c, r.id); const target = a ? a.f1TeamId : ts[ts.length - 1 - i]; if (target) out.push({ kind: 'junior', who: r.id, team: target, academy: !!a, pos: i + 1 }); });
-  }
-  // 2) a struggling driver whose seat is in doubt (lowest scorer in a team where the team-mate doubles him)
-  Object.entries(seats).forEach(([tid, ds]) => { if (ds.length !== 2) return; const [a, b] = ds.map(id => st.find(r => r.id === id) || { id, points: 0 });
-    const lo = a.points <= b.points ? a : b, hi = lo === a ? b : a; if (hi.points >= 2 * lo.points + 10) out.push({ kind: 'doubt', who: lo.id, team: tid }); });
-  // 3) free agents linked with doubtful seats
-  const free = freeAgents(c, sid, f.round.round).free;
-  free.forEach((d, i) => { const doubt = out.filter(x => x.kind === 'doubt')[i % Math.max(1, out.filter(x => x.kind === 'doubt').length)]; out.push({ kind: 'free', who: d.id, team: doubt ? doubt.team : ts[ts.length - 1] }); });
-  // 4) a strong driver in a midfield car linked with a top team
-  st.slice(0, 8).forEach(r => { const tid = teamOfD(r.id); if (tid && ts.indexOf(tid) >= 4) out.push({ kind: 'star', who: r.id, team: ts[(ngHash(r.id + f.round.id) % 3)], from: tid }); });
-  return out.filter(x => x.who && x.team && teamOfD(x.who) !== x.team);
+  if (f2) driverStandings(c, f2.id).filter(r => r.points > 0).slice(0, 5).forEach((r, i) => { const a = academyOf(c, r.id); const target = a ? a.f1TeamId : ts[ts.length - 1 - (i % 4)]; if (target) out.push({ kind: 'junior', who: r.id, team: target, academy: !!a, pos: i + 1 }); });
+  // 2) a seat in doubt: the team-mate scores clearly more
+  Object.entries(seats).forEach(([tid, ds]) => { if (ds.length !== 2) return; const [a, b] = ds; const lo = pts(a) <= pts(b) ? a : b, hi = lo === a ? b : a;
+    if (pts(hi) >= 1.5 * pts(lo) + 6) out.push({ kind: 'doubt', who: lo, team: tid, other: hi }); });
+  // 3) free agents: talks or a simulator test
+  freeAgents(c, sid, rn).free.forEach((d, i) => { const tgt = ts[ts.length - 1 - (ngHash(d.id + f.round.id) % 5)]; out.push({ kind: 'free', who: d.id, team: tgt }, { kind: 'sim', who: d.id, team: ts[ngHash(f.round.id + d.id) % Math.max(1, ts.length)] }); });
+  // 4) strong drivers in midfield cars wanted by a top team
+  st.slice(0, 10).forEach(r => { const tid = teamOfD(r.id); if (tid && ts.indexOf(tid) >= 3) out.push({ kind: 'star', who: r.id, team: ts[ngHash(r.id + f.round.id) % 3], from: tid }); });
+  // 5) a swap between two drivers close in points at different teams
+  for (let i = 0; i + 1 < st.length && i < 16; i++) { const a = st[i].id, b = st[i + 1].id, ta = teamOfD(a), tb = teamOfD(b);
+    if (ta && tb && ta !== tb && Math.abs(st[i].points - st[i + 1].points) <= 12) out.push({ kind: 'swap', who: a, team: tb, from: ta, other: b }); }
+  // 6) veterans and retirement talk
+  Object.entries(seats).forEach(([tid, ds]) => ds.forEach(id => { const y = Number((String((driverOf(id) || {}).dob || '').match(/\d{4}/) || [0])[0]); const age = y ? (seasonOf(c, sid) || {}).year - y : 0;
+    if (age >= 33) out.push({ kind: 'retire', who: id, team: tid, age, stay: true }); }));
+  // 7) a new deal close for a driver in form
+  st.slice(0, 6).forEach(r => { const tid = teamOfD(r.id); if (tid) out.push({ kind: 'extend', who: r.id, team: tid, stay: true }); });
+  // 8) bosses under pressure at the bottom teams
+  ts.slice(-3).forEach(tid => { const d = (seats[tid] || [])[0]; if (d) out.push({ kind: 'boss', who: d, team: tid, stay: true }); });
+  // 9) a technical chief linked with a struggling team
+  ts.slice(0, 5).forEach((tid, i) => { const T = teamOf(tid) || {}; const tgt = ts[ts.length - 1 - i]; const d = (seats[tgt] || [])[0]; if (T.technicalChief && d && tgt !== tid) out.push({ kind: 'tech', who: d, team: tgt, from: tid, tech: T.technicalChief }); });
+  // 10) a driver low in the table linked with IndyCar or endurance racing
+  st.slice(-6).forEach(r => { const tid = teamOfD(r.id); if (tid) out.push({ kind: 'series', who: r.id, team: tid, series: ['IndyCar', 'the World Endurance Championship', 'Formula E', 'Le Mans with a factory team'][ngHash(r.id + rn) % 4], stay: true }); });
+  return out.filter(x => x.who && x.team && (x.stay || teamOfD(x.who) !== x.team));
 }
+
+// which rumours run after this race: fresh drivers, new kinds, 2 or 3 stories, plus now and then a follow-up of an older rumour
+function ngRumourPicks(c, round, memo) {
+  memo = memo || {};
+  if (memo[round.id]) return memo[round.id];
+  memo[round.id] = [];
+  const f = ngFacts(c, round); if (!f) return [];
+  const cands = ngRumours(c, f); if (!cands.length) return [];
+  const prev = roundsOf(c, round.seasonId).filter(r => r.round < round.round && r.round >= 12).slice(-3);
+  const past = prev.map(r => ngRumourPicks(c, r, memo));
+  const recentWho = new Set(past.flat().map(x => x.who)), recentKinds = past.slice(-1).flat().map(x => x.kind);
+  const rnd = ngRng(round.id + 'rumours');
+  const scored = cands.map(x => [x, rnd() + (recentWho.has(x.who) ? -5 : 0) + (recentKinds.includes(x.kind) ? -0.6 : 0)]).sort((a, b) => b[1] - a[1]);
+  const want = rnd() < 0.5 ? 3 : 2, pick = [];
+  // a follow-up of a rumour from 2 or 3 races ago
+  const old = past.length >= 2 ? past[past.length - 2].filter(x => ['junior', 'free', 'sim', 'star', 'swap', 'tech'].includes(x.kind)) : [];
+  if (old.length && rnd() < 0.45) { const o = old[Math.floor(rnd() * old.length)]; pick.push(Object.assign({}, o, { kind: 'followup', orig: o.kind, verdict: rnd() < 0.5 ? 'denied' : 'heating' })); }
+  for (const [x, sc] of scored) { if (pick.length >= want) break; if (sc < -4 && pick.length) continue; if (pick.some(p => p.who === x.who || p.kind === x.kind)) continue; pick.push(x); }
+  return (memo[round.id] = pick);
+}
+
+const NG_RUMOUR = {
+  head: {
+    junior: ['{T} weigh up promoting {X} for {next}', 'Is {X} ready for {T}? Paddock buzz grows', '{X} tipped for {T} seat', 'F2 star {X} on {T}’s shortlist', '{T} eye F2 front-runner {X}', 'Report: {T} in talks with {X}', 'The F2 name every team is asking about: {X}', '{X} edges closer to F1 with {T}'],
+    doubt: ['{X}’s future at {T} in doubt', 'Is {X}’s {T} seat at risk?', '{T} keep options open as {X} struggles', 'Pressure mounts on {X} at {T}', '{X} running out of time at {T}?', '{T} questions grow over {X}', 'Clock ticking for {X}'],
+    free: ['{X} in talks for {next} return', 'Free agent {X} linked with {T}', 'Could {X} be the answer for {T}?', '{X} eyes comeback with {T}', 'Return on the cards for {X}?', '{T} open the door to {X}'],
+    sim: ['{X} spotted in the {T} simulator', 'Secret {T} sim test for {X}?', '{X} completes simulator day with {T}', 'Why was {X} at the {T} factory?', '{X} and {T}: a test with a purpose?'],
+    star: ['{T} chase {X} for {next}', '{X} wanted by {T}', '{X} weighing {T} move', 'Big offer from {T} for {X}?', '{T} make {X} their top target', '{X} to leave {F}? {T} circle'],
+    swap: ['Seat swap talks: {X} and {O}?', '{X} to {T}, {O} the other way?', 'Paddock whispers of a {X}–{O} switch', 'Could {T} and {F} trade drivers?', 'Driver swap rumours grow: {X} and {O}'],
+    retire: ['Is {next} the last season for {X}?', '{X} retirement talk will not go away', '{X}, {age}, considering his future', 'How long will {X} keep going?', 'Retirement rumours follow {X}', '{X}: one more year, or the end?'],
+    extend: ['{X} close to new {T} deal', '{T} want {X} tied down long term', 'Contract talks advanced: {X} and {T}', 'New multi-year deal for {X} near', '{X} set to stay at {T}', '{T} race to keep {X}'],
+    boss: ['{T} boss under pressure', 'Questions grow over {T} leadership', 'Is {boss}’s job at {T} safe?', '{T} board losing patience?', 'Change at the top of {T}?'],
+    tech: ['{T} target {F} technical chief {tech}', 'Report: {tech} wanted by {T}', '{T} plan big move for {tech}', 'Could {tech} swap {F} for {T}?', 'Engineering coup in the making at {T}?'],
+    series: ['{X} linked with move to {series}', 'Is {series} the next step for {X}?', '{series} teams sound out {X}', 'Life after F1? {X} and {series}', '{series} teams circle {X}'],
+    followup: { denied: ['{X} denies {T} talks', '{T} shut down {X} rumours', '"Nothing to it": {X} on the {T} story', '{T} dismiss {X} reports'], heating: ['{X}–{T} story heats up', 'More signs point to {X} and {T}', 'The {X} rumour will not go away', 'Fresh twist in the {X}–{T} saga'] },
+  },
+  open: {
+    junior: ['{Xfull} runs {P} in Formula 2, and {T} are said to be watching every lap.', 'Sources suggest {T} have held early talks with the camp of {Xfull}.', 'After another strong weekend, the name of {Xfull} keeps coming up in the {T} motorhome.', '{T} need a driver for {next}, and {Xfull}, {P} in Formula 2, fits the profile.'],
+    doubt: ['{T} are understood to be looking at alternatives to {Xfull} for {next}.', 'With points hard to come by, {Xfull} faces a crucial run of races.', '{Xfull} has {pts} points, against {mpts} for team-mate {O}. That gap gets noticed.', 'The numbers do not look good for {Xfull}: {pts} points, {mpts} for {O} in the other car.'],
+    free: ['{Xfull} is without a seat, but several teams are understood to be interested.', 'Talks between {Xfull} and {T} are said to be at an early stage.', 'Out of a race seat for now, {Xfull} has never stopped talking to teams. {T} are one of them.'],
+    sim: ['{Xfull} was seen at the {T} factory this week, and a simulator session is said to have taken place.', 'A long day in the {T} simulator for {Xfull} has started talk in the paddock.', 'Staff at {T} say {Xfull} spent the day in the simulator. Officially, it was "general development work".'],
+    star: ['{Xfull}’s form at {F} has not gone unnoticed, and {T} are said to be interested.', 'Insiders say {T} have made contact with {Xfull}’s management.', '{Xfull} is {pos} in the standings with {pts} points in the {F}, and {T} want that speed.', 'Few drivers have done more with less than {Xfull} this year. {T} have noticed.'],
+    swap: ['{Xfull} ({F}) and {O} ({T}) are separated by a handful of points, and a swap is now being discussed.', 'An unusual idea is going around: {Xfull} to {T}, {O} to {F}.', 'Both teams are said to like the idea of a straight swap between {Xfull} and {O}.'],
+    retire: ['At {age}, {Xfull} has started to hint that the end is closer than the start.', 'People close to {Xfull} say he will decide on {next} in the coming weeks.', '{Xfull} is {age}, and the question of retirement follows him to every race.'],
+    extend: ['{T} are said to be close to agreeing a new deal with {Xfull}, {pos} in the championship.', 'With {pts} points so far, {Xfull} is in a strong position to negotiate with {T}.', 'Talks between {T} and {Xfull} are reported to be at an advanced stage.'],
+    boss: ['{T} sit {tpos} in the constructors’ standings, and the patience of the owners is said to be wearing thin.', 'Reports say the {T} board will review the leadership of {boss} after the season.', 'With few points on the board, the spotlight is on {T} team principal {boss}.'],
+    tech: ['{T} are said to have approached {tech}, technical chief at {F}.', 'To fix their car, {T} want the man behind {F}’s: {tech}.', 'A big offer from {T} is reported to be on the table for {F} technical chief {tech}.'],
+    series: ['With {pts} points this season, {Xfull} is said to be looking at options outside F1, including {series}.', 'Teams from {series} have contacted the management of {Xfull}, according to reports.', '{Xfull} has not hidden his interest in {series}, and the timing could be right.'],
+    followup: { denied: ['A few races ago, reports linked {Xfull} with {T}. Now the story has been firmly denied.', 'The talk about {Xfull} and {T} has been played down by both sides.'], heating: ['The story about {Xfull} and {T} first surfaced a few races ago. It has only grown since.', 'More details have emerged about {Xfull} and {T}, and the rumour looks more serious by the week.'] },
+  },
+  source: ['according to Italian media', 'according to a well-placed paddock source', 'according to the German press', 'according to several team insiders', 'according to a source close to the driver', 'according to Dutch broadcasters', 'according to the Spanish media', 'according to one team boss, speaking off the record', 'according to our sources in the paddock', 'according to the British press'],
+  sourceLine: ['That is the story, {src}.', 'Nothing is official, but talks have started, {src}.', 'The talks are real, {src}.', 'A decision could come within weeks, {src}.', 'The picture is still unclear, but contact has been made, {src}.'],
+  quote: ['"I only focus on the next race," {X} said when asked.', '"There is nothing to say yet," a team source said.', '"It is normal that names come up at this time of year," said {boss}.', '"My future will be decided soon," {X} said.', '"Speculation is part of this sport," a spokesperson for {T} said.', '"We talk to many people. That does not mean anything," said {boss}.', '"I read it too. Interesting story," {X} said with a smile.', '"When there is news, you will hear it from us," a spokesperson for {T} said.'],
+  close: ['Nothing is signed, and the situation could change quickly.', 'This is a rumour, and none of the parties has confirmed anything.', 'Expect this story to run for a few more weeks.', 'The next races could decide a lot.', 'For now, it is talk. But in this paddock, talk often turns into contracts.', 'Watch this space.'],
+};
 function ngRumourStory(c, f, w, v, x, i) {
-  const X = f.d(x.who), T = f.t(x.team), from = x.from ? f.t(x.from).name : (f.t(Object.keys(lineupAt(c, f.round.seasonId, f.round.round)).find(t => lineupAt(c, f.round.seasonId, f.round.round)[t].includes(x.who))) || {}).name;
-  const vars = Object.assign({}, v, { X: X.lastName, Xfull: `${X.firstName} ${X.lastName}`, T: T.name, F: from || 'his current team', P: ngOrd(x.pos || 1), next: (seasonOf(c, f.round.seasonId) || {}).year + 1 });
-  const H = { junior: x.academy ? ['{T} weigh up promoting junior {X} for {next}', 'Is {X} ready for {T}? Paddock buzz grows', '{X} tipped for {T} seat'] : ['F2 star {X} on {T}’s shortlist', '{T} eye F2 frontrunner {X}', 'Report: {T} in talks with {X}'],
-    doubt: ['{X}’s future at {T} in doubt', 'Silly season: is {X}’s {T} seat at risk?', '{T} keep options open as {X} struggles'],
-    free: ['{X} in talks for {next} return', 'Free agent {X} linked with {T}', 'Could {X} be the answer for {T}?'],
-    star: ['{T} chase {X} for {next}', 'Silly season: {X} wanted by {T}', '{X} weighing {T} move'] }[x.kind];
-  const B = { junior: ['{Xfull} runs {P} in Formula 2, and {T} are said to be watching every lap.', 'Sources suggest {T} have held early talks with the camp of {Xfull}.'],
-    doubt: ['{T} are understood to be looking at alternatives to {Xfull} for {next}.', 'With points hard to come by, {Xfull} faces a crucial run of races.'],
-    free: ['{Xfull} is without a seat, but several teams are understood to be interested.', 'Talks between {Xfull} and {T} are said to be at an early stage.'],
-    star: ['{Xfull}’s form in the {F} has not gone unnoticed, and {T} are said to be interested.', 'Insiders say {T} have made contact with {Xfull}’s management.'] }[x.kind];
-  const Q = ['"I only focus on the next race," {X} said when asked.', '"There is nothing to say yet," a team source said.', '"It is normal that names come up at this time of year," said {T}’s team principal.', '"My future will be decided soon," {X} said.'];
-  return { type: 'rumour' + i, category: 'Transfer', title: ngHeadline(ngFill(w.pick(H), vars)), standfirst: ngFill(w.pick(['Silly season rumours.', 'The paddock rumour mill is turning.', 'Transfer talk ahead of {next}.']), vars),
-    body: [ngFill(w.pick(B), vars), ngFill(w.pick(Q), vars), ngFill(w.pick(['Nothing is signed, and the situation could change quickly.', 'This is a rumour, and none of the parties has confirmed anything.']), vars)],
-    drivers: [x.who], teams: [x.team, x.from].filter(Boolean), hours: 40 + i * 14, rumour: true };
+  const sid = f.round.seasonId, rn = f.round.round, seats = lineupAt(c, sid, rn);
+  const X = f.d(x.who), T = f.t(x.team), curT = Object.keys(seats).find(t => seats[t].includes(x.who));
+  const st = driverStandings(c, sid, rn), ts = teamStandings(c, sid, rn).map(r => r.id);
+  const pos = st.findIndex(r => r.id === x.who), mate = x.other || (seats[curT] || []).find(id => id !== x.who);
+  const pts = id => (st.find(r => r.id === id) || { points: 0 }).points;
+  const vars = Object.assign({}, v, { X: X.lastName, Xfull: `${X.firstName} ${X.lastName}`, T: T.name, F: x.from ? f.t(x.from).name : (curT ? f.t(curT).name : 'his current team'),
+    O: mate ? f.d(mate).lastName : 'his team-mate', P: ngOrd(x.pos || 1), next: (seasonOf(c, sid) || {}).year + 1, pts: pts(x.who), mpts: mate ? pts(mate) : 0,
+    pos: pos >= 0 ? ngOrd(pos + 1) : 'outside the points', age: x.age || '', tech: x.tech || '', series: x.series || '', tpos: ngOrd(ts.indexOf(x.team) + 1),
+    boss: T.principal || `the ${T.name} team principal`, src: w.pick(NG_RUMOUR.source) });
+  const k = x.kind, pickK = bank => k === 'followup' ? bank.followup[x.verdict] : bank[k];
+  const body = [ngFill(w.pick(pickK(NG_RUMOUR.open)), vars), ngFill(w.pick(NG_RUMOUR.sourceLine), vars)];
+  if (k === 'followup') body.push(x.verdict === 'denied' ? ngFill(w.pick(['"There have been no talks," a spokesperson for {T} said.', '{X} called it "a nice story, nothing more".', 'Both camps say the report was wrong.']), vars) : ngFill(w.pick(['Contacts between the two sides are said to have continued.', 'Several sources now describe the talks as serious.']), vars));
+  body.push(w.chance(.55) && !['tech', 'boss'].includes(k) ? `Asked about it, ${X.lastName} said: "${ngSays(X, 'rumour', w.rnd)}"` : ngFill(w.pick(NG_RUMOUR.quote), vars));
+  body.push(ngFill(w.pick(NG_RUMOUR.close), vars));
+  return { type: 'rumour' + i, category: 'Transfer', title: ngHeadline(ngFill(w.pick(pickK(NG_RUMOUR.head)), vars)),
+    standfirst: ngFill(w.pick(['Silly season rumours.', 'The paddock rumour mill is turning.', 'Transfer talk ahead of {next}.', 'The latest from the silly season.', 'Whispers in the paddock.', 'The {next} market is moving.']), vars),
+    body, drivers: [x.who, k === 'swap' || k === 'doubt' ? mate : null].filter(Boolean), teams: [x.team, x.from, curT].filter((t, j, a) => t && a.indexOf(t) === j), hours: 40 + i * 14, rumour: true };
 }
 
 /* --- personalities ---------------------------------------------------------------
@@ -614,6 +683,11 @@ const NG_VOICE = {
     emotional: ['I still watch my first win on YouTube sometimes. Is that strange?', 'Some days I wonder what I would do without racing. I do not like the answer.', 'My family is the reason I am here. Every lap is for them.'] },
 };
 const ngSays = (d, situation, rnd) => { const bank = (NG_VOICE[situation] || {})[ngPersona(d)] || NG_VOICE[situation].calm; return bank[Math.floor(rnd() * bank.length)]; };
+// what drivers say about rumours, by personality
+NG_VOICE.rumour = { calm: ['I do not pay attention to rumours. I drive the car.', 'When something happens, you will know.'], fiery: ['Who writes these stories? Nobody asked me.', 'I am tired of reading about my future in the newspaper.'],
+  joker: ['I heard that rumour too. I am waiting to find out what I decided.', 'If I signed every contract I read about, I would drive for six teams.'], diplomat: ['I respect my team and I will not talk about other teams.', 'Every driver wants the best future. We will talk at the right moment.'],
+  blunt: ['No comment. Next question.', 'Rumours. Next.'], emotional: ['Honestly, it is hard to read these things. I just want to race.', 'My heart is with this team. But you never know in this sport.'] };
+
 
 // both cars of one team out of the race: chaos at the team, with each driver reacting in character
 function ngTeamChaos(c, f) {
@@ -727,8 +801,8 @@ function ngStoriesFor(c, round, usedHeads, variant) {
   if (round.round === Math.ceil(f.rounds.length / 2)) cands.push([47, () => ngMidSeason(c, f, ngWriter(seed + 'h2', usedHeads), v)]);
   cands.sort((a, b) => b[0] - a[0]).slice(0, 5).forEach(([, mk]) => { const st = mk(); if (st) out.push(ngEnrich(f, st, null, v)); });
   // silly season: up to two rumours per race from round 12, never the same driver twice in a row
-  const rum = ngRumours(c, f); const rw = ngWriter(seed + 'z', usedHeads);
-  const pickR = []; for (let k = 0; k < rum.length && pickR.length < 2; k++) { const x = rum[(ngHash(round.id) + k * 7) % rum.length]; if (!pickR.some(p => p.who === x.who)) pickR.push(x); }
+  const rw = ngWriter(seed + 'z', usedHeads);
+  const pickR = ngRumourPicks(c, round);
   pickR.forEach((x, i) => out.push(ngEnrich(f, ngRumourStory(c, f, rw, v, x, i), null, v)));
   return out;
 }
