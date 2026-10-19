@@ -284,3 +284,28 @@ function articlesFor(c, opts) {
     (!opts.category || a.category === opts.category)
   ).sort((a, b) => String(b.publishedAt).localeCompare(String(a.publishedAt)));
 }
+
+/* --- quick order: turn typed text ("1 NOR lecl, hulk") into an ordered list of driver ids ------------------
+   Each word matches a car number, a 3-letter code or the start of a last name (accents and capitals ignored).
+   Returns { ids, notes }. Unknown, unclear or repeated words are skipped and explained in notes. */
+function matchOrder(text, drivers) {
+  const fold = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const words = String(text || '').split(/[\s,;]+/).map(w => w.trim()).filter(Boolean);
+  const ids = [], notes = [];
+  for (const raw of words) {
+    const w = fold(raw); if (!w) continue;
+    let hits;
+    if (/^\d+$/.test(w)) hits = drivers.filter(d => String(d.number) === String(Number(w)));
+    else {
+      hits = drivers.filter(d => fold(d.lastName) === w || fold(d.code) === w);
+      if (!hits.length) hits = drivers.filter(d => fold(d.lastName).startsWith(w) || fold(String(d.lastName).split(/\s+/).pop()).startsWith(w));
+      if (!hits.length) hits = drivers.filter(d => fold(d.firstName + d.lastName).startsWith(w));
+    }
+    hits = [...new Set(hits)];
+    if (!hits.length) { notes.push({ word: raw, kind: 'none' }); continue; }
+    if (hits.length > 1) { notes.push({ word: raw, kind: 'many', names: hits.map(d => d.lastName) }); continue; }
+    if (ids.includes(hits[0].id)) { notes.push({ word: raw, kind: 'twice', names: [hits[0].lastName] }); continue; }
+    ids.push(hits[0].id); notes.push({ word: raw, kind: 'ok', pos: ids.length, names: [hits[0].lastName] });
+  }
+  return { ids, notes };
+}
