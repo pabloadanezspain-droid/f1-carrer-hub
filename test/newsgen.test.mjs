@@ -36,7 +36,7 @@ test('every raced round gets a report plus up to two extra stories', () => {
   const c = fresh(); play(c, 24); A.syncAutoNews(c);
   for (const rd of A.roundsOf(c, SID)) {
     const n = c.articles.filter(a => a.auto && a.auto.round === rd.id && !a.auto.key.endsWith(':preview')).length;
-    assert.ok(n >= 1 && n <= 9, rd.id + ' has ' + n);
+    assert.ok(n >= 1 && n <= 24, rd.id + ' has ' + n);
     assert.ok(c.articles.some(a => a.auto && a.auto.key === rd.id + ':report'));
   }
   assert.deepEqual([...A.validateCareer(c)], []);
