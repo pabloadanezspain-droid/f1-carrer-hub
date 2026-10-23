@@ -68,6 +68,51 @@ function paceMoments(c, round) {
   return out.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 }
 
+/* --- power ranking: average gap per lap between the cars --------------------------------
+   For every race weekend, each team's quicker car gives two samples:
+   - qualifying: its lap time minus pole (from the times you entered)
+   - race: its gap to the winner divided by the laps (lapped cars: laps down × the winner's average lap)
+   With no times entered, the gap is estimated from the position (0.08 s per place in qualifying, 0.10 s per place per lap in the race).
+   The season figure is the average of all samples. No score, only seconds per lap. */
+function inSecs(t) {
+  const m = String(t || '').trim().replace(/s$/i, '').replace(/^\+/, ''); if (!m || /lap/i.test(m)) return null;
+  const parts = m.split(':').map(Number); if (parts.some(isNaN)) return null;
+  return parts.reduce((a, b) => a * 60 + b, 0);
+}
+function powerRanking(c, sid) {
+  return inMemo(c, 'power|' + sid, () => {
+    const T = {}, get = id => (T[id] = T[id] || { id, q: [], r: [], est: 0, real: 0 });
+    completedRounds(c, sid).forEach(rd => {
+      const q = classify(c, resultFor(c, rd.id, 'qualifying')).filter(e => e.position).sort((a, b) => a.position - b.position);
+      const poleT = q[0] && inSecs(q[0].time), bestQ = {};
+      q.forEach(e => { if (bestQ[e.teamId] == null) { const t = inSecs(e.time); const real = poleT != null && t != null && t >= poleT;
+        bestQ[e.teamId] = 1; const x = get(e.teamId); x.q.push(real ? t - poleT : (e.position - 1) * 0.08); real ? x.real++ : x.est++; } });
+      const race = classify(c, resultFor(c, rd.id, 'race')).filter(e => e.position).sort((a, b) => a.position - b.position);
+      if (!race.length) return;
+      const W = race[0], laps = +W.laps || +rd.laps || 0, total = inSecs(W.time), avgLap = total && laps ? total / laps : 90, bestR = {};
+      race.forEach(e => { if (bestR[e.teamId] != null) return; bestR[e.teamId] = 1; const x = get(e.teamId);
+        if (e === W) { x.r.push(0); x.real++; return; }
+        const down = /(\d+)\s*lap/i.exec(String(e.time || '')), g = inSecs(e.time);
+        if (laps && g != null) { x.r.push(g / laps); x.real++; }
+        else if (laps && down) { x.r.push(+down[1] * avgLap / laps); x.real++; }
+        else { x.r.push((e.position - 1) * 0.10); x.est++; } });
+    });
+    const rows = Object.values(T).map(x => { const q = inAvg(x.q), r = inAvg(x.r); return Object.assign(x, { qAvg: q, rAvg: r, avg: inAvg([q, r]) }); }).filter(x => x.avg != null).sort((a, b) => a.avg - b.avg);
+    const best = rows.length ? rows[0].avg : 0;
+    rows.forEach((x, i) => { x.toFastest = x.avg - best; x.toAhead = i ? x.avg - rows[i - 1].avg : 0; });
+    const P = teamPace(c, sid); rows.forEach(x => { const t = P.teams.find(z => z.id === x.id); x.trend = t ? t.trend : 0; });
+    return { rows, estimated: rows.some(x => x.est > 0), allEstimated: rows.every(x => !x.real), races: completedRounds(c, sid).length };
+  });
+}
+const inGap = v => v < 0.0005 ? '—' : `+${v.toFixed(3)}s`;
+function powerBars(R) {
+  const max = Math.max(0.05, ...R.rows.map(x => x.toFastest)), W = 760, rowH = 26, L = 150, Rr = 90, H = R.rows.length * rowH + 8;
+  return `<figure class="pace-chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average gap per lap to the fastest car">${R.rows.map((x, i) => {
+    const T = teamOf(x.id) || {}, w = (W - L - Rr) * x.toFastest / max, y = 4 + i * rowH;
+    return `<text x="${L - 8}" y="${y + 17}" class="pc-label" text-anchor="end" fill="currentColor">${esc(T.name || x.id)}</text><rect x="${L}" y="${y + 4}" width="${Math.max(2, w).toFixed(1)}" height="${rowH - 10}" rx="3" fill="${T.color || '#888'}"/><text x="${L + Math.max(2, w) + 6}" y="${y + 17}" class="pc-axis">${i ? inGap(x.toFastest) : 'Fastest'}</text>`;
+  }).join('')}</svg><figcaption class="muted">Average gap per lap to the fastest car, over every qualifying session and race this season.</figcaption></figure>`;
+}
+
 function paceChart(P, opts) {
   opts = opts || {};
   const W = 760, H = opts.small ? 200 : 300, L = 34, R = opts.small ? 16 : 120, T = 14, B = 26;
@@ -284,15 +329,20 @@ function insightsSubnav(s, active) {
 function pageDevelopment(q) {
   const c = D(); const s = pickSeason(q); if (!s) return noSeason();
   const P = teamPace(c, s.id);
-  const rows = P.teams.map((t, i) => { const T = teamOf(t.id); const arrow = t.trend >= 5 ? `<span class="trend up">▲ ${t.trend}</span>` : t.trend <= -5 ? `<span class="trend down">▼ ${-t.trend}</span>` : `<span class="trend">●</span>`;
-    return `<tr><td>${i + 1}</td><td class="mx-left">${T ? `<span class="dot" style="--tc:${T.color}"></span> <a href="#/teams/${T.id}">${esc(T.name)}</a>` : esc(t.id)}</td><td class="num">${t.now ?? '—'}</td><td class="num">${t.best ?? '—'}</td><td class="num">${arrow}</td><td class="num">${t.first != null && t.now != null ? (t.now - t.first > 0 ? '+' : '') + (t.now - t.first) : '—'}</td></tr>`; }).join('');
+  const R = powerRanking(c, s.id);
+  const arrow = t => t.trend >= 5 ? '<span class="trend up" title="Faster over the last 3 races">▲</span>' : t.trend <= -5 ? '<span class="trend down" title="Slower over the last 3 races">▼</span>' : '<span class="trend">●</span>';
+  const rows = R.rows.map((t, i) => { const T = teamOf(t.id);
+    return `<tr><td>${i + 1}</td><td class="mx-left">${T ? `<span class="dot" style="--tc:${T.color}"></span> <a href="#/teams/${T.id}">${esc(T.name)}</a>` : esc(t.id)}</td><td class="num"><b>${i ? inGap(t.toFastest) : 'Fastest'}</b></td><td class="num">${i ? inGap(t.toAhead) : '—'}</td><td class="num">${t.qAvg != null ? inGap(t.qAvg) : '—'}</td><td class="num">${t.rAvg != null ? inGap(t.rAvg) : '—'}</td><td class="num">${arrow(t)}</td></tr>`; }).join('');
   return { title: `${s.year} Car development`, nav: 'insights', html: `
     ${insightsSubnav(s, 'development')}
     <div class="wrap page">
       <h1 class="h-page">${esc(s.year)} Car Development</h1>
       <p class="page-intro">How fast each car has been, race by race. The index uses qualifying and finishing positions, so it shows car pace rather than points.</p>
       ${P.rounds.length ? paceChart(P) : emptyState('No races yet', 'The tracker starts after the first race.', null)}
-      ${rows ? `<div class="mx-scroll"><table class="mx-table stats-table"><thead><tr><th>#</th><th>Team</th><th>Pace now</th><th>Best</th><th>Last 3 races</th><th>Since round 1</th></tr></thead><tbody>${rows}</tbody></table></div>` : ''}
+      ${rows ? `<h2 class="h-section spaced">Power ranking</h2>
+      <p class="page-intro">Average gap per lap for each team's quicker car, across every qualifying session and race of the ${R.races} race weekend${R.races === 1 ? '' : 's'} so far. Qualifying gap: lap time to pole. Race pace: gap to the winner divided by the laps.${R.estimated ? ` ${R.allEstimated ? 'No lap times entered yet, so' : 'Where lap times are missing,'} gaps are estimated from positions.` : ''}</p>
+      ${powerBars(R)}
+      <div class="mx-scroll"><table class="mx-table stats-table"><thead><tr><th>#</th><th>Team</th><th>Gap to fastest</th><th>Gap to car ahead</th><th>Qualifying gap</th><th>Race pace gap</th><th>Last 3 races</th></tr></thead><tbody>${rows}</tbody></table></div>` : ''}
     </div>` };
 }
 function pageScenarios(q) {

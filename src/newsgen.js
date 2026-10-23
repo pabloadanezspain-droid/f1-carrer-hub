@@ -878,10 +878,10 @@ function ngStoriesFor(c, round, usedHeads, variant) {
 }
 
 /* the stories published before a race: preview (Tuesday), press conference (Thursday), practice (Friday) */
-const NG_PRE = /:(preview|press|practice)$/;
+const NG_PRE = /:(preview|press|practice|scenarios)$/;
 function ngPreStories(c, round, vf, usedHeads) {
   const seed = t => `${round.id}|p|${vf(t)}${t === 'preview' ? '' : t}`, out = [ngPreview(c, round, ngWriter(seed('preview'), usedHeads))];
-  if (!NG_F2.has(round.seasonId)) out.push(ngPress(c, round, ngWriter(seed('press'), usedHeads)), ngPractice(c, round, ngWriter(seed('practice'), usedHeads)));
+  if (!NG_F2.has(round.seasonId)) out.push(ngPress(c, round, ngWriter(seed('press'), usedHeads)), ngPractice(c, round, ngWriter(seed('practice'), usedHeads)), ngScenarioStory(c, round, ngWriter(seed('scenarios'), usedHeads)));
   return out.filter(Boolean);
 }
 
@@ -1643,4 +1643,35 @@ function ngLegacyStory(c, m, w) {
       `- ${B.starts} starts`, `- ${B.wins} win${B.wins === 1 ? '' : 's'}`, `- ${B.podiums} podium${B.podiums === 1 ? '' : 's'}`, `- ${B.poles} pole position${B.poles === 1 ? '' : 's'}`, `- ${Math.round(B.points)} points`, ...(B.titles ? [`- ${B.titles} title${B.titles > 1 ? 's' : ''}`] : []),
       `## Teams`, teams.join(', ') + '.', `${ngLn(m.d)} said: "${ngSays(driverOf(m.d), 'leave', rnd)}"`],
     drivers: [m.d], teams: [...B.teams].slice(-1), hoursBefore: 24 * 20 };
+}
+
+/* --- title scenarios: a Wednesday article in the last third of the season, while the title is open --- */
+function ngScenarioStory(c, round, w) {
+  if (typeof titleMath !== 'function') return null;
+  const total = roundsOf(c, round.seasonId).length; if (round.round < Math.ceil(total * 2 / 3)) return null;
+  const m = titleMath(c, round.seasonId, 'drivers', round.round); if (!m || m.champion || m.alive.length < 2) return null;
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], L = ngLn(m.leader), city = round.city || round.name;
+  const v = { L, city, gpShort: round.name, n: m.alive.length, left: m.left, pts: m.maxLeft, R: m.table ? ngLn(m.table.rival) : '' };
+  const title = m.canClinch ? pick(['Title scenarios: how {L} can be champion in {city}', 'Can {L} clinch the title in {city}? The maths', 'Match point for {L} in {city}'])
+    : pick(['Title maths: {n} drivers still in the fight with {left} races to go', 'Who can still win the title? The scenarios before {gpShort}', 'The title race in numbers: {left} rounds, {pts} points left']);
+  const body = [ngFill(pick(['{left} races to go, {pts} points still available. Here is where the championship stands before {gpShort}.', 'With {left} rounds left and {pts} points on the table, this is how the title fight looks before {city}.']), v)];
+  if (m.summary) body.push(m.summary);
+  body.push('## The contenders', ...m.alive.map(a => `- ${ngFull(a.id)}: ${a.points} points${a.behind ? `, ${a.behind} behind` : ', leader'}. Highest possible total: ${a.max}.`));
+  const before = round.round > 1 ? titleMath(c, round.seasonId, 'drivers', round.round - 1) : null;
+  const out = before ? before.alive.filter(a => !m.alive.some(b => b.id === a.id)).map(a => ngLn(a.id)) : [];
+  if (out.length) body.push(`Out of the fight since the last race: ${out.join(', ')}.`);
+  if (m.table && m.canClinch) {
+    const t = m.table, lab = p => p > t.nP ? 'outside the points' : 'P' + p, lines = [];
+    t.pos.forEach((pl, i) => { if (pl > t.nP) return; const row = t.cells[i];
+      if (row.every(x => x !== false)) lines.push(`- ${L} finishes ${lab(pl)}: champion, whatever ${v.R} does.`);
+      else { const j = t.pos.findIndex((pr, k) => row.slice(k).every(x => x !== false) && row[k] === true); if (j >= 0) lines.push(`- ${L} finishes ${lab(pl)}: champion if ${v.R} finishes ${lab(t.pos[j])} or lower.`); } });
+    if (lines.length) body.push(ngFill(`## What {L} needs in {city}`, v), ...lines);
+    if (round.sprint) body.push('This is a Sprint weekend, so the Sprint result on Saturday changes these numbers.');
+    body.push(ngFill(pick(['If none of this happens, the fight goes on to the next round.', 'Otherwise, the title fight moves on.']), v));
+  } else body.push(ngFill(pick(['Nobody can win the title in {city}. The aim this weekend is to gain ground.', 'The title cannot be decided in {city}, but every point changes the maths.']), v));
+  const mt = titleMath(c, round.seasonId, 'teams', round.round);
+  if (mt && !mt.champion && mt.alive.length > 1) body.push("## The teams' title", ...mt.alive.map(a => `- ${ngTn(a.id)}: ${a.points} points${a.behind ? `, ${a.behind} behind` : ', leading'}.`));
+  else if (mt && mt.champion) body.push(`The teams' title is already settled: ${ngTn(mt.champion)} cannot be caught.`);
+  body.push('See the full table on the Title scenarios page.');
+  return ngStory('scenarios', 'Analysis', ngFill(title, v), ngFill(m.canClinch ? 'Every result that makes {L} champion this weekend.' : 'Who is still in it, and what they need.', v), body, m.alive.map(a => a.id).slice(0, 4), [], { hoursBefore: 48 });
 }
