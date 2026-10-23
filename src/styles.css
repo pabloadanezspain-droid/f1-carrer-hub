@@ -826,3 +826,10 @@ thead .mx-pos, thead .mx-name { background: #eaecf0; z-index: 3; box-shadow: 1px
 .hof-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: .25rem; margin: .7rem 0; }
 .hof-nums dt { font-size: .7rem; text-transform: uppercase; opacity: .6; }
 .hof-nums dd { margin: 0; font-weight: 900; font-size: 1.2rem; }
+.dr-bar { display: inline-block; width: 90px; height: 8px; border-radius: 4px; background: var(--line); vertical-align: middle; overflow: hidden; }
+.dr-bar span { display: block; height: 100%; }
+.dr-note { font-size: .8rem; max-width: 340px; white-space: normal; }
+.dr-method { margin-top: 1.5rem; }
+.dr-method summary { cursor: pointer; font-weight: 700; }
+.dr-method li { margin: .3rem 0; }
+.dr-table td.dr-note { white-space: normal !important; min-width: 260px; }

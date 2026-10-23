@@ -12,7 +12,7 @@ A personal "living season" website for your F1 game career. Its visual language 
 | Drivers directory · profile | `#/drivers` · `#/drivers/<id>` |
 | Teams directory · profile | `#/teams` · `#/teams/<id>` |
 | News index (category chips) · article | `#/news` · `#/news/<id>` |
-| Insights: car development · title scenarios · season awards | `#/development` · `#/scenarios` · `#/awards` |
+| Insights: car development · title scenarios · driver ranking · season awards | `#/development` · `#/scenarios` · `#/driver-ranking` · `#/awards` |
 | Hall of Fame: champions, legends, records, drivers who left | `#/hall-of-fame` |
 | Grid Showroom (one team at a time) · full-grid reveal | `#/showroom/<teamId>` · `#/showroom/grid` |
 | Edit Career (incl. Portrait studio, Images) | `#/edit/<section>` |
@@ -200,3 +200,4 @@ Storage: auto-written stories are rebuilt from results, so they are not saved. O
 - Title scenarios: who can still win, the points left, and a table of what the leader needs at the next race to clinch. Shown on the standings and home pages and in race previews.
 - Season awards: champion, Driver of the Year, Rookie, Overtaker, Qualifier, Mr Consistent, Comeback, Rivalry, Race of the Year, Team of the Year, Most Improved Car, Hard Luck. Published as an article after the last race.
 - Hall of Fame: champions by year, legends, career records and drivers who left the grid. A "career in numbers" article runs when a driver with 20 or more starts leaves.
+- Driver ranking: team principals, journalists and fans rate every driver from 10 factors (pace and qualifying relative to the car, team-mate head-to-head, race ratings, consistency, places gained, wins and podiums, form, storylines, career record and awards). Each factor is scaled 0 to 100 across the grid, each panel weighs them differently, and the score is the average of the three panels. A "Paddock top 10" article runs every 6 races and at the end of the season.

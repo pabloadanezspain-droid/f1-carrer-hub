@@ -988,6 +988,8 @@ function ngMoveStory(c, m, w) {
     M: mate ? (driverOf(mate) || {}).lastName : '', gp: m.round.name || 'the next race' };
   const fit = NG_PLOT.filter(p => p[0].includes(m.kind)); const plot = fit[Math.floor(w.rnd() * fit.length)];
   const body = [ngFill(w.pick(plot[2]), vars)];
+  if (m.kind === 'exit') { const B = typeof careerBook === 'function' ? careerBook(c, seriesOf(s)).book[m.d] : null;
+    body.push(B && B.starts ? `He leaves with ${B.starts} start${B.starts > 1 ? 's' : ''}, ${B.wins} win${B.wins === 1 ? '' : 's'} and ${B.podiums} podium${B.podiums === 1 ? '' : 's'} in this career${B.titles ? `, and ${B.titles} title${B.titles > 1 ? 's' : ''}` : ''}.` : `${X.lastName} said goodbye to the team and the mechanics before he left ${F ? F.name : 'the paddock'}.`); }
   if (m.kind === 'exit') body.push(ngFill(w.pick(['For now, {X} has no seat for {y}.', '{X} is without a race seat for {y}, but says he is not done yet.', 'What comes next for {X} is unclear. Reserve roles and other series are possible.']), vars), `${X.lastName} said: "${ngSays(X, 'leave', w.rnd)}"`);
   else {
     if (pos >= 0) body.push(ngFill(w.pick(['Last season he finished {lastPos} with {lastPts} points.', 'He scored {lastPts} points in {py}, good for {lastPos}.']), vars));
@@ -1589,7 +1591,7 @@ function ngPractice(c, round, w) {
 function ngMoreFormats(c, f, w, seed, mk) {
   if (NG_F2.has(f.round.seasonId)) return [];
   f.v = f.v || ngVars(f);
-  return [ngWinnersLosers, ngRatings, ngRadio, ngBosses, ngFiveThings, ngArcStory, ngMilestones, ngLongRead, ngSeasonReview, ngDevStory, ngAwardsStory, ngClinchStory]
+  return [ngWinnersLosers, ngRatings, ngRadio, ngBosses, ngFiveThings, ngArcStory, ngMilestones, ngLongRead, ngSeasonReview, ngDevStory, ngAwardsStory, ngClinchStory, ngPaddockTop10]
     .map((fn, i) => fn(c, f, mk(seed + 'nf' + i))).filter(Boolean);
 }
 
@@ -1674,4 +1676,20 @@ function ngScenarioStory(c, round, w) {
   else if (mt && mt.champion) body.push(`The teams' title is already settled: ${ngTn(mt.champion)} cannot be caught.`);
   body.push('See the full table on the Title scenarios page.');
   return ngStory('scenarios', 'Analysis', ngFill(title, v), ngFill(m.canClinch ? 'Every result that makes {L} champion this weekend.' : 'Who is still in it, and what they need.', v), body, m.alive.map(a => a.id).slice(0, 4), [], { hoursBefore: 48 });
+}
+
+/* --- paddock top 10: the driver ranking every six races and at the end of the season --- */
+function ngPaddockTop10(c, f, w) {
+  if (typeof driverRanking !== 'function' || !(f.round.round % 6 === 0 || f.last)) return null;
+  const done = completedRounds(c, f.round.seasonId), N = done.findIndex(r => r.id === f.round.id) + 1;
+  const R = driverRanking(c, f.round.seasonId, N), P = N > 6 ? driverRanking(c, f.round.seasonId, N - 6) : null; if (!R || R.list.length < 10) return null;
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], top = R.list[0];
+  const mv = x => { const p = P && P.list.find(z => z.id === x.id); if (!p) return 'new entry'; const d = p.rank - x.rank; return d > 0 ? `up ${d}` : d < 0 ? `down ${-d}` : 'no change'; };
+  const body = [`Every six races we ask how the paddock rates the drivers: team principals, journalists and fans, each judging the driver against his car, his team-mate and his results. After ${N} races, this is the top 10.`];
+  R.list.slice(0, 10).forEach(x => body.push(`## ${x.rank}. ${ngFull(x.id)} (${ngTn(x.team)})`, `${x.score.toFixed(1)} points${P ? ', ' + mv(x) : ''}. Team principals #${x.ranks.tp}, journalists #${x.ranks.press}, fans #${x.ranks.fans}.${x.strengths.length ? ' Stands out for ' + x.strengths.map(k => DR_FACTORS[k].toLowerCase()).join(' and ') + '.' : ''}`));
+  const climber = P ? R.list.map(x => { const p = P.list.find(z => z.id === x.id); return p ? [x, p.rank - x.rank] : null; }).filter(Boolean).sort((a, b) => b[1] - a[1])[0] : null;
+  if (climber && climber[1] >= 3) body.push(`Biggest climber: ${ngFull(climber[0].id)}, up ${climber[1]} places to #${climber[0].rank}.`);
+  body.push('The full ranking is on the Driver ranking page.');
+  return ngStory('paddock', 'Analysis', pick([`Paddock top 10: ${ngLn(top.id)} is the driver to beat`, `Who is the best driver on the grid? Our top 10 after ${N} races`, `Paddock ranking: ${ngLn(top.id)} leads the top 10`]),
+    f.last ? 'The final ranking of the season.' : `How the paddock rates the drivers after ${N} races.`, body, R.list.slice(0, 3).map(x => x.id), [], { hours: 72 });
 }
