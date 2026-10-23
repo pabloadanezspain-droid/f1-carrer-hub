@@ -195,7 +195,8 @@ Story memory follows storylines across races: slumps and comebacks, podium runs,
 Storage: auto-written stories are rebuilt from results, so they are not saved. Only stories you edited, featured, rewrote or gave a picture are stored. Sync only rewrites seasons whose results changed, so long careers stay fast. Backups keep the last 3.
 
 ## Insights
-- Car development: a pace index (0 to 100) per team per race from qualifying and finishing positions, shown as a chart. Big steps forward or back become news stories.
+- Car development: a pace index (0 to 100) per team per race, shown as a chart, plus a power ranking of the average gap per lap to the fastest car (qualifying lap times and race gaps, estimated from positions where times are missing). Big steps forward or back become news stories.
+- Title scenarios article: published on the Wednesday before each race in the last third of the season while the title is open.
 - Title scenarios: who can still win, the points left, and a table of what the leader needs at the next race to clinch. Shown on the standings and home pages and in race previews.
 - Season awards: champion, Driver of the Year, Rookie, Overtaker, Qualifier, Mr Consistent, Comeback, Rivalry, Race of the Year, Team of the Year, Most Improved Car, Hard Luck. Published as an article after the last race.
 - Hall of Fame: champions by year, legends, career records and drivers who left the grid. A "career in numbers" article runs when a driver with 20 or more starts leaves.
