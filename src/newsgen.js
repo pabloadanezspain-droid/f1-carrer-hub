@@ -418,6 +418,7 @@ function ngPreview(c, round, w) {
   // history at this venue in earlier seasons of this career
   const past = c.rounds.filter(r => r.seasonId !== s && r.name === round.name && resultFor(c, r.id, 'race')).map(r => ({ r, e: classify(c, resultFor(c, r.id, 'race')).find(x => x.position === 1), y: (seasonOf(c, r.seasonId) || {}).year })).filter(x => x.e).sort((a, b) => b.y - a.y);
   if (past.length) body.push(`Last time here, in ${past[0].y}, ${d(past[0].e.driverId).firstName} ${d(past[0].e.driverId).lastName} won.`);
+  if (typeof titleMath === 'function' && !NG_F2.has(s)) { const m = titleMath(c, s, 'drivers', round.round); if (m && m.canClinch && m.summary) body.push(m.summary); }
   const g = ngGrammar(Object.assign({}, ngVocab(round), { look: ['Qualifying will be crucial at {circuit}.', 'The weather and #tyres# could decide this one.', 'Expect the #strategy# to play a big part.', 'Overtaking is never easy here, so Saturday matters.', 'Teams bring upgrades all season, and this weekend is no different.'] }), w.rnd);
   body.push(g.expand('#look#'));
   return { type: 'preview', category: 'Feature', title: ngHeadline(ngFill(title, vars)), standfirst: ngFill(w.pick(['The key storylines ahead of {gpShort}.', 'Our look ahead to {city}.']), vars),
@@ -1015,7 +1016,7 @@ const ngEdited = a => !(a.auto && a.auto.stub) && ngSig(a) !== a.auto.sig;
 const ngSeasonOrder = c => [...c.seasons].sort((a, b) => a.year - b.year || (a.series === 'f2' ? 0 : 1) - (b.series === 'f2' ? 0 : 1));
 function syncAutoNews(c) {
   if (!c || c.meta.autoNews === false) return false;
-  ngSeries(c); ngCacheReset();
+  ngSeries(c); ngCacheReset(); if (typeof inCacheClear === 'function') inCacheClear();
   let changed = false;
   const wanted = new Map();                                                    // key -> [round, story, unchanged since last sync]
   const active = (activeSeason(c) || {}).id;
@@ -1037,7 +1038,7 @@ function syncAutoNews(c) {
     });
     // transfer stories: one per move plus a round-up of the off-season
     const moves = ngMoves(c, s);
-    moves.forEach(m => put(m.round, ngMoveStory(c, m, ngWriter(`${m.round.id}|mv|${m.d}`, usedHeads))));
+    moves.forEach(m => { put(m.round, ngMoveStory(c, m, ngWriter(`${m.round.id}|mv|${m.d}`, usedHeads))); const lg = ngLegacyStory(c, m, ngWriter(`${m.round.id}|lg|${m.d}`, usedHeads)); if (lg) put(m.round, lg); });
     const off = moves.filter(m => !m.mid); if (off.length) put(off[0].round, ngMovesRoundup(c, s, off, ngWriter(`${off[0].round.id}|mvs`, usedHeads)));
     const nx = nextRound(c, s.id);
     if (nx && s.id === active) ngPreStories(c, nx, vf(nx), usedHeads).forEach(st => put(nx, st));
@@ -1343,11 +1344,11 @@ function ngWinnersLosers(c, f, w) {
 }
 
 /* --- driver ratings ---------------------------------------------------------- */
-function ngRatings(c, f, w) {
-  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)];
-  const ts = ngTStand(c, f.round.seasonId, f.round.round - 1).map(r => r.id);
-  const mate = e => f.race.find(x => x.teamId === e.teamId && x.driverId !== e.driverId);
-  const rows = f.race.map(e => {
+// race rating per driver (also used by the season awards)
+function ngRateRows(c, round, race) {
+  const ts = (NG_MEMO ? ngTStand(c, round.seasonId, round.round - 1) : teamStandings(c, round.seasonId, round.round - 1)).map(r => r.id);
+  const mate = e => race.find(x => x.teamId === e.teamId && x.driverId !== e.driverId);
+  return race.map(e => {
     let r = 6; const m = mate(e), rank = ts.indexOf(e.teamId);
     if (e.position) {
       if (e.grid) r += Math.max(-1.5, Math.min(2, (e.grid - e.position) * 0.25));
@@ -1357,6 +1358,10 @@ function ngRatings(c, f, w) {
     } else r = 4.5;
     return { e, r: Math.max(2, Math.min(10, Math.round(r))) };
   }).sort((a, b) => b.r - a.r || (a.e.position || 99) - (b.e.position || 99));
+}
+function ngRatings(c, f, w) {
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)];
+  const rows = ngRateRows(c, f.round, f.race);
   if (!rows.length) return null;
   const line = ({ e, r }) => { const v = { X: ngLn(e.driverId), P: e.position ? 'P' + e.position : '', G: e.grid ? 'P' + e.grid : 'the back', T: ngTn(e.teamId) };
     const bank = !e.position ? ['Out of the race, so hard to judge. The pace before the end was {pace}.', 'A retirement ends the story early.']
@@ -1584,6 +1589,58 @@ function ngPractice(c, round, w) {
 function ngMoreFormats(c, f, w, seed, mk) {
   if (NG_F2.has(f.round.seasonId)) return [];
   f.v = f.v || ngVars(f);
-  return [ngWinnersLosers, ngRatings, ngRadio, ngBosses, ngFiveThings, ngArcStory, ngMilestones, ngLongRead, ngSeasonReview]
+  return [ngWinnersLosers, ngRatings, ngRadio, ngBosses, ngFiveThings, ngArcStory, ngMilestones, ngLongRead, ngSeasonReview, ngDevStory, ngAwardsStory, ngClinchStory]
     .map((fn, i) => fn(c, f, mk(seed + 'nf' + i))).filter(Boolean);
+}
+
+/* --- car development: a team takes a step forward or back ------------------------ */
+function ngDevStory(c, f, w) {
+  if (typeof paceMoments !== 'function') return null;
+  const m = paceMoments(c, f.round)[0]; if (!m) return null;
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], T = ngTn(m.team), up = m.delta > 0;
+  const ds = [...new Set(f.race.filter(e => e.teamId === m.team).map(e => e.driverId))];
+  const v = { T, boss: ngBoss(m.team), city: f.round.city || f.round.name, now: m.now, before: m.before, d: Math.abs(m.delta) };
+  const title = up ? pick(['Upgrade works: {T} take a step forward', '{T} find speed', 'Where has this pace come from, {T}?']) : pick(['{T} lose their way', 'Alarm bells at {T}', 'What has gone wrong with the {T} car?']);
+  const body = [
+    ngFill(up ? 'Over the last three races, the {T} car has moved from a pace index of {before} to {now}. That is a jump of {d} points, the kind of step that changes a team’s season.' : 'Over the last three races, the {T} car has dropped from a pace index of {before} to {now}. A loss of {d} points, and rivals have noticed.', v),
+    ngFill(up ? pick(['The team brought new parts in recent weeks, and the data says they work.', 'Engineers point to a new floor and better tyre use over a stint.']) : pick(['The latest upgrade has not delivered what the simulator promised.', 'The car has become harder to set up, and the drivers have lost confidence.']), v),
+    `${v.boss}: "${up ? pick(['We understand the car much better now. This is the result of months of work.', 'The step is real. Now we need to keep developing.']) : pick(['We have taken a wrong turn and we know it. We will go back to what worked.', 'The numbers are clear. We need to react quickly.'])}"`,
+    ...ds.slice(0, 2).map(d => `${ngLn(d)} said: "${ngMoodLine(d, up ? 'good' : 'low', rnd)}"`),
+    'You can follow every team on the Car development page.',
+  ];
+  return ngStory('dev', 'Analysis', ngFill(title, v), ngFill(up ? 'The pace numbers behind the progress.' : 'The numbers behind the slide.', v), body, ds, [m.team], { hours: 52 });
+}
+/* --- title clinched ------------------------------------------------------------------ */
+function ngClinchStory(c, f, w) {
+  if (!f.clinchedNow || typeof titleMath !== 'function') return null;
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], id = f.L.id, T = (f.after[0] || {}).teamId || (f.race.find(e => e.driverId === id) || {}).teamId;
+  const left = f.rounds.length - f.round.round, wins = (f.after[0] || {}).wins || 0;
+  const v = { X: ngLn(id), Xfull: ngFull(id), city: f.round.city || f.round.name, left: ngWord(left), T: T ? ngTn(T) : '', L2: f.v.L2, gap: f.gap, wins };
+  return ngStory('clinch', 'Feature', ngFill(pick(['{Xfull} is world champion', 'Champion! {X} seals the title in {city}', '{X} is the champion']), v), ngFill(left ? 'The title is decided with {left} races to spare.' : 'Decided at the final round.', v),
+    [ngFill('{Xfull} is the champion. The result in {city} puts him out of reach of {L2}, {gap} points behind' + (left ? ' with {left} races left.' : '.'), v), ngFill('It has been a season of {wins} wins.', v),
+      `${ngLn(id)} said on the radio: "${ngSays(driverOf(id), 'win', rnd)} ${ngMoodLine(id, 'flying', rnd)}"`, T ? `${ngBoss(T)}: "${pick(['He has been the complete driver this year. He deserves it.', 'Champion. That word feels very good to say.'])}"` : ''],
+    [id], [T], { hours: 3 });
+}
+/* --- the awards night article ----------------------------------------------------------- */
+function ngAwardsStory(c, f, w) {
+  if (!f.last || typeof seasonAwards !== 'function') return null;
+  const aw = seasonAwards(c, f.round.seasonId); if (!aw || !aw.length) return null;
+  const year = (seasonOf(c, f.round.seasonId) || {}).year;
+  const who = a => a.d ? ngFull(a.d) + (a.d2 ? ` and ${ngFull(a.d2)}` : '') : a.t ? ngTn(a.t) : '';
+  return ngStory('awards', 'Feature', `The ${year} season awards`, 'Our picks from a season of racing.',
+    ['The season is over, the trophies are cleaned, and here are our picks.', ...aw.flatMap(a => [`## ${a.title}: ${who(a)}`, `${a.value}. ${a.why || ''}`.trim()]), 'See every award, with photos, on the Season awards page.'],
+    aw.map(a => a.d).filter(Boolean), aw.map(a => a.t).filter(Boolean), { hours: 24 * 7 });
+}
+/* --- farewell: a career in numbers when a driver leaves the grid --------------------------- */
+function ngLegacyStory(c, m, w) {
+  if (m.kind !== 'exit' || m.mid || typeof careerBook !== 'function') return null;
+  const s = seasonOf(c, m.round.seasonId), B = careerBook(c, seriesOf(s)).book[m.d]; if (!B || B.starts < 20) return null;
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], X = ngFull(m.d), teams = [...B.teams].map(ngTn);
+  const yrs = `${B.first}${B.last !== B.first ? ' to ' + B.last : ''}`;
+  return { type: 'legacy_' + m.d.replace(/^drv_/, ''), category: 'Feature', title: ngHeadline(pick([`${X}: a career in numbers`, `Farewell, ${ngLn(m.d)}`, `${ngLn(m.d)} leaves the grid`])),
+    standfirst: `${B.starts} races from ${yrs}.`,
+    body: [`${X} will not be on the grid in ${s.year}. Here is his career in this world, from ${yrs}.`, '## In numbers',
+      `- ${B.starts} starts`, `- ${B.wins} win${B.wins === 1 ? '' : 's'}`, `- ${B.podiums} podium${B.podiums === 1 ? '' : 's'}`, `- ${B.poles} pole position${B.poles === 1 ? '' : 's'}`, `- ${Math.round(B.points)} points`, ...(B.titles ? [`- ${B.titles} title${B.titles > 1 ? 's' : ''}`] : []),
+      `## Teams`, teams.join(', ') + '.', `${ngLn(m.d)} said: "${ngSays(driverOf(m.d), 'leave', rnd)}"`],
+    drivers: [m.d], teams: [...B.teams].slice(-1), hoursBefore: 24 * 20 };
 }

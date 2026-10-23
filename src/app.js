@@ -7,6 +7,7 @@
      #/standings/drivers|teams[?season=]
      #/drivers  #/drivers/:id   #/teams  #/teams/:id
      #/news[?category=]         #/news/:id
+     #/development  #/scenarios  #/awards  (?season=)   #/hall-of-fame
      #/edit[/:section][?id=&season=&round=&session=]
    ========================================================================== */
 
@@ -35,6 +36,10 @@ function route() {
     case 'lineup': return pageLineup(q);
     case 'showroom': return b === 'grid' ? pageShowroomGrid(q) : pageShowroom(b, q);
     case 'news': return b ? pageArticle(b) : pageNews(q);
+    case 'development': return pageDevelopment(q);
+    case 'scenarios': return pageScenarios(q);
+    case 'awards': return pageAwards(q);
+    case 'hall-of-fame': return pageHallOfFame(q);
     case 'edit': return pageEdit(b, q);
     default: return notFound();
   }

@@ -12,6 +12,8 @@ A personal "living season" website for your F1 game career. Its visual language 
 | Drivers directory · profile | `#/drivers` · `#/drivers/<id>` |
 | Teams directory · profile | `#/teams` · `#/teams/<id>` |
 | News index (category chips) · article | `#/news` · `#/news/<id>` |
+| Insights: car development · title scenarios · season awards | `#/development` · `#/scenarios` · `#/awards` |
+| Hall of Fame: champions, legends, records, drivers who left | `#/hall-of-fame` |
 | Grid Showroom (one team at a time) · full-grid reveal | `#/showroom/<teamId>` · `#/showroom/grid` |
 | Edit Career (incl. Portrait studio, Images) | `#/edit/<section>` |
 
@@ -23,6 +25,7 @@ src/tokens.css       design tokens (colours, type, spacing) measured from formul
 src/styles.css       layout + components
 src/components.js    shell (header, nav, race strip, mobile menu, footer) + cards, tables, atoms
 src/pages.js         public pages
+src/insights.js      car development tracker, title scenarios, season awards, hall of fame (pure SVG charts)
 src/matrix.js        Wikipedia-style standings matrix + click-to-edit result cells
 src/newsgen.js       automatic newsroom: facts → story memory (storylines) → story selection → varied phrase banks → sync
 src/editor.js        Edit Career forms, results grid editor, transfers, import/export
@@ -190,3 +193,9 @@ Every race weekend gets a timeline of stories, shown on the race page:
 Story memory follows storylines across races: slumps and comebacks, podium runs, team-mate wars, title fights, rivalries, contract sagas and veterans. Career milestones (starts, wins, podiums, team droughts) and driver moods from the last three races shape headlines and quotes.
 
 Storage: auto-written stories are rebuilt from results, so they are not saved. Only stories you edited, featured, rewrote or gave a picture are stored. Sync only rewrites seasons whose results changed, so long careers stay fast. Backups keep the last 3.
+
+## Insights
+- Car development: a pace index (0 to 100) per team per race from qualifying and finishing positions, shown as a chart. Big steps forward or back become news stories.
+- Title scenarios: who can still win, the points left, and a table of what the leader needs at the next race to clinch. Shown on the standings and home pages and in race previews.
+- Season awards: champion, Driver of the Year, Rookie, Overtaker, Qualifier, Mr Consistent, Comeback, Rivalry, Race of the Year, Team of the Year, Most Improved Car, Hard Luck. Published as an article after the last race.
+- Hall of Fame: champions by year, legends, career records and drivers who left the grid. A "career in numbers" article runs when a driver with 20 or more starts leaves.

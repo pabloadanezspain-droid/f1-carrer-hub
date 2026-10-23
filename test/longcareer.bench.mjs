@@ -4,7 +4,7 @@ import vm from 'node:vm';
 const src = p => fs.readFileSync(new URL('../src/' + p, import.meta.url), 'utf8');
 const ctx = { console, URL, localStorage: { getItem: () => null, setItem() {} } };
 vm.createContext(ctx);
-vm.runInContext(['store.js', 'selectors.js', 'assets.js', 'components.js', 'matrix.js', 'newsgen.js'].map(src).join('\n')
+vm.runInContext(['store.js', 'selectors.js', 'assets.js', 'components.js', 'matrix.js', 'insights.js', 'newsgen.js'].map(src).join('\n')
   + '\nthis.api = { Store, normalizeCareer, clone, mxSetResult, mxSetPole, syncAutoNews, roundsOf, startNextSeason, storedCareer: typeof storedCareer === "function" ? storedCareer : null };', ctx);
 const A = ctx.api, years = +process.argv[2] || 20;
 const c = A.normalizeCareer(A.clone(JSON.parse(src('sample-data.json')))); A.Store.data = c;
