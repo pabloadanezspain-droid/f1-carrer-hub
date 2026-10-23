@@ -30,7 +30,16 @@ function roundsOf(c, seasonId) { return c.rounds.filter(r => r.seasonId === seas
 function completedRounds(c, seasonId) { return roundsOf(c, seasonId).filter(r => resultFor(c, r.id, 'race')); }
 function nextRound(c, seasonId) { return roundsOf(c, seasonId).find(r => !resultFor(c, r.id, 'race')) || null; }
 function lastRound(c, seasonId) { const done = completedRounds(c, seasonId); return done[done.length - 1] || null; }
-function resultFor(c, roundId, session) { return c.results.find(r => r.roundId === roundId && r.session === session) || null; }
+// indexed lookup: long careers have thousands of results and this runs very often
+let RES_IDX = { arr: null, n: -1, map: null };
+function resultFor(c, roundId, session) {
+  const k = roundId + '|' + session;
+  if (RES_IDX.arr !== c.results || RES_IDX.n !== c.results.length) { const map = new Map(); c.results.forEach(r => { const kk = r.roundId + '|' + r.session; if (!map.has(kk)) map.set(kk, r); }); RES_IDX = { arr: c.results, n: c.results.length, map }; }
+  const r = RES_IDX.map.get(k);
+  if (r && r.roundId === roundId && r.session === session) return r;
+  if (!r) return null;
+  RES_IDX.arr = null; return resultFor(c, roundId, session);                               // a result was replaced in place: rebuild once
+}
 function sessionsWithResults(c, roundId) { return SESSION_TYPES.filter(s => resultFor(c, roundId, s)); }
 
 /* --- session names --------------------------------------------------------- */

@@ -229,6 +229,22 @@ function validateCareer(c) {
 }
 
 /* --- persistence ---------------------------------------------------------- */
+/* The stored copy of a career. Auto-written articles are derived from results, so unedited ones are left out
+   and rebuilt by syncAutoNews on load. A small stub keeps a story you featured, gave a picture or rewrote.
+   This keeps a 20-year career well inside the browser's ~5 MB limit. */
+function compactCareer(c) {
+  if (typeof ngSig !== 'function' || c.meta.autoNews === false) return c;
+  const articles = [];
+  c.articles.forEach(a => {
+    if (!a.auto || ngSig(a) !== a.auto.sig) { articles.push(a); return; }               // your own or edited stories: keep in full
+    const userImg = a.imageUrl && a.imageUrl !== a.auto.img;
+    if (!a.featured && !userImg && !a.auto.variant) return;                              // plain auto story: rebuilt on load
+    articles.push({ id: a.id, seasonId: a.seasonId, roundId: a.roundId, featured: !!a.featured, imageUrl: userImg ? a.imageUrl : undefined,
+      title: '', standfirst: '', body: '', driverIds: [], teamIds: [], auto: Object.assign({}, a.auto, { stub: 1 }) });
+  });
+  return Object.assign({}, c, { articles });
+}
+
 const Store = {
   data: null,
   listeners: [],
@@ -247,13 +263,24 @@ const Store = {
   save() {
     if (typeof syncAutoNews === 'function') syncAutoNews(this.data);   // keep auto-written news in step with results
     this.data.meta.updatedAt = new Date().toISOString();
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); this.storageOk = true; }
+    try { this.write(); this.storageOk = true; }
     catch (e) { this.storageOk = false; console.warn('localStorage unavailable', e); }
     this.listeners.forEach(fn => fn());
   },
   onChange(fn) { this.listeners.push(fn); },
+  /* Saves the career in its compact form: auto-written news is rebuilt from results on load, so it is not stored
+     (only stories you edited, featured or gave a picture are kept). If the browser is full, old backups go first. */
+  write() {
+    const json = JSON.stringify(compactCareer(this.data));
+    try { localStorage.setItem(STORAGE_KEY, json); }
+    catch (e) { this.dropBackups(0); localStorage.setItem(STORAGE_KEY, json); }
+  },
+  dropBackups(keep) {
+    try { const keys = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('f1ch.backup.')) keys.push(k); }
+      keys.sort().slice(0, Math.max(0, keys.length - keep)).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  },
   syncNewsQuietly() {
-    if (typeof syncAutoNews === 'function' && syncAutoNews(this.data)) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {} }
+    if (typeof syncAutoNews === 'function' && syncAutoNews(this.data)) { try { this.write(); } catch (e) {} }
   },
   // one-time upgrade: careers on the shortened post-war calendar move to the original 2026 calendar.
   // Results stay attached to their races (see restoreOriginalCalendar); a full backup is kept in this browser first.
@@ -264,20 +291,20 @@ const Store = {
     this.snapshot('before original calendar');
     if (restoreOriginalCalendar(this.data, sample)) {
       this.data.meta.calendarNotice = true;
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {}
+      try { this.write(); } catch (e) {}
     }
   },
   // one-time upgrade: saves made before F2 support get the starter F2 grid, academies and the F1 / F2 switch
   addStarterF2(sample) {
     if (!addStarterF2(this.data, sample)) return;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {}
+    try { this.write(); } catch (e) {}
   },
   // one-time cleanup: news stories from the old fictional 2030 sample career
   dropOldSampleNews() {
     const old = new Set(['art_season_preview', 'art_r1_report', 'art_r2_report', 'art_r3_report', 'art_transfer_swap', 'art_r6_report', 'art_grant_injury', 'art_r8_report', 'art_vantage_analysis']);
     const n = this.data.articles.length;
     this.data.articles = this.data.articles.filter(a => !old.has(a.id));
-    if (this.data.articles.length !== n) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {} }
+    if (this.data.articles.length !== n) { try { this.write(); } catch (e) {} }
   },
   reset(sample) { this.data = normalizeCareer(clone(sample)); this.save(); },
   replace(raw) {
@@ -291,9 +318,9 @@ const Store = {
   snapshot(label) {
     const key = 'f1ch.backup.' + new Date().toISOString().replace(/[:.]/g, '-');
     try {
-      localStorage.setItem(key, JSON.stringify({ label, at: new Date().toISOString(), data: this.data }));
-      const keys = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('f1ch.backup.')) keys.push(k); }
-      keys.sort().slice(0, -5).forEach(k => localStorage.removeItem(k));
+      const json = JSON.stringify({ label, at: new Date().toISOString(), data: compactCareer(this.data) });
+      this.dropBackups(2);                                                       // keep the last 3, including this one
+      try { localStorage.setItem(key, json); } catch (e) { this.dropBackups(0); localStorage.setItem(key, json); }
     } catch (e) { return null; }
     return key;
   },

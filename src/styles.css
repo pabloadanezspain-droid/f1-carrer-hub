@@ -774,3 +774,14 @@ thead .mx-pos, thead .mx-name { background: #eaecf0; z-index: 3; box-shadow: 1px
 .qo-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .qo-hint { font-size: .85em; }
 .qo-bad { color: #e10600; font-weight: 600; }
+
+/* --- newsroom: article headings, lists, weekend timeline ------------------ */
+.article-body .article-h { font-size: 1.35rem; font-weight: 700; margin: 2rem 0 .5rem; }
+.article-body .article-sub { font-size: 1.05rem; font-weight: 700; margin: 1.4rem 0 .3rem; }
+.article-body ul { margin: .5rem 0 1rem 1.2rem; padding: 0; }
+.article-body li { margin: .25rem 0; }
+.timeline { list-style: none; margin: 0; padding: 0 0 0 1rem; border-left: 2px solid var(--line, #d0d0d2); }
+.tl-day { position: relative; margin: 0 0 1.5rem; }
+.tl-day::before { content: ''; position: absolute; left: calc(-1rem - 6px); top: .35rem; width: 10px; height: 10px; border-radius: 50%; background: var(--red, #e10600); }
+.tl-label { font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 .6rem; }
+.news-more { text-align: center; margin: 1.5rem 0; }
