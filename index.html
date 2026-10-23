@@ -914,6 +914,13 @@ thead .mx-pos, thead .mx-name { background: #eaecf0; z-index: 3; box-shadow: 1px
 .hof-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: .25rem; margin: .7rem 0; }
 .hof-nums dt { font-size: .7rem; text-transform: uppercase; opacity: .6; }
 .hof-nums dd { margin: 0; font-weight: 900; font-size: 1.2rem; }
+.dr-bar { display: inline-block; width: 90px; height: 8px; border-radius: 4px; background: var(--line); vertical-align: middle; overflow: hidden; }
+.dr-bar span { display: block; height: 100%; }
+.dr-note { font-size: .8rem; max-width: 340px; white-space: normal; }
+.dr-method { margin-top: 1.5rem; }
+.dr-method summary { cursor: pointer; font-weight: 700; }
+.dr-method li { margin: .3rem 0; }
+.dr-table td.dr-note { white-space: normal !important; min-width: 260px; }
 
 /* ==========================================================================
    showroom.css — layered composites, Grid Showroom, grid reveal, studio, modal.
@@ -3782,6 +3789,7 @@ function insightsSubnav(s, active) {
     s && active !== 'hall-of-fame' ? { html: seasonSelect(s.id, id => `#/${active}?season=${id}`) } : null,
     { key: 'development', label: 'Car development', href: href('development') },
     { key: 'scenarios', label: 'Title scenarios', href: href('scenarios') },
+    { key: 'driver-ranking', label: 'Driver ranking', href: href('driver-ranking') },
     { key: 'awards', label: 'Season awards', href: href('awards') },
     { key: 'hall-of-fame', label: 'Hall of Fame', href: '#/hall-of-fame' },
   ].filter(Boolean), active);
@@ -3859,6 +3867,136 @@ function pageHallOfFame(q) {
       ${H.legends.length ? `<h2 class="h-section spaced">Legends</h2><div class="hof-legends">${H.legends.map(legend).join('')}</div>` : ''}
       ${records ? `<h2 class="h-section spaced">Records</h2><div class="mx-scroll"><table class="mx-table stats-table"><thead><tr><th>Record</th><th>Driver</th><th>Value</th></tr></thead><tbody>${records}</tbody></table></div>` : ''}
       ${gone ? `<h2 class="h-section spaced">They left the grid</h2><div class="mx-scroll"><table class="mx-table stats-table"><thead><tr><th>Driver</th><th>Years</th><th>Starts</th><th>Wins</th><th>Podiums</th><th>Titles</th></tr></thead><tbody>${gone}</tbody></table></div>` : ''}
+    </div>` };
+}
+
+/* ==========================================================================
+   5. DRIVER RANKING: how the paddock rates each driver.
+   Three panels judge the same evidence with different priorities:
+   - Team principals: pace relative to the car, beating the team-mate, bringing the car home.
+   - Journalists:     race-by-race ratings, pace relative to the car, career record, recent form.
+   - Fans:            wins and podiums, overtakes, momentum, big stories, career record.
+   Each factor is scaled 0 to 100 across the grid (best driver = 100), each panel is a weighted sum,
+   and the overall score is the average of the three panels. Rankings move race by race.
+   ========================================================================== */
+const DR_FACTORS = {
+  car: 'Pace relative to the car', mate: 'Head-to-head with team-mate', rating: 'Average race rating', quali: 'Qualifying relative to the car',
+  finish: 'Consistency (points finishes, few retirements)', overtake: 'Places gained in races', results: 'Wins and podiums this season',
+  form: 'Form over the last 5 races', story: 'Storylines (comebacks, momentum)', record: 'Career record and awards',
+};
+const DR_PANELS = {
+  tp: { name: 'Team principals', w: { car: 30, mate: 25, finish: 15, quali: 10, rating: 10, record: 10 } },
+  press: { name: 'Journalists', w: { rating: 30, car: 20, record: 15, form: 15, mate: 10, quali: 10 } },
+  fans: { name: 'Fans', w: { results: 25, overtake: 15, form: 15, story: 15, record: 15, car: 15 } },
+};
+function driverRanking(c, sid, upto) {
+  const all = completedRounds(c, sid), N = upto == null ? all.length : Math.min(upto, all.length);
+  return inMemo(c, `drank|${sid}|${N}`, () => {
+    const rounds = all.slice(0, N); if (!rounds.length) return null;
+    const P = teamPace(c, sid), s = seasonOf(c, sid);
+    // car order after N races: average weekend pace of each team so far (both cars)
+    const carAvg = {}; P.teams.forEach(t => { const v = inAvg(t.raw.slice(0, N)); if (v != null) carAvg[t.id] = v; });
+    const carRank = Object.keys(carAvg).sort((a, b) => carAvg[b] - carAvg[a]);
+    const expected = tid => { const k = carRank.indexOf(tid); return k < 0 ? 11 : 2 * k + 1.5; };   // where two cars of this pace should finish on average
+    const X = {}, get = (id, tid) => (X[id] = X[id] || { id, team: tid, n: 0, car: [], quali: [], rating: [], gained: [], pts: 0, finish: 0, dnf: 0, wins: 0, pods: 0, qW: 0, qT: 0, rW: 0, rT: 0 });
+    rounds.forEach(rd => {
+      const race = classify(c, resultFor(c, rd.id, 'race')), q = classify(c, resultFor(c, rd.id, 'qualifying'));
+      const rates = typeof ngRateRows === 'function' ? ngRateRows(c, rd, race) : [];
+      race.forEach(e => {
+        const x = get(e.driverId, e.teamId); x.team = e.teamId; x.n++;
+        const exp = expected(e.teamId), qp = (q.find(z => z.driverId === e.driverId) || {}).position || e.grid;
+        if (e.position) { x.car.push(exp - e.position); if (e.pts > 0) x.finish++; if (e.position === 1) x.wins++; if (e.position <= 3) x.pods++; if (e.grid) x.gained.push(e.grid - e.position); }
+        else if (e.status === 'DNF') x.dnf++;
+        if (qp) x.quali.push(exp - qp);
+        x.pts += e.pts || 0;
+        const rr = rates.find(r => r.e.driverId === e.driverId); if (rr) x.rating.push(rr.r);
+      });
+      // team-mate duels
+      const byT = {}; race.forEach(e => (byT[e.teamId] = byT[e.teamId] || []).push(e));
+      Object.values(byT).forEach(es => { if (es.length !== 2) return; const [a, b] = es.map(e => X[e.driverId]);
+        const qa = (q.find(z => z.driverId === es[0].driverId) || {}).position || es[0].grid, qb = (q.find(z => z.driverId === es[1].driverId) || {}).position || es[1].grid;
+        if (qa && qb) { a.qT++; b.qT++; (qa < qb ? a : b).qW++; }
+        if (es[0].position && es[1].position) { a.rT++; b.rT++; (es[0].position < es[1].position ? a : b).rW++; } });
+    });
+    const minRaces = Math.max(1, Math.ceil(N / 3));
+    const list = Object.values(X).filter(x => x.n >= minRaces);
+    // career record and awards from earlier, completed seasons of this series
+    const book = careerBook(c, seriesOf(s)).book;
+    const awardsWon = {}; c.seasons.filter(z => seriesOf(z) === seriesOf(s) && z.year < s.year).forEach(z => (seasonAwards(c, z.id) || []).forEach(a => [a.d, a.d2].filter(Boolean).forEach(d => awardsWon[d] = (awardsWon[d] || 0) + 1)));
+    const mem = typeof ngNarrative === 'function' ? ngNarrative(c).get(rounds[rounds.length - 1].id) : null;
+    list.forEach(x => {
+      const B = book[x.id] || {};
+      const recentRates = x.rating.slice(-5);
+      x.f = {
+        car: inAvg(x.car) ?? -5,
+        quali: inAvg(x.quali) ?? -5,
+        mate: x.qT + x.rT ? (x.qW + x.rW) / (x.qT + x.rT) : 0.5,
+        rating: inAvg(x.rating) ?? 5,
+        finish: x.finish / x.n - 0.5 * x.dnf / x.n,
+        overtake: inAvg(x.gained) ?? 0,
+        results: x.wins * 3 + x.pods,
+        form: inAvg(recentRates) ?? 5,
+        story: (() => { if (!mem) return 0; let v = 0; const m = (mem.mood || {})[x.id];
+          v += { flying: 3, good: 1.5, steady: 0, low: -1.5, crisis: -3 }[m] || 0;
+          mem.ended.forEach(z => { if (z.kind === 'slump' && z.drivers[0] === x.id && ['podium', 'points'].includes(z.outcome)) v += 2; if (z.kind === 'form' && z.drivers[0] === x.id) v += 1; });
+          mem.open.forEach(z => { if (z.drivers.includes(x.id)) v += { form: 2, rivalry: 1, title: 2, slump: -2, saga: 0.5 }[z.kind] || 0; }); return v; })(),
+        record: (B.titles || 0) * 10 + (B.wins || 0) * 1.5 + (B.podiums || 0) * 0.5 + (B.poles || 0) * 0.5 + (awardsWon[x.id] || 0) * 3 + Math.min(B.starts || 0, 200) * 0.02,
+      };
+    });
+    // scale every factor 0..100 across the grid
+    const S = {};
+    Object.keys(DR_FACTORS).forEach(k => { const vs = list.map(x => x.f[k]), lo = Math.min(...vs), hi = Math.max(...vs);
+      list.forEach(x => { (S[x.id] = S[x.id] || {})[k] = hi > lo ? Math.round(100 * (x.f[k] - lo) / (hi - lo)) : 50; }); });
+    list.forEach(x => {
+      x.s = S[x.id]; x.panels = {};
+      Object.entries(DR_PANELS).forEach(([pk, p]) => { const tot = Object.values(p.w).reduce((a, b) => a + b, 0);
+        x.panels[pk] = Object.entries(p.w).reduce((a, [k, w]) => a + x.s[k] * w, 0) / tot; });
+      x.score = Math.round(inAvg(Object.values(x.panels)) * 10) / 10;
+      // what stands out: the two factors furthest above this driver's own average
+      const mean = inAvg(Object.values(x.s));
+      x.strengths = Object.keys(DR_FACTORS).filter(k => x.s[k] >= 70).sort((a, b) => x.s[b] - x.s[a]).slice(0, 2);
+      x.weak = Object.keys(DR_FACTORS).filter(k => x.s[k] <= 30 && x.s[k] < mean - 20 && !(['car', 'quali'].includes(k) && x.f[k] >= -2)).sort((a, b) => x.s[a] - x.s[b])[0] || null;
+    });
+    list.sort((a, b) => b.score - a.score);
+    Object.keys(DR_PANELS).forEach(pk => [...list].sort((a, b) => b.panels[pk] - a.panels[pk]).forEach((x, i) => { (x.ranks = x.ranks || {})[pk] = i + 1; }));
+    list.forEach((x, i) => { x.rank = i + 1; });
+    return { rounds: N, list, minRaces };
+  });
+}
+const DR_NOTE = {
+  car: x => `${x.f.car >= 0 ? '+' : ''}${x.f.car.toFixed(1)} places vs the car`, quali: x => `${x.f.quali >= 0 ? '+' : ''}${x.f.quali.toFixed(1)} grid places vs the car`,
+  mate: x => `beats his team-mate ${Math.round(x.f.mate * 100)}% of the time`, rating: x => `${x.f.rating.toFixed(1)}/10 average rating`,
+  finish: x => `${x.finish} of ${x.n} races in the points`, overtake: x => `${x.f.overtake >= 0 ? '+' : ''}${x.f.overtake.toFixed(1)} places per race`,
+  results: x => `${x.wins} wins, ${x.pods} podiums`, form: x => `${x.f.form.toFixed(1)}/10 over the last 5 races`, story: () => 'a story the fans follow', record: () => 'a strong career record',
+};
+function pageDriverRanking(q) {
+  const c = D(); const s = pickSeason(q); if (!s) return noSeason();
+  const R = driverRanking(c, s.id), prev = R && R.rounds > 1 ? driverRanking(c, s.id, R.rounds - 1) : null;
+  if (!R) return { title: 'Driver ranking', nav: 'insights', html: `${insightsSubnav(s, 'driver-ranking')}<div class="wrap page"><h1 class="h-page">Driver Ranking</h1>${emptyState('No races yet', 'The ranking starts after the first race.', null)}</div>` };
+  const move = x => { const p = prev && prev.list.find(z => z.id === x.id); if (!p) return '<span class="trend">new</span>'; const d = p.rank - x.rank;
+    return d > 0 ? `<span class="trend up">▲ ${d}</span>` : d < 0 ? `<span class="trend down">▼ ${-d}</span>` : '<span class="trend">●</span>'; };
+  const dLink = x => { const d = driverOf(x.id), t = teamOf(x.team); return `${t ? `<span class="dot" style="--tc:${t.color}"></span> ` : ''}<a href="#/drivers/${x.id}">${esc(d ? nameOf(d) : x.id)}</a><small class="muted"> ${esc(t ? t.name : '')}</small>`; };
+  const note = x => [...x.strengths.map(k => DR_NOTE[k](x)), x.weak ? `weak spot: ${DR_FACTORS[x.weak].toLowerCase()}` : ''].filter(Boolean).join(' · ');
+  const top3 = R.list.slice(0, 3).map(x => { const d = driverOf(x.id), t = teamOf(x.team);
+    return `<article class="award-card dr-top" style="--tc:${t ? t.color : '#e10600'}"><div class="award-pic">${d ? driverHead(d, t) : ''}</div><div class="award-body"><span class="eyebrow">No. ${x.rank} in the paddock</span>
+      <h3 class="h-card"><a href="#/drivers/${x.id}">${esc(d ? nameOf(d) : x.id)}</a></h3><p class="award-value">${x.score.toFixed(1)} / 100</p>
+      <p class="muted">Team principals #${x.ranks.tp} · Journalists #${x.ranks.press} · Fans #${x.ranks.fans}</p><p class="muted">${esc(note(x))}</p></div></article>`; }).join('');
+  const rows = R.list.map(x => `<tr><td>${x.rank}</td><td class="num">${move(x)}</td><td class="mx-left">${dLink(x)}</td>
+    <td class="mx-left"><span class="dr-bar"><span style="width:${x.score}%;background:${(teamOf(x.team) || {}).color || '#888'}"></span></span> <b>${x.score.toFixed(1)}</b></td>
+    <td class="num">${x.ranks.tp}</td><td class="num">${x.ranks.press}</td><td class="num">${x.ranks.fans}</td><td class="mx-left muted dr-note">${esc(note(x))}</td></tr>`).join('');
+  const method = Object.entries(DR_PANELS).map(([, p]) => `<li><b>${esc(p.name)}:</b> ${Object.entries(p.w).map(([k, w]) => `${esc(DR_FACTORS[k].toLowerCase())} ${w}%`).join(', ')}.</li>`).join('');
+  return { title: `${s.year} Driver ranking`, nav: 'insights', html: `
+    ${insightsSubnav(s, 'driver-ranking')}
+    <div class="wrap page">
+      <h1 class="h-page">${esc(s.year)} Driver Ranking</h1>
+      <p class="page-intro">Who the paddock rates highest after ${R.rounds} race${R.rounds > 1 ? 's' : ''}. Team principals, journalists and fans each judge every driver against the car he drives, his team-mate, his results and his record. Arrows show the change since the last race.</p>
+      <div class="award-grid">${top3}</div>
+      <div class="mx-scroll"><table class="mx-table stats-table dr-table"><thead><tr><th>#</th><th></th><th>Driver</th><th>Score</th><th>Team principals</th><th>Journalists</th><th>Fans</th><th>What stands out</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <details class="panel dr-method"><summary>How the ranking works</summary>
+        <p>Every factor is measured for each driver who started at least ${R.minRaces} race${R.minRaces > 1 ? 's' : ''}, then scaled from 0 (lowest on the grid) to 100 (highest). Each panel adds the factors with its own weights. The score is the average of the three panels.</p>
+        <ul>${method}</ul>
+        <p>"Relative to the car": the car's place in the field comes from the team's average pace so far. A car ranked 3rd should put its drivers around 5th and 6th. Finishing ahead of that counts as plus, behind it as minus.</p>
+      </details>
     </div>` };
 }
 
@@ -5720,7 +5858,7 @@ function ngPractice(c, round, w) {
 function ngMoreFormats(c, f, w, seed, mk) {
   if (NG_F2.has(f.round.seasonId)) return [];
   f.v = f.v || ngVars(f);
-  return [ngWinnersLosers, ngRatings, ngRadio, ngBosses, ngFiveThings, ngArcStory, ngMilestones, ngLongRead, ngSeasonReview, ngDevStory, ngAwardsStory, ngClinchStory]
+  return [ngWinnersLosers, ngRatings, ngRadio, ngBosses, ngFiveThings, ngArcStory, ngMilestones, ngLongRead, ngSeasonReview, ngDevStory, ngAwardsStory, ngClinchStory, ngPaddockTop10]
     .map((fn, i) => fn(c, f, mk(seed + 'nf' + i))).filter(Boolean);
 }
 
@@ -5805,6 +5943,22 @@ function ngScenarioStory(c, round, w) {
   else if (mt && mt.champion) body.push(`The teams' title is already settled: ${ngTn(mt.champion)} cannot be caught.`);
   body.push('See the full table on the Title scenarios page.');
   return ngStory('scenarios', 'Analysis', ngFill(title, v), ngFill(m.canClinch ? 'Every result that makes {L} champion this weekend.' : 'Who is still in it, and what they need.', v), body, m.alive.map(a => a.id).slice(0, 4), [], { hoursBefore: 48 });
+}
+
+/* --- paddock top 10: the driver ranking every six races and at the end of the season --- */
+function ngPaddockTop10(c, f, w) {
+  if (typeof driverRanking !== 'function' || !(f.round.round % 6 === 0 || f.last)) return null;
+  const done = completedRounds(c, f.round.seasonId), N = done.findIndex(r => r.id === f.round.id) + 1;
+  const R = driverRanking(c, f.round.seasonId, N), P = N > 6 ? driverRanking(c, f.round.seasonId, N - 6) : null; if (!R || R.list.length < 10) return null;
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], top = R.list[0];
+  const mv = x => { const p = P && P.list.find(z => z.id === x.id); if (!p) return 'new entry'; const d = p.rank - x.rank; return d > 0 ? `up ${d}` : d < 0 ? `down ${-d}` : 'no change'; };
+  const body = [`Every six races we ask how the paddock rates the drivers: team principals, journalists and fans, each judging the driver against his car, his team-mate and his results. After ${N} races, this is the top 10.`];
+  R.list.slice(0, 10).forEach(x => body.push(`## ${x.rank}. ${ngFull(x.id)} (${ngTn(x.team)})`, `${x.score.toFixed(1)} points${P ? ', ' + mv(x) : ''}. Team principals #${x.ranks.tp}, journalists #${x.ranks.press}, fans #${x.ranks.fans}.${x.strengths.length ? ' Stands out for ' + x.strengths.map(k => DR_FACTORS[k].toLowerCase()).join(' and ') + '.' : ''}`));
+  const climber = P ? R.list.map(x => { const p = P.list.find(z => z.id === x.id); return p ? [x, p.rank - x.rank] : null; }).filter(Boolean).sort((a, b) => b[1] - a[1])[0] : null;
+  if (climber && climber[1] >= 3) body.push(`Biggest climber: ${ngFull(climber[0].id)}, up ${climber[1]} places to #${climber[0].rank}.`);
+  body.push('The full ranking is on the Driver ranking page.');
+  return ngStory('paddock', 'Analysis', pick([`Paddock top 10: ${ngLn(top.id)} is the driver to beat`, `Who is the best driver on the grid? Our top 10 after ${N} races`, `Paddock ranking: ${ngLn(top.id)} leads the top 10`]),
+    f.last ? 'The final ranking of the season.' : `How the paddock rates the drivers after ${N} races.`, body, R.list.slice(0, 3).map(x => x.id), [], { hours: 72 });
 }
 
 /* ==========================================================================
@@ -7118,7 +7272,7 @@ async function deriveFit(rec) {
      #/standings/drivers|teams[?season=]
      #/drivers  #/drivers/:id   #/teams  #/teams/:id
      #/news[?category=]         #/news/:id
-     #/development  #/scenarios  #/awards  (?season=)   #/hall-of-fame
+     #/development  #/scenarios  #/driver-ranking  #/awards  (?season=)   #/hall-of-fame
      #/edit[/:section][?id=&season=&round=&session=]
    ========================================================================== */
 
@@ -7151,6 +7305,7 @@ function route() {
     case 'scenarios': return pageScenarios(q);
     case 'awards': return pageAwards(q);
     case 'hall-of-fame': return pageHallOfFame(q);
+    case 'driver-ranking': return pageDriverRanking(q);
     case 'edit': return pageEdit(b, q);
     default: return notFound();
   }
