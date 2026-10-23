@@ -70,23 +70,30 @@ function ngRoundOrder(c) {
   return [...c.rounds].sort((a, b) => year(a.seasonId) - year(b.seasonId) || a.round - b.round);
 }
 function ngFacts(c, round) {
-  const race = classify(c, resultFor(c, round.id, 'race'));
+  if (!NG_MEMO) ngCacheReset();
+  NG_MEMO.facts = NG_MEMO.facts || new Map();
+  if (!NG_MEMO.facts.has(round.id)) NG_MEMO.facts.set(round.id, ngFactsRaw(c, round));
+  return NG_MEMO.facts.get(round.id);
+}
+function ngFactsRaw(c, round) {
+  const race = ngRace(c, round.id);
   const fin = race.filter(e => e.position).sort((a, b) => a.position - b.position);
   if (!fin.length) return null;
   const d = id => driverOf(id) || { firstName: '', lastName: id, nationality: '' };
   const t = id => teamOf(id) || { name: id };
-  const order = ngRoundOrder(c), earlier = order.slice(0, order.indexOf(round));
-  const earlierRaces = earlier.map(r => classify(c, resultFor(c, r.id, 'race')));
+  if (!NG_MEMO.order) NG_MEMO.order = ngRoundOrder(c);
+  const order = NG_MEMO.order, earlier = order.slice(0, order.indexOf(round));
+  const earlierRaces = earlier.map(r => ngRace(c, r.id));
   const raced = earlier.filter(r => r.seasonId === round.seasonId && resultFor(c, r.id, 'race')).length;   // races already run this season
   const winsBefore = id => earlierRaces.filter(rs => rs.some(e => e.driverId === id && e.position === 1)).length;
   const podiumsBefore = id => earlierRaces.filter(rs => rs.some(e => e.driverId === id && e.position && e.position <= 3)).length;
   // consecutive wins up to this round (season-independent, career order)
   let streak = 1;
   for (let i = earlierRaces.length - 1; i >= 0; i--) { const w = earlierRaces[i].find(e => e.position === 1); if (w && w.driverId === fin[0].driverId) streak++; else if (earlierRaces[i].length) break; }
-  const q = classify(c, resultFor(c, round.id, 'qualifying')).find(e => e.position === 1);
-  const sprint = classify(c, resultFor(c, round.id, 'sprint')).find(e => e.position === 1);
+  const q = ngRace(c, round.id, 'qualifying').find(e => e.position === 1);
+  const sprint = ngRace(c, round.id, 'sprint').find(e => e.position === 1);
   const gapTxt = fin[1] && /^\+?\d+(\.\d+)?s?$/.test(String(fin[1].time || '').trim()) ? parseFloat(String(fin[1].time).replace('+', '')) : null;
-  const before = driverStandings(c, round.seasonId, round.round - 1), after = driverStandings(c, round.seasonId, round.round);
+  const before = ngStand(c, round.seasonId, round.round - 1), after = ngStand(c, round.seasonId, round.round);
   const rounds = roundsOf(c, round.seasonId), left = rounds.filter(r => r.round > round.round);
   const rule = ruleFor(c, round.seasonId);
   const maxLeft = left.reduce((a, r) => a + (rule.race[0] || 0) + ((rule.fastestLap || {}).points || 0) + (r.sprint ? (rule.sprint[0] || 0) : 0), 0);
@@ -289,6 +296,7 @@ function ngRaceReport(f, w, v) {
   if (three.length) p.push(three.join(' '));
   ngLongReport(f, w, v).forEach(x => p.push(x));
   p.push(ngFill(w.pick(NG.quoteWin), (q => Object.assign({}, v, { q, qc: q.replace(/[.!]$/, ',') }))(w.chance(.6) ? ngSays(f.d(f.W.driverId), 'win', w.rnd) : ngFill(w.pick(NG.qWin), v))));
+  const cb = ngCallback(f.c, f.round, [f.W.driverId, f.P2 && f.P2.driverId, f.P3 && f.P3.driverId].filter(Boolean), w.rnd, true); if (cb) p.push(cb);
   const leadKind = f.gap === 0 ? 'tied' : f.L && f.leaderBefore && f.L.id !== f.leaderBefore ? 'take' : 'keep';
   p.push([f.L2 ? ngFill(w.pick(NG.lead[leadKind]), v) : '', f.last ? w.pick(NG.end) : f.next ? ngFill(w.pick(NG.next), v) : ''].filter(Boolean).join(' '));
   p.push(ngFill(ngGrammar(ngVocab(f.round), ngRng(f.round.id + 'close')).expand('#closer#'), v));
@@ -821,6 +829,7 @@ function ngEnrich(f, st, w, v) {
     raced: f.raced + 1, next: (seasonOf(f.c, f.round.seasonId) || {}).year + 1, left: ngWord(f.rounds.length - f.round.round) });
   const add = [];
   if (row && row.points) add.push(g.expand('#ctx#'));
+  const cb = id ? ngCallback(f.c, f.round, [id], ngRng(st.type + f.round.id + 'cb'), true) : ''; if (cb) add.push(cb);
   const kind = String(st.type).replace(/\d+$/, '');
   if (NG_EXTRA['extra_' + kind]) add.push(g.expand('#extra_' + kind + '#'));
   const mateRow = id && tid ? f.after.find(r => r.id !== id && (f.race.find(e => e.driverId === r.id) || {}).teamId === tid) : null;
@@ -860,9 +869,19 @@ function ngStoriesFor(c, round, usedHeads, variant) {
   cands.sort((a, b) => b[0] - a[0]).slice(0, 5).forEach(([, mk]) => { const st = mk(); if (st) out.push(ngEnrich(f, st, null, v)); });
   // silly season: up to two rumours per race from round 12, never the same driver twice in a row
   const rw = ngWriter(seed + 'z', usedHeads);
-  const pickR = ngRumourPicks(c, round);
+  const pickR = ngRumourPicks(c, round, NG_MEMO.rumours);
   pickR.forEach((x, i) => out.push(ngEnrich(f, ngRumourStory(c, f, rw, v, x, i), null, v)));
+  f.v = v;
+  ngMoreFormats(c, f, null, seed, k => ngWriter(k, usedHeads)).forEach(st => out.push(st));
   return out;
+}
+
+/* the stories published before a race: preview (Tuesday), press conference (Thursday), practice (Friday) */
+const NG_PRE = /:(preview|press|practice)$/;
+function ngPreStories(c, round, vf, usedHeads) {
+  const seed = t => `${round.id}|p|${vf(t)}${t === 'preview' ? '' : t}`, out = [ngPreview(c, round, ngWriter(seed('preview'), usedHeads))];
+  if (!NG_F2.has(round.seasonId)) out.push(ngPress(c, round, ngWriter(seed('press'), usedHeads)), ngPractice(c, round, ngWriter(seed('practice'), usedHeads)));
+  return out.filter(Boolean);
 }
 
 /* --- academies: F2 results seen from the F1 team that owns the driver ------- */
@@ -988,40 +1007,53 @@ function ngMovesRoundup(c, s, list, w) {
     drivers: list.map(m => m.d), teams: [...new Set(list.map(m => m.to || m.from))], hoursBefore: 16 * 24 };
 }
 
+/* Sync is incremental: each season gets a fingerprint (its rounds, results, line-ups and the season before it).
+   A season whose fingerprint has not changed reuses the stories built earlier in this session, so a save in
+   year 20 of a career only rewrites year 20. Caches live in memory only. */
+const NG_SEASON_CACHE = new Map();
+const ngEdited = a => !(a.auto && a.auto.stub) && ngSig(a) !== a.auto.sig;
+const ngSeasonOrder = c => [...c.seasons].sort((a, b) => a.year - b.year || (a.series === 'f2' ? 0 : 1) - (b.series === 'f2' ? 0 : 1));
 function syncAutoNews(c) {
   if (!c || c.meta.autoNews === false) return false;
-  ngSeries(c);
+  ngSeries(c); ngCacheReset();
   let changed = false;
-  const wanted = new Map();
-  c.seasons.forEach(s => {
-    const usedHeads = new Set();
-    const rounds = roundsOf(c, s.id);
+  const wanted = new Map();                                                    // key -> [round, story, unchanged since last sync]
+  const active = (activeSeason(c) || {}).id;
+  const varOf = new Map(); c.articles.forEach(a => { if (a.auto && a.auto.variant) varOf.set(a.auto.key, a.auto.variant); });
+  let chain = String(ngHash(JSON.stringify([c.drivers, c.teams, c.academies, c.pointsRules, c.seasons, c.meta.playerTeamId, active])));
+  ngSeasonOrder(c).forEach(s => {
+    const rounds = roundsOf(c, s.id), rids = new Set(rounds.map(r => r.id));
+    const fp = ngHash(chain + JSON.stringify([rounds, c.results.filter(r => rids.has(r.roundId)), c.assignments.filter(a => a.seasonId === s.id), [...varOf].filter(([k]) => rids.has(k.split(':')[0]))]));
+    chain = String(fp);
+    const hit = NG_SEASON_CACHE.get(s.id);
+    if (hit && hit.fp === fp) { hit.items.forEach(([k, rd, st]) => wanted.set(k, [rd, st, true])); return; }
+    const items = [], put = (rd, st) => { const k = `${rd.id}:${st.type}`; items.push([k, rd, st]); wanted.set(k, [rd, st, false]); };
+    const usedHeads = new Set(), vf = rd => type => varOf.get(`${rd.id}:${type}`) || 0;
     rounds.forEach(rd => {
-      const variant = (c.articles.find(a => a.auto && a.auto.round === rd.id && !a.auto.key.endsWith(':preview')) || { auto: {} }).auto.variant || 0;
-      ngStoriesFor(c, rd, usedHeads, variant).forEach(st => wanted.set(`${rd.id}:${st.type}`, [rd, st]));
+      if (!resultFor(c, rd.id, 'race')) return;
+      const variant = (c.articles.find(a => a.auto && a.auto.round === rd.id && !NG_PRE.test(a.auto.key)) || { auto: {} }).auto.variant || 0;
+      ngStoriesFor(c, rd, usedHeads, variant).forEach(st => put(rd, st));
+      ngPreStories(c, rd, vf(rd), usedHeads).forEach(st => put(rd, st));
     });
     // transfer stories: one per move plus a round-up of the off-season
     const moves = ngMoves(c, s);
-    moves.forEach(m => { const st = ngMoveStory(c, m, ngWriter(`${m.round.id}|mv|${m.d}`, usedHeads)); wanted.set(`${m.round.id}:${st.type}`, [m.round, st]); });
-    const off = moves.filter(m => !m.mid); if (off.length) wanted.set(`${off[0].round.id}:moves`, [off[0].round, ngMovesRoundup(c, s, off, ngWriter(`${off[0].round.id}|mvs`, usedHeads))]);
+    moves.forEach(m => put(m.round, ngMoveStory(c, m, ngWriter(`${m.round.id}|mv|${m.d}`, usedHeads))));
+    const off = moves.filter(m => !m.mid); if (off.length) put(off[0].round, ngMovesRoundup(c, s, off, ngWriter(`${off[0].round.id}|mvs`, usedHeads)));
     const nx = nextRound(c, s.id);
-    if (nx && (s.id === (activeSeason(c) || {}).id)) {
-      const variant = (c.articles.find(a => a.auto && a.auto.key === `${nx.id}:preview`) || { auto: {} }).auto.variant || 0;
-      wanted.set(`${nx.id}:preview`, [nx, ngPreview(c, nx, ngWriter(`${nx.id}|p|${variant}`, usedHeads))]);
-    }
+    if (nx && s.id === active) ngPreStories(c, nx, vf(nx), usedHeads).forEach(st => put(nx, st));
+    NG_SEASON_CACHE.set(s.id, { fp, items });
   });
-  // remove auto stories that no longer apply (unless the user edited them, or it is an old preview)
+  // remove auto stories that no longer apply, unless the user edited them
   c.articles = c.articles.filter(a => {
-    if (!a.auto || wanted.has(a.auto.key)) return true;
-    if (a.auto.key.endsWith(':preview') && resultFor(c, a.roundId, 'race')) return true;     // keep past previews as archive
-    if (ngSig(a) !== a.auto.sig) return true;                                                   // user edited: keep
+    if (!a.auto || wanted.has(a.auto.key) || ngEdited(a)) return true;
     changed = true; return false;
   });
   const usedImgs = {};
-  wanted.forEach(([rd, st], key) => {
+  wanted.forEach(([rd, st, same], key) => {
     const id = 'art_auto_' + key.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
     const old = c.articles.find(a => a.id === id);
-    if (old && ngSig(old) !== old.auto.sig) return;                                             // user edited: leave it alone
+    if (old && ngEdited(old)) return;                                           // user edited: leave it alone
+    if (same && old && !old.auto.stub) return;                                  // nothing changed in this season
     const variant = old ? old.auto.variant || 0 : 0;
     // keep a picture the user chose; pictures the newsroom picked itself may be refreshed (more photos arrive over time)
     const oa = (old && old.auto) || {};
@@ -1030,13 +1062,13 @@ function syncAutoNews(c) {
     const rec = {
       id, seasonId: rd.seasonId, roundId: rd.id, category: st.category, title: st.title, slug: slugify(st.title),
       standfirst: st.standfirst, body: st.body.join('\n\n'), author: authors[ngHash(key) % authors.length],
-      publishedAt: st.hoursBefore ? ngIso(rd.dateStart || rd.dateEnd, -st.hoursBefore + 9) : ngIso(rd.dateEnd || rd.dateStart, 4 + st.hours),
+      publishedAt: st.hoursBefore != null ? ngIso(rd.dateStart || rd.dateEnd, -st.hoursBefore + 9) : ngIso(rd.dateEnd || rd.dateStart, 4 + st.hours),
       featured: old ? !!old.featured : false, imageUrl: keepImg ? old.imageUrl : ngImage(c, rd, st, key, usedImgs[rd.seasonId] = usedImgs[rd.seasonId] || new Set()),
       driverIds: [...new Set(st.drivers)].filter(x => byId(c.drivers, x)), teamIds: [...new Set(st.teams)].filter(x => byId(c.teams, x)),
     };
-    rec.auto = { key, round: rd.id, variant, sig: ngSig(rec), img: keepImg ? undefined : rec.imageUrl };
+    rec.auto = { key, round: rd.id, variant, sig: ngSig(rec), img: keepImg ? (oa.img !== undefined ? oa.img : undefined) : rec.imageUrl };
     if (old && JSON.stringify(old) === JSON.stringify(rec)) return;
-    if (old) Object.assign(old, rec); else c.articles.push(rec);
+    if (old) { Object.keys(old).forEach(k => delete old[k]); Object.assign(old, rec); } else c.articles.push(rec);
     changed = true;
   });
   return changed;
@@ -1048,6 +1080,510 @@ function rewriteAutoNews(c, articleId) {
   a.auto.variant = (a.auto.variant || 0) + 1;
   a.auto.sig = ngSig(a);                         // treat as unedited so sync may replace it
   const key = a.auto.key;
-  c.articles.filter(x => x.auto && x.auto.key !== key && x.auto.round === a.auto.round && !key.endsWith(':preview') && !x.auto.key.endsWith(':preview')).forEach(x => { x.auto.variant = a.auto.variant; });
+  c.articles.filter(x => x.auto && x.auto.key !== key && x.auto.round === a.auto.round && !NG_PRE.test(key) && !NG_PRE.test(x.auto.key)).forEach(x => { x.auto.variant = a.auto.variant; });
   return syncAutoNews(c);
+}
+
+/* ==========================================================================
+   STORY MEMORY: storylines that live across races and seasons.
+   Everything here is derived from results on each sync (nothing extra is saved),
+   so a long career costs no storage. Per-sync caches keep it fast.
+   Storylines:  slump · form · teamwar · title · rivalry · saga · veteran
+   One-off events: milestones, breakout podiums, redemption wins.
+   ========================================================================== */
+let NG_MEMO = null;
+function ngCacheReset() { NG_MEMO = { cls: new Map(), st: new Map(), ts: new Map(), rumours: {}, story: null }; }
+function ngRace(c, roundId, session) {
+  if (!NG_MEMO) ngCacheReset(); const k = roundId + '|' + (session || 'race');
+  if (!NG_MEMO.cls.has(k)) NG_MEMO.cls.set(k, classify(c, resultFor(c, roundId, session || 'race')));
+  return NG_MEMO.cls.get(k);
+}
+function ngStand(c, sid, n) {
+  if (!NG_MEMO) ngCacheReset(); const k = sid + '|' + n;
+  if (!NG_MEMO.st.has(k)) NG_MEMO.st.set(k, driverStandings(c, sid, n));
+  return NG_MEMO.st.get(k);
+}
+function ngTStand(c, sid, n) {
+  if (!NG_MEMO) ngCacheReset(); const k = sid + '|' + n;
+  if (!NG_MEMO.ts.has(k)) NG_MEMO.ts.set(k, teamStandings(c, sid, n));
+  return NG_MEMO.ts.get(k);
+}
+const ngLn = id => (driverOf(id) || { lastName: id }).lastName;
+const ngFull = id => { const d = driverOf(id) || { firstName: '', lastName: id }; return `${d.firstName} ${d.lastName}`.trim(); };
+const ngTn = id => (teamOf(id) || { name: id }).name;
+const ngBoss = id => { const T = teamOf(id) || {}; return T.principal ? T.principal.split('/')[0].trim() : `the ${T.name || 'team'} boss`; };
+const ngRes = e => !e ? 'not entered' : e.position ? 'P' + e.position : (MX_STATUS_LABEL[e.status] || e.status);
+const ngAge = (id, year) => { const d = driverOf(id); const y = d && d.dob ? parseInt(String(d.dob).slice(0, 4), 10) : 0; return y ? year - y : 0; };
+
+// Walk every season of each series in order and build the story memory. Result: roundId -> state after that round.
+function ngNarrative(c) {
+  if (!NG_MEMO) ngCacheReset();
+  if (NG_MEMO.story) return NG_MEMO.story;
+  const out = new Map(), bySeries = {};
+  [...c.seasons].sort((a, b) => a.year - b.year).forEach(s => (bySeries[s.series || 'f1'] = bySeries[s.series || 'f1'] || []).push(s));
+  Object.values(bySeries).forEach(list => {
+    const K = { starts: {}, wins: {}, podiums: {}, teamWins: {}, teamLastPod: {}, idx: 0, venue: {} };
+    list.forEach(s => ngNarrativeSeason(c, s, K, out));
+  });
+  return (NG_MEMO.story = out);
+}
+const NG_MILE = { starts: [50, 100, 150, 200, 250, 300, 350, 400], wins: [5, 10, 25, 50, 75, 100], podiums: [10, 25, 50, 100, 150, 200] };
+
+function ngNarrativeSeason(c, s, K, out) {
+  const all = roundsOf(c, s.id), rounds = all.filter(r => resultFor(c, r.id, 'race'));
+  const rule = ruleFor(c, s.id), winPts = (rule.race || [25])[0] || 25;
+  const H = {}, open = new Map(), pairs = {}, ended = [], lastLead = {}, sagaN = {};
+  const f2 = NG_F2.has(s.id);
+  rounds.forEach((rd, idx) => {
+    const race = ngRace(c, rd.id), ev = [], city = rd.city || rd.name;
+    const st = ngStand(c, s.id, rd.round), stPrev = ngStand(c, s.id, rd.round - 1);
+    const tsPrev = ngTStand(c, s.id, rd.round - 1).map(r => r.id);
+    const pts = id => (st.find(r => r.id === id) || { points: 0 }).points;
+    const entry = id => race.find(e => e.driverId === id);
+    const mk = (id, kind, o) => { const sl = Object.assign({ id, kind, seasonId: s.id, start: rd.round, startCity: city, heat: 50, peak: 50, beats: [], drivers: [], teams: [], count: 1 }, o);
+      open.set(id, sl); ev.push({ kind: 'open', sl }); return sl; };
+    const heat = (sl, d) => { sl.heat = Math.max(0, Math.min(100, sl.heat + d)); sl.peak = Math.max(sl.peak, sl.heat); };
+    const close = (sl, outcome, extra) => { Object.assign(sl, { closed: rd.round, outcome, endCity: city }, extra || {}); open.delete(sl.id); ended.push(sl); ev.push({ kind: 'close', sl }); };
+    K.idx++;
+    race.forEach(e => (H[e.driverId] = H[e.driverId] || []).push({ pos: e.position || null, pts: e.pts || 0, status: e.status, team: e.teamId, n: rd.round, city }));
+
+    // milestones and one-off events
+    race.forEach(e => {
+      const d = e.driverId;
+      K.starts[d] = (K.starts[d] || 0) + 1;
+      if (NG_MILE.starts.includes(K.starts[d])) ev.push({ kind: 'mile', what: 'starts', d, team: e.teamId, n: K.starts[d] });
+      if (e.position && e.position <= 3) {
+        K.podiums[d] = (K.podiums[d] || 0) + 1;
+        if (K.podiums[d] === 1 && e.position > 1) ev.push({ kind: 'mile', what: 'firstpodium', d, team: e.teamId, n: 1 });
+        else if (NG_MILE.podiums.includes(K.podiums[d])) ev.push({ kind: 'mile', what: 'podiums', d, team: e.teamId, n: K.podiums[d] });
+        const gap = K.teamLastPod[e.teamId] != null ? K.idx - K.teamLastPod[e.teamId] : null;
+        if (gap != null && gap >= 15) ev.push({ kind: 'mile', what: 'drought', d, team: e.teamId, n: gap - 1 });
+        K.teamLastPod[e.teamId] = K.idx;
+        const rank = tsPrev.indexOf(e.teamId);
+        if (idx >= 2 && rank >= 5) ev.push({ kind: 'breakout', d, team: e.teamId, pos: e.position, rank: rank + 1 });
+      }
+      if (e.position === 1) {
+        K.wins[d] = (K.wins[d] || 0) + 1;
+        if (K.wins[d] === 1) ev.push({ kind: 'mile', what: 'firstwin', d, team: e.teamId, n: 1 });
+        else if (NG_MILE.wins.includes(K.wins[d])) ev.push({ kind: 'mile', what: 'wins', d, team: e.teamId, n: K.wins[d] });
+        K.teamWins[e.teamId] = (K.teamWins[e.teamId] || 0) + 1;
+        if (K.teamWins[e.teamId] === 1 && K.idx > 1) ev.push({ kind: 'mile', what: 'teamfirst', d, team: e.teamId, n: 1 });
+        const lastHere = (K.venue[rd.name] || {})[d];
+        if (lastHere && !lastHere.pos) ev.push({ kind: 'redemption', d, team: e.teamId, year: lastHere.year, was: lastHere.status });
+      }
+    });
+    race.forEach(e => { (K.venue[rd.name] = K.venue[rd.name] || {})[e.driverId] = { pos: e.position, status: e.status, year: (seasonOf(c, s.id) || {}).year }; });
+
+    // slumps and podium runs
+    Object.entries(H).forEach(([d, h]) => {
+      const e = entry(d); if (!e) return;
+      const sid = 'slump|' + d, fid = 'form|' + d, last = h[h.length - 1];
+      let zeros = 0; for (let i = h.length - 1; i >= 0 && !h[i].pts; i--) zeros++;
+      const scoredBefore = h.slice(0, h.length - zeros).some(x => x.pts > 0);
+      if (open.has(sid)) {
+        const sl = open.get(sid);
+        if (last.pts > 0) close(sl, last.pos <= 3 ? 'podium' : 'points', { endPos: last.pos, count: sl.count });
+        else { sl.count = zeros; heat(sl, 8); }
+      } else if (zeros >= 3 && scoredBefore && !f2) {
+        const at = h[h.length - zeros];
+        mk(sid, 'slump', { drivers: [d], teams: [e.teamId], start: at.n, startCity: at.city, count: zeros, heat: 45 });
+      }
+      let pods = 0; for (let i = h.length - 1; i >= 0 && h[i].pos && h[i].pos <= 3; i--) pods++;
+      if (open.has(fid)) { const sl = open.get(fid); if (pods) { sl.count = pods; heat(sl, 6); } else close(sl, 'ended', { count: sl.count, endPos: last.pos }); }
+      else if (pods >= 3) { const at = h[h.length - pods]; mk(fid, 'form', { drivers: [d], teams: [e.teamId], start: at.n, startCity: at.city, count: pods, heat: 40 }); }
+    });
+
+    // team-mate wars: the lead in the points battle changes hands, or both cars retire
+    const byTeam = {}; race.forEach(e => (byTeam[e.teamId] = byTeam[e.teamId] || []).push(e));
+    Object.entries(byTeam).forEach(([tid, es]) => {
+      if (es.length !== 2 || idx < 3) return;
+      const [a, b] = es.map(e => e.driverId), lead = pts(a) === pts(b) ? null : (pts(a) > pts(b) ? a : b), id = 'tw|' + tid;
+      const both = es.every(e => !e.position);
+      if (lead && lastLead[tid] && lead !== lastLead[tid] && Math.abs(pts(a) - pts(b)) <= winPts) {
+        if (open.has(id)) { const sl = open.get(id); sl.count++; heat(sl, 15); ev.push({ kind: 'beat', sl, what: 'flip', lead }); }
+        else mk(id, 'teamwar', { drivers: [a, b], teams: [tid], heat: 50, lead });
+        open.get(id).lead = lead;
+      } else if (both) {
+        if (open.has(id)) { heat(open.get(id), 12); ev.push({ kind: 'beat', sl: open.get(id), what: 'double' }); }
+        else mk(id, 'teamwar', { drivers: [a, b], teams: [tid], heat: 45, lead: lastLead[tid] || a, why: 'double' });
+      }
+      if (lead) lastLead[tid] = lead;
+    });
+
+    // the title fight
+    const L = st[0], L2 = st[1], Lp = stPrev[0];
+    if (L && L2 && idx >= 2) {
+      const gap = L.points - L2.points, id = 'title|' + s.id;
+      if (open.has(id)) {
+        const sl = open.get(id);
+        if (Lp && Lp.id !== L.id) { heat(sl, 20); ev.push({ kind: 'beat', sl, what: 'lead', lead: L.id }); }
+        else heat(sl, gap < sl.gap ? 6 : -4);
+        Object.assign(sl, { gap, drivers: [L.id, L2.id], lead: L.id });
+        if (gap > 2.5 * winPts && rd.round < all.length) close(sl, 'faded', { leadAtEnd: L.id });
+      } else if (gap <= winPts) mk(id, 'title', { drivers: [L.id, L2.id], teams: [], gap, lead: L.id, heat: 60 });
+    }
+
+    // rivalries: two drivers from different teams who keep finishing side by side
+    const fin = race.filter(e => e.position).sort((a, b) => a.position - b.position);
+    for (let i = 0; i + 1 < fin.length && i < 12; i++) {
+      const x = fin[i], y = fin[i + 1]; if (x.teamId === y.teamId) continue;
+      const k = [x.driverId, y.driverId].sort().join('|'); pairs[k] = (pairs[k] || 0) + 1;
+      const id = 'riv|' + k;
+      if (open.has(id)) { const sl = open.get(id); sl.count = pairs[k]; heat(sl, 8); ev.push({ kind: 'beat', sl, what: 'again', ahead: x.driverId }); }
+      else if (pairs[k] >= 4 && [...open.values()].filter(z => z.kind === 'rivalry').length < 2 && !f2)
+        mk(id, 'rivalry', { drivers: [x.driverId, y.driverId], teams: [x.teamId, y.teamId], count: pairs[k], heat: 45, ahead: x.driverId });
+    }
+
+    // contract saga: a driver keeps appearing in the rumour mill
+    if (!f2) ngRumourPicks(c, rd, NG_MEMO.rumours).forEach(x => {
+      const d = x.who; if (!d) return; sagaN[d] = (sagaN[d] || 0) + 1; const id = 'saga|' + d;
+      if (open.has(id)) { const sl = open.get(id); sl.count = sagaN[d]; heat(sl, 10); sl.team = x.team || sl.team; }
+      else if (sagaN[d] >= 3) mk(id, 'saga', { drivers: [d], teams: [x.team].filter(Boolean), count: sagaN[d], team: x.team, heat: 50 });
+    });
+
+    // veterans near the end of the season
+    if (rd.round >= all.length - 2 && !f2) race.forEach(e => {
+      const age = ngAge(e.driverId, (seasonOf(c, s.id) || {}).year), id = 'vet|' + e.driverId + '|' + s.id;
+      if (age >= 37 && !open.has(id) && !ended.some(z => z.id === id)) mk(id, 'veteran', { drivers: [e.driverId], teams: [e.teamId], age, heat: 40 });
+    });
+
+    // every open storyline remembers this round
+    open.forEach(sl => { if (!sl.beats.some(b => b.n === rd.round)) sl.beats.push({ n: rd.round, city, res: sl.drivers.map(d => `${ngLn(d)} ${ngRes(entry(d))}`) }); });
+
+    // last race of a finished season: close everything
+    if (rd.round === all.length) [...open.values()].forEach(sl => close(sl, sl.kind === 'title' ? 'champion' : 'season', { leadAtEnd: L && L.id }));
+
+    // moods from the last three races
+    const mood = {};
+    Object.entries(H).forEach(([d, h]) => {
+      if (!entry(d)) return;
+      const l3 = h.slice(-3), zeros = l3.filter(x => !x.pts).length, dnfs = l3.filter(x => !x.pos).length, pods = l3.filter(x => x.pos && x.pos <= 3).length;
+      mood[d] = l3[l3.length - 1].pos === 1 || pods >= 2 ? 'flying' : (zeros === 3 && h.some(x => x.pts)) || dnfs >= 2 ? 'crisis' : zeros >= 2 ? 'low' : zeros === 0 ? 'good' : 'steady';
+    });
+    const copy = sl => Object.assign({}, sl, { beats: sl.beats.slice(), drivers: sl.drivers.slice() });
+    out.set(rd.id, { round: rd, events: ev.map(x => Object.assign({}, x, { sl: x.sl ? copy(x.sl) : null })), open: [...open.values()].map(copy), ended: ended.map(copy), mood });
+  });
+}
+// story memory just after a round (null before a season's first race)
+const ngMemAfter = (c, round) => ngNarrative(c).get(round.id) || null;
+function ngMemBefore(c, round) {
+  const prev = roundsOf(c, round.seasonId).filter(r => r.round < round.round && resultFor(c, r.id, 'race'));
+  return prev.length ? ngMemAfter(c, prev[prev.length - 1]) : null;
+}
+
+/* --- callbacks: one line that links today's story to an older one ----------- */
+const NG_CALL = {
+  slump: ['It is now {n} races without points for {X}, a run that began in {startCity}.', 'Since {startCity}, {X} has gone {n} races without a point.', 'The drought for {X} goes on: {n} races without points since {startCity}.'],
+  slumpEnd: ['That ends a run of {n} races without points for {X}, which began in {startCity}.', 'The drought that started in {startCity} is over for {X}, after {n} races.', 'For {X}, {n} races of frustration since {startCity} finally ended here.'],
+  form: ['That is {n} podiums in a row for {X}, a run that started in {startCity}.', '{X} has not missed the podium since {startCity}: {n} in a row now.'],
+  teamwar: ['Inside {T}, the fight between {A} and {B} now stands at {pa} points to {pb}.', 'At {T}, {A} and {B} are separated by {d} points, and neither wants to be the number two.'],
+  title: ['The title fight that took shape in {startCity} is now {gap} points wide.', 'Since {startCity} the championship has been a two-way fight. The gap is {gap} points.'],
+  rivalry: ['{A} and {B} have now finished side by side {n} times this season.', 'Another chapter in the {A} versus {B} story: {n} times this year they have crossed the line next to each other.'],
+  saga: ['Talk about the future of {X} has followed him since {startCity}.', 'The questions about where {X} drives next have not stopped since {startCity}.'],
+  veteran: ['At {age}, {X} knows every race could be one of his last.', '{X} is {age} now, and the paddock is wondering how many races he has left.'],
+};
+function ngCallback(c, round, ids, rnd, after) {
+  const mem = after ? ngMemAfter(c, round) : ngMemBefore(c, round); if (!mem) return '';
+  const pick = l => l[Math.floor(rnd() * l.length)];
+  const closedNow = mem.events.filter(x => x.kind === 'close' && x.sl.kind === 'slump' && ids.includes(x.sl.drivers[0]));
+  if (closedNow.length) { const sl = closedNow[0].sl; return ngFill(pick(NG_CALL.slumpEnd), { X: ngLn(sl.drivers[0]), n: sl.count, startCity: sl.startCity }); }
+  const sl = mem.open.filter(z => z.drivers.some(d => ids.includes(d))).sort((a, b) => b.heat - a.heat)[0]; if (!sl) return '';
+  const st = ngStand(c, round.seasonId, mem.round.round), pts = id => (st.find(r => r.id === id) || { points: 0 }).points;
+  const [a, b] = sl.drivers, v = { X: ngLn(a), A: ngLn(a), B: b ? ngLn(b) : '', n: sl.count, startCity: sl.startCity, age: sl.age, gap: sl.gap, T: sl.teams[0] ? ngTn(sl.teams[0]) : '',
+    pa: pts(a), pb: b ? pts(b) : 0, d: b ? Math.abs(pts(a) - pts(b)) : 0 };
+  if (sl.kind === 'teamwar' && pts(b) > pts(a)) Object.assign(v, { A: ngLn(b), B: ngLn(a), pa: pts(b), pb: pts(a) });
+  return NG_CALL[sl.kind] ? ngFill(pick(NG_CALL[sl.kind]), v) : '';
+}
+
+/* --- moods: what a driver sounds like depends on his last three races ----- */
+const NG_MOOD = {
+  flying: { calm: ['We are in a good rhythm. The job now is to keep it.', 'Things are working. We stay humble and keep going.'], fiery: ['Right now I feel unbeatable, and I want to keep it that way.', 'Let them chase me. I am not slowing down.'],
+    joker: ['I have extended the contract of my lucky socks.', 'Everything is going well. I am starting to worry.'], diplomat: ['The team has given me a fantastic car, and the credit is theirs.', 'We enjoy this run, but nobody here is getting carried away.'],
+    blunt: ['We are fast. We keep scoring. Next race.', 'The car is good and I am driving well. Nothing more to say.'], emotional: ['I wake up every day excited. I want this feeling to last.', 'Sometimes I need to pinch myself. It is a dream.'] },
+  good: { calm: ['We are scoring every weekend, and that is the base.', 'Solid weeks. Now we look for a bit more.'], fiery: ['Points are fine, but I want more than fine.', 'Good is not enough for me. I want great.'],
+    joker: ['We are consistent. Consistently asking for more downforce.', 'Points every week. My accountant is happy.'], diplomat: ['The whole team is working well together right now.', 'We take the positives and keep learning.'],
+    blunt: ['We score points. That is the job.', 'Not bad. Not perfect either.'], emotional: ['I feel good in the car, and I feel the support of the team.', 'I am enjoying my racing again.'] },
+  steady: { calm: ['Some good days, some harder ones. We keep working.', 'We know where we need to improve.'], fiery: ['Up and down is not good enough. I want consistency.', 'I need the car to be there every weekend, not every second one.'],
+    joker: ['It has been a mixed bag. Like my cooking.', 'One good week, one bad week. At least it is never boring.'], diplomat: ['There are positives and lessons in every weekend.', 'We are building, step by step.'],
+    blunt: ['Not consistent enough. We need to fix that.', 'Some good, some bad. That is the truth.'], emotional: ['It has been a rollercoaster, honestly.', 'Some weekends I leave happy, some I do not sleep.'] },
+  low: { calm: ['It is a difficult moment. We stay calm and work through it.', 'Results are not coming, but the work is right.'], fiery: ['I am not happy, and I will not pretend I am.', 'This is not where I belong, and I will fight to get out of it.'],
+    joker: ['At least the view from the back is quiet.', 'I have seen more of the midfield than I wanted to.'], diplomat: ['We are in this together, and we will come out of it together.', 'Nobody in the team is giving up.'],
+    blunt: ['We are slow. We need to be faster.', 'Bad results. No excuses.'], emotional: ['It is hard. I give everything and get nothing back.', 'I have had some sleepless nights, I will be honest.'] },
+  crisis: { calm: ['We need to reset completely. Everything is on the table.', 'I will not panic. Panic makes it worse.'], fiery: ['Enough. Something has to change, now.', 'I have had it with excuses. We need answers.'],
+    joker: ['If you find our points, please send them back.', 'I hear there is a race on Sunday. I would like to finish one.'], diplomat: ['It is a tough time for everyone, and the team needs unity.', 'We will find the problem. I trust the people here.'],
+    blunt: ['This is a disaster. No other word for it.', 'Zero after zero. Not acceptable.'], emotional: ['This is the hardest period of my career.', 'I feel like I am letting everyone down.'] },
+};
+const ngMoodLine = (id, mood, rnd) => { const b = (NG_MOOD[mood || 'steady'] || NG_MOOD.steady)[ngPersona(driverOf(id))] || NG_MOOD.steady.calm; return b[Math.floor(rnd() * b.length)]; };
+
+/* --- article helpers --------------------------------------------------------- */
+const ngStory = (type, category, title, standfirst, body, drivers, teams, timing) =>
+  Object.assign({ type, category, title: ngHeadline(title), standfirst, body: body.filter(Boolean), drivers: drivers.filter(Boolean), teams: teams.filter(Boolean) }, timing);
+
+/* --- Winners and Losers ------------------------------------------------------ */
+function ngWinnersLosers(c, f, w) {
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], mem = ngMemAfter(c, f.round) || { events: [] };
+  const before = ngStand(c, f.round.seasonId, f.round.round - 1), expOf = e => e.grid || ((before.find(r => r.id === e.driverId) || {}).position) || 12;
+  const scored = f.race.map(e => ({ e, gain: e.position ? expOf(e) - e.position : -(23 - expOf(e)) / 2 }));
+  const used = new Set(), W = [], Lz = [];
+  const add = (list, e, text) => { if (!e || used.has(e.driverId) || list.length >= 3) return; used.add(e.driverId); list.push([e, text]); };
+  const v = e => ({ X: ngLn(e.driverId), T: ngTn(e.teamId), P: e.position ? 'P' + e.position : '', G: e.grid ? 'P' + e.grid : '', g: e.grid && e.position ? e.grid - e.position : 0, city: f.round.city || f.round.name });
+  add(W, f.W, ngFill(pick(f.firstWin ? ['A first win of the season, and the one he needed. The confidence this gives {X} is worth more than the 25 points.', 'The wait is over for {X}. He looked a different driver once he hit the front.']
+    : ['{X} did what winners do: no mistakes, maximum points. Rivals had no answer in {city}.', 'Pole, pace or patience, {X} had whatever the day asked for. {T} leave {city} very happy.']), v(f.W)));
+  scored.filter(x => x.e.position && x.gain >= 4).sort((a, b) => b.gain - a.gain).forEach(x => add(W, x.e, ngFill(pick(['From {G} to {P}: {X} gained {g} places with a string of clean, brave moves.', '{X} turned a poor grid slot into a strong result. {g} places gained, all of them on merit.']), v(x.e))));
+  mem.events.filter(x => x.kind === 'breakout').forEach(x => add(W, f.race.find(e => e.driverId === x.d), ngFill('A podium for {X} in a {T} that started the day {rank} in the teams’ table. Results like this change how a season feels.', Object.assign(v(f.race.find(e => e.driverId === x.d)), { rank: ngOrd(x.rank) }))));
+  mem.events.filter(x => x.kind === 'close' && x.sl.kind === 'slump').forEach(x => add(W, f.race.find(e => e.driverId === x.sl.drivers[0]), ngFill('Points at last. {X} ended a {n}-race drought, and the relief was obvious.', Object.assign(v(f.race.find(e => e.driverId === x.sl.drivers[0])), { n: x.sl.count }))));
+  if (f.leaderBeforeEntry && f.leaderBefore && f.L && f.L.id !== f.leaderBefore) add(Lz, f.leaderBeforeEntry, ngFill(pick(['{X} arrived as championship leader and leaves without the lead. One bad day, but a costly one.', 'The red mark of the weekend is next to {X}: the championship lead is gone.']), v(f.leaderBeforeEntry)));
+  f.dnfs.filter(e => expOf(e) <= 10).forEach(e => add(Lz, e, ngFill(pick(['{X} started {G} and had points in sight, then it was over. Zero points from a weekend that promised more.', 'A retirement from a good position. For {X} and {T} this one will hurt for a while.']), v(e))));
+  scored.filter(x => x.e.position && x.gain <= -4).sort((a, b) => a.gain - b.gain).forEach(x => add(Lz, x.e, ngFill(pick(['{X} went backwards: {G} on the grid, {P} at the flag. The team need to understand why.', 'A frustrating Sunday for {X}, who lost {lost} places from the start.']), Object.assign(v(x.e), { lost: -x.gain }))));
+  f.dnfs.forEach(e => add(Lz, e, ngFill(pick(['{X} did not finish. Another weekend where the points went elsewhere.', 'Retirement for {X} and an early flight home.']), v(e))));
+  if (!W.length || !Lz.length) return null;
+  const body = ['## Winners', ...W.flatMap(([e, t]) => [`### ${ngFull(e.driverId)}, ${ngTn(e.teamId)}`, t]), '## Losers', ...Lz.flatMap(([e, t]) => [`### ${ngFull(e.driverId)}, ${ngTn(e.teamId)}`, t])];
+  return ngStory('wl', 'Analysis', ngFill(pick(['Winners and losers from {gpShort}', '{gpShort}: who won and who lost', 'The winners and losers of {city}']), f.v), ngFill(pick(['Who left {city} happy, and who did not.', 'Our verdict on the weekend.']), f.v),
+    body, [...W, ...Lz].map(([e]) => e.driverId), [], { hours: 18 });
+}
+
+/* --- driver ratings ---------------------------------------------------------- */
+function ngRatings(c, f, w) {
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)];
+  const ts = ngTStand(c, f.round.seasonId, f.round.round - 1).map(r => r.id);
+  const mate = e => f.race.find(x => x.teamId === e.teamId && x.driverId !== e.driverId);
+  const rows = f.race.map(e => {
+    let r = 6; const m = mate(e), rank = ts.indexOf(e.teamId);
+    if (e.position) {
+      if (e.grid) r += Math.max(-1.5, Math.min(2, (e.grid - e.position) * 0.25));
+      if (e.position <= 3) r += 1; if (e.position === 1) r += 0.5;
+      if (rank >= 5 && e.position <= 10) r += 1; if (rank >= 0 && rank <= 2 && e.position > 8) r -= 1;
+      if (m) r += !m.position || m.position > e.position ? 0.5 : -0.4;
+    } else r = 4.5;
+    return { e, r: Math.max(2, Math.min(10, Math.round(r))) };
+  }).sort((a, b) => b.r - a.r || (a.e.position || 99) - (b.e.position || 99));
+  if (!rows.length) return null;
+  const line = ({ e, r }) => { const v = { X: ngLn(e.driverId), P: e.position ? 'P' + e.position : '', G: e.grid ? 'P' + e.grid : 'the back', T: ngTn(e.teamId) };
+    const bank = !e.position ? ['Out of the race, so hard to judge. The pace before the end was {pace}.', 'A retirement ends the story early.']
+      : r >= 9 ? ['Outstanding. {P} was the most this car could give, and he took all of it.', 'Close to perfect. Every lap counted.'] : r >= 7 ? ['A strong drive to {P}. Few mistakes, good racecraft.', 'Did everything right and was rewarded with {P}.']
+      : r >= 5 ? ['A quiet weekend. {P} is about where the car was.', 'Solid but unspectacular. {P}.'] : ['A day to forget. {P} from {G} is below his level.', 'Struggled all race and finished {P}.'];
+    return [`### ${ngFull(e.driverId)} (${v.T}): ${r}/10`, ngFill(pick(bank), Object.assign(v, { pace: pick(['promising', 'hard to read', 'decent']) }))]; };
+  const star = rows[0];
+  return ngStory('ratings', 'Analysis', ngFill(pick(['{gpShort} driver ratings', 'Rated: every driver at {gpShort}', 'Our {gpShort} driver ratings']), f.v),
+    `${ngFull(star.e.driverId)} is our driver of the weekend with ${star.r}/10.`, rows.flatMap(line), [star.e.driverId], [star.e.teamId], { hours: 28 });
+}
+
+/* --- team radio -------------------------------------------------------------- */
+const NG_ENG = {
+  win: ['P1, {X}! P1! Fantastic job.', 'That is the win, {X}! Get in there!', 'Chequered flag, P1. What a drive, mate.'],
+  p2: ['P2, {X}. Good points today.', 'That is P2. Strong race, well done.'],
+  fl: ['Purple lap, {X}. Fastest lap is ours.', 'Fastest lap. Nice job on those tyres.'],
+  dnf: ['Box, box. We need to stop the car, {X}. Sorry.', 'We have to retire the car, {X}. Stop at the next safe place.'],
+  points: ['That is points, {X}! Points at last!', 'P{p}, {X}. We are back in the points!'],
+};
+function ngRadio(c, f, w) {
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], mem = ngMemAfter(c, f.round) || { mood: {}, events: [] };
+  const laps = f.round.laps || 'the final', out = [], ids = [];
+  const clip = (e, eng, said, lap) => { ids.push(e.driverId); out.push(`### Lap ${lap}: ${ngFull(e.driverId)} (${ngTn(e.teamId)})`, `Engineer: "${ngFill(pick(eng), { X: ngLn(e.driverId).split(' ')[0], p: e.position })}"`, `${ngLn(e.driverId)}: "${said}"`); };
+  clip(f.W, NG_ENG.win, ngSays(driverOf(f.W.driverId), 'win', rnd), laps);
+  if (f.P2) clip(f.P2, NG_ENG.p2, ngSays(driverOf(f.P2.driverId), 'p2', rnd), laps);
+  const back = mem.events.find(x => x.kind === 'close' && x.sl.kind === 'slump');
+  if (back) { const e = f.race.find(x => x.driverId === back.sl.drivers[0]); if (e) clip(e, NG_ENG.points, ngMoodLine(e.driverId, 'good', rnd), laps); }
+  if (f.fl && ![f.W.driverId, f.P2 && f.P2.driverId].includes(f.fl.driverId)) clip(f.fl, NG_ENG.fl, pick(['Yes! The car feels great now.', 'Copy. Tyres still feel good.', 'Nice. Keep me updated on the gaps.']), typeof laps === 'number' ? laps - 3 : 'late');
+  const d = f.dnfs[Math.floor(rnd() * Math.max(1, f.dnfs.length))];
+  if (d) clip(d, NG_ENG.dnf, ngSays(driverOf(d.driverId), 'dnf', rnd), d.laps || 'mid-race');
+  return ngStory('radio', 'Interview', ngFill(pick(['Team radio: the best messages from {gpShort}', '"{quote}": the radio messages from {city}', 'Listen in: team radio from {gpShort}']), Object.assign({}, f.v, { quote: (out[2] || '').replace(/^[^"]*"|"$/g, '').split('.')[0] })),
+    ngFill(pick(['What the drivers said when the helmets were still on.', 'Joy, pain and humour on the radio.']), f.v), out, ids, [], { hours: 1 });
+}
+
+/* --- team bosses react ------------------------------------------------------- */
+const NG_BOSSQ = {
+  great: ['"A fantastic day. The team deserves every bit of this."', '"This is what we work for. Everyone should be proud."', '"We came here with a plan and we delivered it."'],
+  good: ['"Good points. We take them and keep building."', '"A solid weekend. There is still more performance to find."', '"Both cars in the points is what we needed."'],
+  bad: ['"Not good enough. We will look at everything before the next race."', '"We lacked pace and we know it. No excuses."', '"A difficult day. We need to react quickly."'],
+  crisis: ['"This is a hard moment for the team. We need to stay united and find answers."', '"We cannot keep having weekends like this. Changes will come."', '"I will not hide it: this hurts, and we must fix it now."'],
+};
+function ngBosses(c, f, w) {
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], mem = ngMemAfter(c, f.round) || { open: [] };
+  const by = {}; f.race.forEach(e => (by[e.teamId] = by[e.teamId] || []).push(e));
+  const ts = ngTStand(c, f.round.seasonId, f.round.round);
+  const body = []; const teams = Object.keys(by).sort((a, b) => ts.findIndex(r => r.id === a) - ts.findIndex(r => r.id === b));
+  teams.forEach(tid => {
+    const es = by[tid], p = es.reduce((a, e) => a + (e.pts || 0), 0), best = Math.min(...es.map(e => e.position || 99));
+    const war = mem.open.find(z => z.kind === 'teamwar' && z.teams[0] === tid);
+    const m = best <= 3 ? 'great' : p > 0 ? 'good' : es.every(e => !e.position) ? 'crisis' : 'bad';
+    body.push(`### ${ngTn(tid)}: ${ngBoss(tid)}`, pick(NG_BOSSQ[m]) + (war ? ' ' + pick(['"Both drivers know the rules. They are free to race."', '"The battle between our drivers is healthy, as long as they do not touch."']) : ''));
+  });
+  return ngStory('bosses', 'Interview', ngFill(pick(['What the team bosses said after {gpShort}', 'Team principals react to {gpShort}', '{gpShort}: the view from the pit wall']), f.v),
+    ngFill(pick(['Every team boss on the weekend in {city}.', 'From the front of the grid to the back.']), f.v), body, [], teams.slice(0, 3), { hours: 7 });
+}
+
+/* --- five things we learned --------------------------------------------------- */
+function ngFiveThings(c, f, w) {
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], mem = ngMemAfter(c, f.round) || { events: [], open: [], mood: {} }, items = [];
+  const add = (h, t) => items.length < 5 && items.push([h, t]);
+  if (f.L && f.L2) add(f.gap <= 10 ? 'The title fight is on a knife edge' : 'The championship picture', ngFill(f.gap <= 10 ? '{L} leads {L2} by only {gap} points. One bad weekend changes everything.' : '{L} leads by {gap} points from {L2}. The chasers need wins, not podiums.', f.v));
+  mem.events.filter(x => x.kind === 'close' && x.sl.kind === 'slump').forEach(x => add(`${ngLn(x.sl.drivers[0])} is back`, `After ${x.sl.count} races without points, ${ngLn(x.sl.drivers[0])} scored again. ${ngMoodLine(x.sl.drivers[0], 'good', rnd)}`));
+  mem.events.filter(x => x.kind === 'breakout').forEach(x => add(`${ngTn(x.team)} punched above their weight`, `${ngLn(x.d)} put a car from ${ngOrd(x.rank)} in the teams' table on the podium.`));
+  mem.events.filter(x => x.kind === 'redemption').forEach(x => add('Redemption', `${ngLn(x.d)} did not finish here in ${x.year}. This time he won.`));
+  mem.open.filter(z => z.kind === 'teamwar').slice(0, 1).forEach(z => add(`Tension at ${ngTn(z.teams[0])}`, ngCallback(c, f.round, z.drivers, rnd, true)));
+  mem.open.filter(z => z.kind === 'slump').sort((a, b) => b.count - a.count).slice(0, 1).forEach(z => add(`${ngLn(z.drivers[0])} needs answers`, ngCallback(c, f.round, z.drivers, rnd, true)));
+  mem.open.filter(z => z.kind === 'rivalry').slice(0, 1).forEach(z => add('A rivalry is growing', ngCallback(c, f.round, z.drivers, rnd, true)));
+  const top = ngTStand(c, f.round.seasonId, f.round.round); if (top[1]) add("The teams' fight", `${top[0] ? ngTn(top[0].id) : ''} lead ${ngTn(top[1].id)} by ${top[0].points - top[1].points} points in the constructors' standings.`);
+  const flying = Object.entries(mem.mood).filter(([, m]) => m === 'flying').map(([d]) => d).filter(d => d !== f.W.driverId)[0];
+  if (flying) add(`${ngLn(flying)} is in form`, `${ngLn(flying)}: "${ngMoodLine(flying, 'flying', rnd)}"`);
+  if (f.next) add('Next up', ngFill('The paddock moves to {nextGp}, {nextDays}.', f.v));
+  if (items.length < 3) return null;
+  return ngStory('five', 'Analysis', ngFill(pick(['{n} things we learned from {gpShort}', 'What we learned in {city}', 'Talking points: {gpShort}']), Object.assign({}, f.v, { n: ngCap(ngWord(items.length)) })),
+    ngFill(pick(['The stories behind the result.', 'Beyond the podium.']), f.v), items.flatMap(([h, t], i) => [`## ${i + 1}. ${h}`, t]), [f.W.driverId], [], { hours: 46 });
+}
+
+/* --- storyline articles: when an arc opens, turns or pays off ----------------- */
+const NG_ARC_HEAD = {
+  slump: ['What has gone wrong for {X}?', '{X}: {n} races, no points', 'Inside the slump of {X}'],
+  slumpEnd: ['How {X} turned it around', '{X} ends the drought', 'Back in the points: the comeback of {X}'],
+  form: ['{X} is on a roll', '{n} podiums in a row: the form of {X}', 'Nobody can stop {X} right now'],
+  formEnd: ['The run is over for {X}'],
+  teamwar: ['War at {T}: {A} against {B}', '{A} and {B}: the battle inside {T}', 'Team orders? Not yet at {T}'],
+  title: ['It is a title fight: {A} against {B}', '{A} versus {B}: the championship comes alive', 'Game on: {gap} points between {A} and {B}'],
+  titleLead: ['{A} takes over at the top', 'New leader: {A} moves ahead of {B}'],
+  rivalry: ['{A} against {B}: a rivalry is born', 'Why {A} and {B} keep meeting on track', 'Side by side again: {A} and {B}'],
+  saga: ['The {X} saga: where will he drive next?', 'Silly season: everyone is talking about {X}', '{X} and the question that will not go away'],
+  veteran: ['Is this the end for {X}?', '{X} at {age}: how long can he go on?'],
+};
+function ngArcStory(c, f, w) {
+  const mem = ngMemAfter(c, f.round); if (!mem) return null;
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)];
+  const prio = x => x.kind === 'close' && x.sl.kind === 'slump' ? 90 : x.kind === 'beat' && x.sl.kind === 'title' && x.what === 'lead' ? 85 : x.kind === 'open' ? ({ title: 80, teamwar: 70, slump: 60, rivalry: 55, saga: 50, form: 45, veteran: 40 }[x.sl.kind] || 0)
+    : x.kind === 'beat' && x.sl.kind === 'teamwar' ? 50 : 0;
+  const ev = mem.events.filter(x => x.sl && prio(x) > 0).sort((a, b) => prio(b) - prio(a))[0]; if (!ev) return null;
+  const sl = ev.sl, [a, b] = sl.drivers, mood = mem.mood || {};
+  const st = ngStand(c, f.round.seasonId, f.round.round), pts = id => (st.find(r => r.id === id) || { points: 0 }).points;
+  const v = Object.assign({}, f.v, { X: ngLn(a), A: ngLn(a), B: b ? ngLn(b) : '', n: sl.count, T: sl.teams[0] ? ngTn(sl.teams[0]) : '', gap: sl.gap, age: sl.age, startCity: sl.startCity });
+  if (sl.kind === 'teamwar' || sl.kind === 'title') { const lead = pts(a) >= pts(b) ? a : b, oth = lead === a ? b : a; Object.assign(v, { A: ngLn(lead), B: ngLn(oth) }); }
+  const key = ev.kind === 'close' ? 'slumpEnd' : sl.kind === 'title' && ev.what === 'lead' ? 'titleLead' : sl.kind;
+  const recap = sl.beats.slice(-5).map(bt => `${bt.city}: ${bt.res.join(', ')}.`).join(' ');
+  const quotes = sl.drivers.slice(0, 2).map(d => `${ngLn(d)} ${pick(['said', 'admitted', 'told us'])}: "${ngMoodLine(d, mood[d], rnd)}"`);
+  const intro = {
+    slump: '{X} has not scored since {startCity}. That is {n} races in a row without a point, for a driver who scored before it started.',
+    slumpEnd: 'For {n} races, since {startCity}, {X} came home with nothing. In {city} that changed.',
+    form: 'Since {startCity}, {X} has stood on the podium every single race. {n} in a row now.',
+    teamwar: 'The two drivers at {T} are now fighting each other as hard as anyone else on the grid. {A} has the upper hand for now.',
+    title: 'After {city}, only {gap} points separate {A} and {B}. The championship has become a straight fight.',
+    titleLead: 'The championship has a new leader. {A} is now ahead of {B}, and the gap is {gap} points.',
+    rivalry: '{A} and {B} drive for different teams, but they keep ending up in the same piece of track. {n} times this season they have finished side by side.',
+    saga: 'For the {nth} race in a row, the name of {X} came up in the paddock rumours.',
+    veteran: 'At {age}, {X} is the elder of the grid. With the season close to its end, the question is obvious.',
+  }[key];
+  const close = { slumpEnd: pick(['The work starts again now, but this weekend the smile came back.', 'It is one result. It could be the start of a new season for him.']), slump: pick(['The team insist the pace is there. The results say otherwise.', 'Something has to change, and soon.']),
+    teamwar: pick(['Team orders are not on the table yet. That could change quickly.', 'For the team, two drivers this close is a gift and a risk.']), title: pick(['Every point matters from here.', 'The rest of the field are now spectators to this fight.']) }[key] || '';
+  return ngStory('arc', 'Feature', ngFill(pick(NG_ARC_HEAD[key] || NG_ARC_HEAD[sl.kind]), v), ngFill(pick(['The story behind the results.', 'A storyline we have followed since {startCity}.', 'How we got here.']), v),
+    [ngFill(intro, Object.assign(v, { nth: ngOrd(sl.count) })), recap ? `The story so far: ${recap}` : '', ...quotes, close], sl.drivers, sl.teams, { hours: 30 });
+}
+
+/* --- milestone watch ---------------------------------------------------------- */
+function ngMilestones(c, f, w) {
+  const mem = ngMemAfter(c, f.round); if (!mem) return null;
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)];
+  const ms = mem.events.filter(x => x.kind === 'mile'); if (!ms.length) return null;
+  const text = x => { const X = ngFull(x.d), T = ngTn(x.team);
+    return { starts: `${X} started his ${ngOrd(x.n)} race in ${f.v.city}.`, firstpodium: `${X} stood on a podium for the first time in his career.`, podiums: `${X} took the ${ngOrd(x.n)} podium of his career.`,
+      firstwin: `${X} won a race for the first time in his career.`, wins: `${X} took career win number ${x.n}.`, teamfirst: `${T} won a race for the first time in this career, with ${X} at the wheel.`,
+      drought: `${T} ended a run of ${x.n} races without a podium, thanks to ${X}.` }[x.what]; };
+  const top = ms.find(x => x.what === 'firstwin') || ms.find(x => x.what === 'teamfirst') || ms[0];
+  const head = { firstwin: '{X}: a first career win', teamfirst: 'History for {T}', drought: '{T} end the wait', firstpodium: '{X} on the podium for the first time', starts: '{X} reaches {n} races', wins: '{X} reaches {n} wins', podiums: '{X} reaches {n} podiums' }[top.what];
+  const body = [...ms.map(text)];
+  if (['firstwin', 'firstpodium'].includes(top.what)) body.push(`${ngLn(top.d)} said: "${ngMoodLine(top.d, 'flying', rnd)}"`, `${ngBoss(top.team)}: "${pick(['We always believed in him. This is only the start.', 'Days like this are why we do this job.'])}"`);
+  return ngStory('miles', 'Feature', ngFill(head, { X: ngLn(top.d), T: ngTn(top.team), n: top.n }), ngFill(pick(['Numbers that will stay in the record books.', 'Milestones from {city}.']), f.v),
+    body, ms.map(x => x.d), ms.map(x => x.team), { hours: 10 });
+}
+
+/* --- long read in the gap between races --------------------------------------- */
+function ngLongRead(c, f, w) {
+  if (!f.next) return null;
+  const days = Math.round((parseDate(f.next.dateStart || f.next.dateEnd) - parseDate(f.round.dateEnd || f.round.dateStart)) / 864e5); if (!(days >= 12)) return null;
+  const mem = ngMemAfter(c, f.round); if (!mem || !mem.open.length) return null;
+  const sl = [...mem.open].sort((a, b) => b.heat - a.heat)[0], rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)];
+  const [a, b] = sl.drivers, v = { X: ngLn(a), A: ngLn(a), B: b ? ngLn(b) : '', T: sl.teams[0] ? ngTn(sl.teams[0]) : '', startCity: sl.startCity, n: sl.count, days, nextGp: f.v.nextGp };
+  const title = { slump: 'The long read: inside the slump of {X}', form: 'The long read: how {X} became the man to beat', teamwar: 'The long read: {A}, {B} and the battle for {T}', title: 'The long read: {A} against {B}',
+    rivalry: 'The long read: {A}, {B} and a rivalry in the making', saga: 'The long read: the future of {X}', veteran: 'The long read: {X} and the final chapter' }[sl.kind];
+  const beats = sl.beats.map(bt => `- ${bt.city}: ${bt.res.join(', ')}`);
+  return ngStory('longread', 'Feature', ngFill(title, v), ngFill('With {days} days until {nextGp}, we look back at the story that has followed us since {startCity}.', v),
+    [ngFill(pick(['This story did not start this week. It started in {startCity}.', 'To understand where this is going, you need to go back to {startCity}.']), v), '## Race by race', ...beats, '## What they say',
+      ...sl.drivers.map(d => `${ngLn(d)} said: "${ngMoodLine(d, (mem.mood || {})[d], rnd)}"`), sl.teams[0] ? `${ngBoss(sl.teams[0])}: "${pick(['We know what is being said. We focus on our own job.', 'There is a lot of noise. Inside the team, we are calm.'])}"` : '',
+      '## What comes next', ngFill(pick(['The next chapter is written at {nextGp}.', 'The answer may come at {nextGp}.']), v)], sl.drivers, sl.teams, { hours: 24 * Math.min(5, Math.floor(days / 3)) });
+}
+
+/* --- season review --------------------------------------------------------------- */
+function ngSeasonReview(c, f, w) {
+  if (!f.last) return null;
+  const mem = ngMemAfter(c, f.round); if (!mem) return null;
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], year = (seasonOf(c, f.round.seasonId) || {}).year;
+  const arcs = [...mem.ended].sort((a, b) => b.peak - a.peak).slice(0, 5);
+  const champ = f.L ? f.L.id : null;
+  const head = sl => { const [a, b] = sl.drivers; return ({ slump: `The slump of ${ngLn(a)}`, form: `${ngLn(a)}'s podium run`, teamwar: `${ngLn(a)} against ${ngLn(b)} at ${ngTn(sl.teams[0])}`, title: `The title fight: ${ngLn(a)} against ${ngLn(b)}`,
+    rivalry: `${ngLn(a)} and ${ngLn(b)}`, saga: `The ${ngLn(a)} saga`, veteran: `${ngLn(a)}, the veteran` })[sl.kind] || sl.kind; };
+  const arc = sl => { const span = sl.endCity && sl.endCity !== sl.startCity ? `From ${sl.startCity} to ${sl.endCity}` : `It began in ${sl.startCity}`;
+    const end = { podium: 'and it ended with a podium.', points: 'and it ended with points.', champion: `and it ended with ${ngLn(sl.leadAtEnd || sl.drivers[0])} on top.`, faded: 'until the gap grew too big.', ended: `after ${sl.count} podiums in a row.`, season: 'and it runs into next season.' }[sl.outcome] || '.';
+    return `${span}, ${sl.beats.length} races long, ${end}`; };
+  const body = [champ ? `${ngFull(champ)} is the ${year} champion with ${f.L.points} points, ${f.gap} ahead of ${f.v.L2}.` : '', '## The stories that defined the season',
+    ...arcs.flatMap(sl => [`### ${head(sl)}`, arc(sl)]), champ ? `The champion said: "${ngMoodLine(champ, 'flying', rnd)}"` : ''];
+  return ngStory('review', 'Feature', pick([`${year} season review: the stories that defined the year`, `The ${year} season in five stories`, `Looking back at ${year}`]),
+    pick(['From the first race to the last.', 'Every arc, every twist.']), body, champ ? [champ] : [], [], { hours: 24 * 5 });
+}
+
+/* --- the weekend before the race: Thursday press conference, Friday practice ----- */
+const NG_PRESSQ = {
+  leader: ['You arrive as championship leader. Does that change how you race?', 'Everyone is chasing you. How do you handle that?'],
+  chaser: ['You are {gap} points behind. Is this the weekend to attack?', 'What do you need to close the gap to {L}?'],
+  slump: ['{n} races without points. What is going wrong?', 'How do you get out of a run like this?'],
+  form: ['{n} podiums in a row. Where does this form come from?', 'Is this the best you have ever driven?'],
+  teamwar: ['The fight with {M} is very close. Is the atmosphere still good in the team?', 'Would you accept team orders in favour of {M}?'],
+  saga: ['Your name keeps coming up in the rumours. Have you decided your future?', 'Can you tell us anything about next year?'],
+  rivalry: ['You and {R} keep finishing side by side. Is there a rivalry?', 'What do you think of {R} as a racer?'],
+  home: ['This is your home race. How does it feel?', 'What does the home crowd mean to you?'],
+  veteran: ['Is retirement on your mind?', 'How long do you want to keep racing?'],
+};
+const NG_PRESSA = {
+  rivalry: ['He is fast and fair. I enjoy racing him.', 'We know each other well now on track. I expect another battle.'], home: ['It is special. I want to give the fans something to cheer.', 'I have dreamed of this since I was a kid.'],
+  veteran: ['I still love it. When I stop loving it, I will stop.', 'I will decide at the right moment. Not today.'], teamwar: ['We push each other, and that makes the team stronger.', 'We are free to race. I want to finish ahead of him, of course.'],
+};
+function ngPress(c, round, w) {
+  const mem = ngMemBefore(c, round); if (!mem) return null;
+  const rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)], st = ngStand(c, round.seasonId, round.round - 1); if (!st[0] || !st[0].points) return null;
+  const seats = []; const add = (d, kind, x) => { if (d && !seats.some(s => s.d === d) && seats.length < 4) seats.push(Object.assign({ d, kind }, x)); };
+  add(st[0].id, 'leader');
+  const hot = [...mem.open].sort((a, b) => b.heat - a.heat);
+  hot.forEach(sl => { const [a, b] = sl.drivers; if (sl.kind === 'teamwar') add(a, 'teamwar', { M: ngLn(b) }); else if (sl.kind === 'rivalry') add(a, 'rivalry', { R: ngLn(b) }); else if (['slump', 'form', 'saga', 'veteran'].includes(sl.kind)) add(a, sl.kind, { n: sl.count }); });
+  const home = st.find(r => (driverOf(r.id) || {}).nationality === round.countryCode); if (home) add(home.id, 'home');
+  if (st[1]) add(st[1].id, 'chaser', { gap: st[0].points - st[1].points });
+  const v0 = { L: ngLn(st[0].id), city: round.city || round.name, gpShort: round.name };
+  const body = [ngFill(pick(['The drivers faced the media on Thursday in {city}. These were the main questions.', 'Media day in {city}: here is what the drivers said.']), v0)];
+  seats.forEach(s => {
+    const v = Object.assign({}, v0, s), q = ngFill(pick(NG_PRESSQ[s.kind]), v);
+    const a = s.kind === 'saga' ? ngSays(driverOf(s.d), 'rumour', rnd) : NG_PRESSA[s.kind] ? pick(NG_PRESSA[s.kind]) + ' ' + ngMoodLine(s.d, mem.mood[s.d], rnd) : ngMoodLine(s.d, mem.mood[s.d], rnd);
+    body.push(`### ${ngFull(s.d)}`, `Q: ${q}`, `${ngLn(s.d)}: "${a}"`);
+  });
+  return ngStory('press', 'Interview', ngFill(pick(['Press conference: what the drivers said in {city}', 'Thursday in {city}: the drivers speak', '{gpShort} media day: the key quotes']), v0),
+    ngFill(pick(['The questions, and the answers, before the action starts.', 'Talking points before the cars hit the track.']), v0), body, seats.map(s => s.d), [], { hoursBefore: 24 });
+}
+function ngPractice(c, round, w) {
+  const mem = ngMemBefore(c, round), rnd = w.rnd, pick = l => l[Math.floor(rnd() * l.length)];
+  const q = ngRace(c, round.id, 'qualifying').filter(e => e.position).sort((a, b) => a.position - b.position).slice(0, 3);
+  const v = { city: round.city || round.name, gpShort: round.name, circuit: round.circuit || round.city || round.name };
+  const body = [];
+  if (q.length >= 3) body.push('## Who looked quick', `${ngLn(q[0].driverId)} set the pace on Friday, with ${ngLn(q[1].driverId)} and ${ngLn(q[2].driverId)} close behind. ${pick(['Long-run pace looked strong too.', 'The gaps were small, so Saturday is wide open.'])}`);
+  if (mem) {
+    const sl = [...mem.open].sort((a, b) => b.heat - a.heat)[0];
+    if (sl) body.push('## The storyline to watch', ngCallback(c, round, sl.drivers, rnd, false) || `All eyes on ${sl.drivers.map(ngLn).join(' and ')}.`);
+    const low = Object.entries(mem.mood).filter(([, m]) => m === 'crisis' || m === 'low').map(([d]) => d)[0];
+    if (low) body.push('## Under pressure', `${ngLn(low)} needs a good weekend. "${ngMoodLine(low, mem.mood[low], rnd)}"`);
+  }
+  body.push('## Track talk', ngFill(pick(['Track temperatures climbed through the day, and the tyres did not like it.', 'Several drivers ran wide at the same corner, and the track limits will be watched.', 'Most teams ran new parts on Friday, and the data will tell if they work.', 'Wind made the car difficult to balance for many drivers at {circuit}.']), v));
+  if (body.length < 3) return null;
+  return ngStory('practice', 'News', ngFill(pick(['Practice talking points from {city}', 'Friday at {gpShort}: what we learned', '{gpShort} practice: the key stories']), v),
+    ngFill(pick(['The first clues of the weekend.', 'What Friday told us.']), v), body, q.map(e => e.driverId), [], { hoursBefore: -9 });
+}
+
+/* all new post-race formats for one round (F1 only; F2 keeps its shorter coverage) */
+function ngMoreFormats(c, f, w, seed, mk) {
+  if (NG_F2.has(f.round.seasonId)) return [];
+  f.v = f.v || ngVars(f);
+  return [ngWinnersLosers, ngRatings, ngRadio, ngBosses, ngFiveThings, ngArcStory, ngMilestones, ngLongRead, ngSeasonReview]
+    .map((fn, i) => fn(c, f, mk(seed + 'nf' + i))).filter(Boolean);
 }

@@ -226,7 +226,7 @@ function pageRound(id) {
         </div>
       </aside>
     </div>
-    ${arts.length ? `<section class="wrap section">${sectionHead('Weekend stories', { href: '#/news', label: 'All news' })}<div class="row-cards">${arts.map(a => articleCard(a, 'row')).join('')}</div></section>` : ''}` };
+    ${arts.length ? `<section class="wrap section">${sectionHead('Weekend timeline', { href: '#/news', label: 'All news' })}${weekendTimeline(arts)}</section>` : ''}` };
 }
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -503,17 +503,44 @@ function academySection(c, t) {
 }
 
 /* ======================= NEWS ============================================ */
+// Article text: blank-line paragraphs, "## " and "### " headings, "- " list items.
+function articleBodyHtml(body) {
+  const out = []; let list = [];
+  const flush = () => { if (list.length) out.push(`<ul>${list.join('')}</ul>`); list = []; };
+  String(body || '').split(/\n\s*\n|\n/).filter(Boolean).forEach(p => {
+    if (/^- /.test(p)) { list.push(`<li>${esc(p.slice(2))}</li>`); return; }
+    flush();
+    if (/^### /.test(p)) out.push(`<h4 class="article-sub">${esc(p.slice(4))}</h4>`);
+    else if (/^## /.test(p)) out.push(`<h3 class="article-h">${esc(p.slice(3))}</h3>`);
+    else out.push(`<p>${esc(p)}</p>`);
+  });
+  flush(); return out.join('');
+}
+// Race weekend stories in publishing order, grouped by day (preview, press day, practice, qualifying, race, the days after).
+function weekendTimeline(arts) {
+  const day = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC' }); };
+  const groups = []; [...arts].sort((a, b) => String(a.publishedAt).localeCompare(String(b.publishedAt))).forEach(a => {
+    const k = day(a.publishedAt), g = groups[groups.length - 1];
+    if (g && g.k === k) g.items.push(a); else groups.push({ k, items: [a] });
+  });
+  return `<ol class="timeline">${groups.map(g => `<li class="tl-day"><h3 class="tl-label">${esc(g.k)}</h3><div class="row-cards">${g.items.map(a => articleCard(a, 'row')).join('')}</div></li>`).join('')}</ol>`;
+}
+
+const NEWS_PAGE = 40;
 function pageNews(q) {
   const c = D();
   const cat = q.category || '';
   const s = q.season ? seasonOf(c, q.season) : null;
-  const list = articlesFor(c, { category: cat || null, seasonId: s ? s.id : null });
+  const all = articlesFor(c, { category: cat || null, seasonId: s ? s.id : null });
+  const n = Math.max(NEWS_PAGE, parseInt(q.n, 10) || NEWS_PAGE), list = all.slice(0, n);
+  const more = all.length > n ? `<p class="news-more"><a class="btn btn-outline" href="#/news?${[cat && 'category=' + encodeURIComponent(cat), s && 'season=' + s.id, 'n=' + (n + NEWS_PAGE)].filter(Boolean).join('&')}">Show more stories</a></p>` : '';
   const cats = ARTICLE_CATEGORIES.filter(k => c.articles.some(a => a.category === k));
   return { title: 'Latest News', nav: 'news', html: `
     <div class="wrap page">
       <h1 class="h-page">Latest Career News</h1>
       <div class="chip-row chip-row-tight">${pill('All', '#/news', !cat)}${cats.map(k => pill(k, `#/news?category=${encodeURIComponent(k)}`, cat === k)).join('')}</div>
       <div class="news-list">${list.map(a => articleCard(a, 'row')).join('') || emptyState('No stories', 'Nothing in this category yet.', { href: '#/edit/articles', label: 'Write one' })}</div>
+      ${more}
     </div>` };
 }
 
@@ -530,7 +557,7 @@ function pageArticle(id) {
         ${a.standfirst ? `<p class="standfirst">${esc(a.standfirst)}</p>` : ''}
         <p class="byline">${esc(a.author || 'Career Desk')} · ${esc(fmtDate(a.publishedAt))}</p>
       </header>
-      <div class="article-body prose">${String(a.body || '').split(/\n\s*\n|\n/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('')}</div>
+      <div class="article-body prose">${articleBodyHtml(a.body)}</div>
       ${(a.driverIds.length || a.teamIds.length) ? `<div class="article-related prose"><h4>In this story</h4><div class="chip-row chip-row-tight">${a.driverIds.map(driverOf).filter(Boolean).map(d => pill(nameOf(d), `#/drivers/${d.id}`)).join('')}${a.teamIds.map(teamOf).filter(Boolean).map(t => pill(t.name, `#/teams/${t.id}`)).join('')}</div></div>` : ''}
     </article>
     ${more.length ? `<section class="wrap section">${sectionHead('More news', { href: '#/news', label: 'View all' })}<div class="row-cards">${more.map(x => articleCard(x, 'row')).join('')}</div></section>` : ''}` };

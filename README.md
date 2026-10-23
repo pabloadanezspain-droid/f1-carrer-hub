@@ -24,7 +24,7 @@ src/styles.css       layout + components
 src/components.js    shell (header, nav, race strip, mobile menu, footer) + cards, tables, atoms
 src/pages.js         public pages
 src/matrix.js        Wikipedia-style standings matrix + click-to-edit result cells
-src/newsgen.js       automatic newsroom: facts → story selection → varied phrase banks → sync
+src/newsgen.js       automatic newsroom: facts → story memory (storylines) → story selection → varied phrase banks → sync
 src/editor.js        Edit Career forms, results grid editor, transfers, import/export
 src/store.js         data model, persistence, validation      (see DATA_MODEL.md)
 src/selectors.js     standings / line-ups / stats (pure functions)
@@ -180,3 +180,13 @@ After every saved result the site writes news for you (`src/newsgen.js`):
 - **Stories:** every race gets a report; the two most newsworthy extra angles (title fight, milestone, drama, home hero, your team) get their own articles; the next race gets a preview.
 - **Variety:** every headline and paragraph has several hand-written variants, picked by situation and a seed per race, so wording is stable but varied, and headline styles are not repeated within a season.
 - **Your edits win:** an auto story you edit is never overwritten. Use **Rewrite** for new wording, or switch the feature off in Career settings.
+
+## Newsroom
+Every race weekend gets a timeline of stories, shown on the race page:
+- Before the race: preview (Tuesday), press conference (Thursday), practice talking points (Friday), qualifying (Saturday).
+- After the race: race report, team radio, team bosses, Winners and Losers, driver ratings, five things we learned, plus the best of the other angles.
+- Between races: a long read on the hottest storyline when the gap is 12 days or more. Season review after the last race.
+
+Story memory follows storylines across races: slumps and comebacks, podium runs, team-mate wars, title fights, rivalries, contract sagas and veterans. Career milestones (starts, wins, podiums, team droughts) and driver moods from the last three races shape headlines and quotes.
+
+Storage: auto-written stories are rebuilt from results, so they are not saved. Only stories you edited, featured, rewrote or gave a picture are stored. Sync only rewrites seasons whose results changed, so long careers stay fast. Backups keep the last 3.
