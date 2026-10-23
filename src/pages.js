@@ -30,6 +30,7 @@ function pageHome() {
     ${chips}
     ${calNote}
     ${banner}
+    ${titleAlert(c, s)}
     ${leadGrid}
     <section class="wrap home-duo">
       ${nx ? nextRaceCard(nx) : `<div class="panel">${emptyState('Season complete', 'Every round has a result.', null)}</div>`}
@@ -43,6 +44,14 @@ function pageHome() {
       ${sectionHead('Latest career news', { href: '#/news', label: 'View all' })}
       <div class="row-cards">${arts.slice(0, 6).map(a => articleCard(a, 'row')).join('') || '<p class="muted">No articles.</p>'}</div>
     </section>` };
+}
+
+// home page: show the title maths once the title can be decided at the next race
+function titleAlert(c, s) {
+  if (seriesOf(s) !== 'f1' || typeof titleMath !== 'function') return '';
+  const m = titleMath(c, s.id, 'drivers');
+  if (!m || m.champion || !m.table || !m.table.cells.some(r => r.some(Boolean))) return '';
+  return `<div class="wrap"><div class="season-done-banner"><span><b>Title on the line:</b> ${esc(m.summary)}</span><a class="btn btn-white" href="#/scenarios?season=${s.id}">All scenarios</a></div></div>`;
 }
 
 function nextRaceCard(r) {
@@ -331,6 +340,7 @@ function pageStandings(kind, q) {
       <div class="mx-top"><div><h1 class="h-page">${esc(title)}</h1>
         <p class="page-sub">After ${done} of ${total} rounds · ${esc(ruleFor(c, s.id).name || 'Points')}</p></div>${tools}</div>
       ${edit ? '<p class="mx-editing"><b>Editing.</b> Click any cell to set the position, Ret, DNS or DSQ, pole and fastest lap. Changes save and update the standings instantly.</p>' : ''}
+      ${kind === 'drivers' && !edit && done ? scenarioPanel(c, s, true) : ''}
       ${kind === 'drivers' ? mxDriversTable(c, s, edit) : mxTeamsTable(c, s)}
       ${mxLegend()}
     </div>`, after: bindMatrix };
@@ -474,6 +484,7 @@ function pageTeam(id, q) {
           <dl class="facts">${[['Grands Prix entered (career)', all.races], ['Team points (career)', all.points], ['Highest race finish', all.best ? all.best + ordinal(all.best) : '—'], ['Podiums', all.podiums], ['Pole positions', all.poles], ['World Championships', (Number(t.championships) || 0) + all.titles]].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
         </div>
       </div>
+      ${s && typeof teamPace === 'function' && completedRounds(c, s.id).length >= 2 ? (P => { const me = P.teams.find(x => x.id === t.id); return me ? `<h3 class="h-sub spaced">Car development</h3><p class="muted">Pace index now ${me.now} (best ${me.best})${me.trend >= 5 ? `, up ${me.trend} over the last 3 races` : me.trend <= -5 ? `, down ${-me.trend} over the last 3 races` : ''}. <a href="#/development?season=${s.id}">Compare all teams ›</a></p>${paceChart(P, { small: true, only: t.id })}` : ''; })(teamPace(c, s.id)) : ''}
       ${resRows.length ? `<h3 class="h-sub spaced">Results by round</h3>${dataTable([{ label: 'Rnd' }, { label: gpCol() }, { label: 'Finishes' }, { label: 'Pts.', cls: 'num' }], resRows)}` : ''}
       <h2 class="h-section spaced" id="profile">Team profile</h2>
       <dl class="facts panel two-col">${[['Full team name', t.fullName], ['Base', t.base], ['Team chief', t.principal], ['Technical chief', t.technicalChief], ['Chassis', t.chassis], ['Power unit', t.powerUnit], ['First team entry', t.firstEntry]].map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v || '—')}</dd></div>`).join('')}</dl>

@@ -83,6 +83,7 @@ const NAV = [
   { key: 'lineup', label: 'Line-up', href: '#/lineup' },
   { key: 'showroom', label: 'Showroom', href: '#/showroom' },
   { key: 'news', label: 'News', href: '#/news' },
+  { key: 'insights', label: 'Insights', href: '#/development' },
 ];
 
 /* F1 / F2 switch, shown when the career runs both series. */

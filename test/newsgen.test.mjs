@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 const src = p => fs.readFileSync(new URL('../src/' + p, import.meta.url), 'utf8');
 const ctx = { console, URL, localStorage: { getItem: () => null, setItem() {} } };
 vm.createContext(ctx);
-vm.runInContext(['store.js', 'selectors.js', 'assets.js', 'components.js', 'matrix.js', 'newsgen.js'].map(src).join('\n')
+vm.runInContext(['store.js', 'selectors.js', 'assets.js', 'components.js', 'matrix.js', 'insights.js', 'newsgen.js'].map(src).join('\n')
   + '\nthis.api = { Store, normalizeCareer, validateCareer, clone, mxSetResult, mxSetPole, syncAutoNews, rewriteAutoNews, ngSig, roundsOf, driverStandings, startNextSeason, transferDriver, lineupAt };', ctx);
 const A = ctx.api;
 const sample = JSON.parse(src('sample-data.json'));
