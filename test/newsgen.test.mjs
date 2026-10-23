@@ -179,7 +179,7 @@ test('new season: every transfer gets a storyline, plus a round-up', () => {
   ['max_verstappen', 'lewis_hamilton', 'pablo_adanez', 'oliver_bearman'].forEach(d => assert.ok(mv.some(a => a.auto.key.includes('move_' + d)), 'story for ' + d));
   assert.ok(mv.some(a => a.auto.key.includes('move_oliver_bearman') && a.roundId === r5.id), 'mid-season move at its round');
   const ru = c.articles.find(a => a.auto && a.auto.key.endsWith(':moves')); assert.ok(ru && /Verstappen/.test(ru.body), 'round-up lists the moves');
-  mv.forEach(a => { assert.ok(a.body.length > 250, 'long enough'); assert.doesNotMatch(a.title + a.body, /\{[A-Za-z]+\}|undefined/); });
+  mv.forEach(a => { assert.ok(a.body.length > 250, 'long enough: ' + a.auto.key + ' ' + a.body.length + ' ' + a.body); assert.doesNotMatch(a.title + a.body, /\{[A-Za-z]+\}|undefined/); });
   assert.ok(new Date(ru.publishedAt) < new Date(A.roundsOf(c, ns.id)[0].dateStart), 'round-up before the first race');
   if (process.argv.includes('--moves')) [ru, ...mv].forEach(a => console.log(`\n# ${a.title}\n> ${a.standfirst}\n${a.body}`));
   assert.deepEqual([...A.validateCareer(c)], []);

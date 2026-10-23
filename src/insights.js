@@ -18,7 +18,7 @@ let IN_CACHE = { key: '', m: new Map() };
 function inCacheClear() { IN_CACHE = { key: '', m: new Map() }; }
 function inMemo(c, name, fn) {
   const key = `${c.results.length}|${c.rounds.length}|${c.seasons.length}|${c.assignments.length}|${c.meta.updatedAt || ''}`;
-  if (IN_CACHE.key !== key) IN_CACHE = { key, m: new Map() };
+  if (IN_CACHE.key !== key || IN_CACHE.c !== c) IN_CACHE = { key, c, m: new Map() };
   if (!IN_CACHE.m.has(name)) IN_CACHE.m.set(name, fn());
   return IN_CACHE.m.get(name);
 }

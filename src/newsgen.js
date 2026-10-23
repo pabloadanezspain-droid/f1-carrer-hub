@@ -988,6 +988,8 @@ function ngMoveStory(c, m, w) {
     M: mate ? (driverOf(mate) || {}).lastName : '', gp: m.round.name || 'the next race' };
   const fit = NG_PLOT.filter(p => p[0].includes(m.kind)); const plot = fit[Math.floor(w.rnd() * fit.length)];
   const body = [ngFill(w.pick(plot[2]), vars)];
+  if (m.kind === 'exit') { const B = typeof careerBook === 'function' ? careerBook(c, seriesOf(s)).book[m.d] : null;
+    body.push(B && B.starts ? `He leaves with ${B.starts} start${B.starts > 1 ? 's' : ''}, ${B.wins} win${B.wins === 1 ? '' : 's'} and ${B.podiums} podium${B.podiums === 1 ? '' : 's'} in this career${B.titles ? `, and ${B.titles} title${B.titles > 1 ? 's' : ''}` : ''}.` : `${X.lastName} said goodbye to the team and the mechanics before he left ${F ? F.name : 'the paddock'}.`); }
   if (m.kind === 'exit') body.push(ngFill(w.pick(['For now, {X} has no seat for {y}.', '{X} is without a race seat for {y}, but says he is not done yet.', 'What comes next for {X} is unclear. Reserve roles and other series are possible.']), vars), `${X.lastName} said: "${ngSays(X, 'leave', w.rnd)}"`);
   else {
     if (pos >= 0) body.push(ngFill(w.pick(['Last season he finished {lastPos} with {lastPts} points.', 'He scored {lastPts} points in {py}, good for {lastPos}.']), vars));
